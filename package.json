@@ -1,0 +1,60 @@
+{
+  "name": "pet-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "PET App",
+  "author": "Aleksander Dantsev",
+  "type": "module",
+
+  "main": "electron/main.ts",
+
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "electron": "electron .",
+    "electron-build": "electron-builder",
+    "dist": "npm run build && electron-builder"
+  },
+
+  "build": {
+    "appId": "com.pet.app",
+    "productName": "PET App",
+
+    "directories": {
+      "output": "release"
+    },
+
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+
+    "win": {
+      "target": "nsis"
+    },
+
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PET App"
+    }
+  },
+
+  "dependencies": {
+    "vue": "^3.5.41"
+  },
+
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/tsconfig": "^0.9.1",
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.2",
+    "vue-tsc": "^3.3.11"
+  }
+}
