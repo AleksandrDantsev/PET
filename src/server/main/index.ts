@@ -1,11 +1,10 @@
 import { app, BrowserWindow } from "electron";
 import path from "node:path";
-import "./ipc/google.js";
 import { fileURLToPath } from "node:url";
 
+import "./ipc/google.js";
 
 const __filename = fileURLToPath(import.meta.url);
-
 const __dirname = path.dirname(__filename);
 
 function createWindow() {
@@ -16,7 +15,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(
         __dirname,
-        "../preload/index.cjs"
+        "preload",
+        "index.js"
       ),
       contextIsolation: true,
       nodeIntegration: false,
@@ -28,8 +28,9 @@ function createWindow() {
   if (app.isPackaged) {
     win.loadFile(
       path.join(
-        __dirname,
-        "../dist/index.html"
+        process.cwd(),
+        "dist",
+        "index.html"
       )
     );
   } else {
@@ -39,8 +40,18 @@ function createWindow() {
   }
 }
 
-
 app.whenReady().then(() => {
-    createWindow();
+  createWindow();
+
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
 });
 
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
+});
