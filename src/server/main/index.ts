@@ -1,0 +1,46 @@
+import { app, BrowserWindow } from "electron";
+import path from "node:path";
+import "./ipc/google.js";
+import { fileURLToPath } from "node:url";
+
+
+const __filename = fileURLToPath(import.meta.url);
+
+const __dirname = path.dirname(__filename);
+
+function createWindow() {
+  const win = new BrowserWindow({
+    width: 1400,
+    height: 900,
+
+    webPreferences: {
+      preload: path.join(
+        __dirname,
+        "../preload/index.cjs"
+      ),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  win.webContents.openDevTools();
+
+  if (app.isPackaged) {
+    win.loadFile(
+      path.join(
+        __dirname,
+        "../dist/index.html"
+      )
+    );
+  } else {
+    win.loadURL(
+      "http://localhost:5173"
+    );
+  }
+}
+
+
+app.whenReady().then(() => {
+    createWindow();
+});
+

@@ -16,6 +16,9 @@ dist-ssr/
 release/
 out/
 
+#Google
+credentials/
+
 # Electron installers
 *.exe
 *.msi
