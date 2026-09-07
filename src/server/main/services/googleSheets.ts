@@ -1,3 +1,4 @@
+import type { IGoogleTableData } from "@/types/TableSheetData.types";
 import { google } from "googleapis";
 import path from "node:path";
 
@@ -31,57 +32,81 @@ export async function getSheet(range: string) {
 
 export async function getSheetValuesById(
   id: number | string
-): Promise<Record<string, string | number>[]> {
-  const spreadsheet =
-    await sheets.spreadsheets.get({
-      spreadsheetId: SHEET_ID,
-    });
+): Promise<IGoogleTableData> {
+  const spreadsheet = await sheets.spreadsheets.get({
+    spreadsheetId: SHEET_ID,
+  });
 
-  const sheet =
-    spreadsheet.data.sheets?.find(
-      (sheet) =>
-        sheet.properties?.sheetId === Number(id)
-    );
+  const sheet = spreadsheet.data.sheets?.find(
+    sheet => sheet.properties?.sheetId === Number(id)
+  );
 
   if (!sheet?.properties?.title) {
     throw new Error(`Лист ${id} не найден`);
   }
 
-  const valuesResponse =
-    await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: sheet.properties.title,
-    });
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: sheet.properties.title,
+  });
 
-  const values =
-    valuesResponse.data.values ?? [];
+  return response.data;
+}
 
+
+
+// export async function getSheetValuesById(
+//   id: number | string
+// ): Promise<Record<string, string | number>[]> {
+//   const spreadsheet =
+//     await sheets.spreadsheets.get({
+//       spreadsheetId: SHEET_ID,
+//     });
+
+//   const sheet =
+//     spreadsheet.data.sheets?.find(
+//       (sheet) =>
+//         sheet.properties?.sheetId === Number(id)
+//     );
+
+//   if (!sheet?.properties?.title) {
+//     throw new Error(`Лист ${id} не найден`);
+//   }
+
+//   const valuesResponse =
+//     await sheets.spreadsheets.get({
+//       spreadsheetId: SHEET_ID,
+//       range: sheet.properties.title,
+//     });
+//     const values =
+//     valuesResponse.data.values ?? [];
+//     return valuesResponse;
 //   const headersConst =
 //     await getHeadersConst();
 
-  const headerRow = 1;
+//   const headerRow = 1;
 
-  if (!headerRow) {
-    throw new Error(
-      `Не удалось определить строку заголовков`
-    );
-  }
+//   if (!headerRow) {
+//     throw new Error(
+//       `Не удалось определить строку заголовков`
+//     );
+//   }
 
-  const headers =
-    values[headerRow - 1];
+//   const headers =
+//     values[headerRow - 1];
 
-  const rows =
-    values.slice(headerRow);
+//   const rows =
+//     values.slice(headerRow);
 
-  return rows.map((row) =>
-    Object.fromEntries(
-      headers.map((header, index) => [
-        String(header).trim(),
-        row[index] ?? "",
-      ])
-    )
-  );
-}
+//   return rows.map((row) =>
+//     Object.fromEntries(
+//       headers.map((header, index) => [
+//         String(header).trim(),
+//         row[index] ?? "",
+//       ])
+//     )
+//   );
+// }
 
 
 export async function getSheetsGID() {
@@ -89,7 +114,7 @@ export async function getSheetsGID() {
     spreadsheetId: SHEET_ID,
   });
 
-  const result: Record<string, number> = {};
+  const result: Record<string, number | null> = {};
 
   response.data.sheets?.forEach((sheet) => {
     const title = sheet.properties?.title;

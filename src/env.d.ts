@@ -1,3 +1,5 @@
+import type { IGoogleTableData } from "./types/TableSheetData.types";
+
 export {};
 
 declare global {
@@ -9,7 +11,7 @@ declare global {
 
       getSheetValuesById(
         id: number | string
-      ): Promise<string[][]>;
+      ): IGoogleTableData;
 
       getSheetsGID(): Promise<
         Record<string, number>>;

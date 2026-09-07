@@ -11,7 +11,11 @@ export default [
   ...pluginVue.configs["flat/recommended"],
 
   {
+    files: ["**/*.vue"],
     languageOptions: {
+      parserOptions: {
+        parser: tseslint.parser,
+      },
       globals: globals.browser,
     },
   },

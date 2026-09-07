@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import { api } from "@/api/api";
-import { ref, onMounted } from "vue";
-import { getHeaderIndex } from "@/utils/tableHelpers";
+  import { api } from "@/api/api";
+  import { ref, onMounted } from "vue"
+  import type { IGoogleTableData } from "@/types/TableSheetData.types";
+  import { valuesToColumns } from "@/helpers/dataHandlers";
+  import { getConfigContragentsList } from "@/helpers/configHandlers";
 
-const rows = ref<Record<string, string>>({});
 
-onMounted(async () => {
-  rows.value =
-    await api.google.getSheetValuesById(358090170);
+  const rows = ref<IGoogleTableData | null>();
 
-  console.log(await api.google.getHeadersConst());
-  console.log(getHeaderIndex(rows.value, await api.google.getHeadersConst()));
-});
+  onMounted(async () => {
+    // rows.value = await api.google.getSheetValuesById(358090170);
+    rows.value = await api.google.getSheetValuesById(581263708);
+  });
 </script>
 
 <template>
   <div>
     <pre>
-      {{ rows }}
+      {{ getConfigContragentsList(rows) }}
     </pre>
   </div>
 </template>
