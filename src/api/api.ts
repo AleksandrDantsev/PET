@@ -9,22 +9,6 @@ export const api = {
     getSheetsGID: () =>
       window.electronAPI.getSheetsGID(),
 
-    getHeadersConst: () =>
-      window.electronAPI.getHeadersConst(),
-    
-    getManagersBranchList: () =>
-      window.electronAPI.getManagersBranchList(),
-
-    getContragents: () =>
-      window.electronAPI.getContragents(),
-
-
-
-
-
-
-
-
 
   },
 

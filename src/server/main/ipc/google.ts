@@ -1,12 +1,9 @@
 // ipc
 import { ipcMain } from "electron";
-import { 
-    getSheet,
-    getSheetValuesById,
-    getSheetsGID,
-    // getHeadersConst,
-    // getManagersBranchList,
-    // getContragents,
+import {
+  getSheet,
+  getSheetValuesById,
+  getSheetsGID,
 } from "../services/googleSheets.js";
 
 // после добавления сюда нужно перезапускать electron
@@ -26,15 +23,3 @@ ipcMain.handle("google:getSheetValuesById",
 ipcMain.handle("google:getSheetsGID",
   async () => getSheetsGID()
 );
-
-// ipcMain.handle("google:getHeadersConst",
-//   async () => getHeadersConst()
-// );
-
-// ipcMain.handle("google:getManagersBranchList",
-//   async () => getManagersBranchList()
-// );
-
-// ipcMain.handle("google:getContragents",
-//   async () => getContragents()
-// );

@@ -1,23 +1,36 @@
 <script setup lang="ts">
-  import { api } from "@/api/api";
-  import { ref, onMounted } from "vue"
-  import type { IGoogleTableData } from "@/types/TableSheetData.types";
-  import { valuesToColumns } from "@/helpers/dataHandlers";
-  import { getConfigContragentsList } from "@/helpers/configHandlers";
+import { api } from "@/api/api";
+import { ref, onMounted, computed } from "vue"
+import type { IGoogleTableData } from "@/types/TableSheetData.types"
+import Interchangeable from "@/pages/Interchangeable/Interchangeable.vue";
+
+import { NConfigProvider, NGlobalStyle } from "naive-ui";
+import { themeOverrides } from "@/theme/naiveTheme";
+import { getConfigConst } from "@/helpers/configHandlers";
 
 
-  const rows = ref<IGoogleTableData | null>();
+  const actualData = ref<IGoogleTableData | null>(null);
+  const configData = ref<IGoogleTableData | null>(null);
 
   onMounted(async () => {
-    // rows.value = await api.google.getSheetValuesById(358090170);
-    rows.value = await api.google.getSheetValuesById(581263708);
+    actualData.value = await api.google.getSheetValuesById(358090170);
+    configData.value = await api.google.getSheetValuesById(581263708);
   });
+
+  const arrConstTitles = computed(() => {
+    if (configData.value === null) return null;
+    return Object.values(getConfigConst(configData.value) ?? {})
+  })
 </script>
 
 <template>
-  <div>
-    <pre>
-      {{ getConfigContragentsList(rows) }}
-    </pre>
-  </div>
+  <n-config-provider :theme-overrides="themeOverrides">
+    <n-global-style />
+    <div>
+      <Interchangeable
+        :actual-data="actualData" 
+        :arr-const-titles="arrConstTitles"
+      />
+    </div>
+  </n-config-provider>
 </template>

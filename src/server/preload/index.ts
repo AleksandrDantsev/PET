@@ -11,19 +11,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getSheetsGID: () =>
     ipcRenderer.invoke("google:getSheetsGID"),
 
-  getHeadersConst: () =>
-    ipcRenderer.invoke("google:getHeadersConst"),
-
-  getManagersBranchList: () =>
-    ipcRenderer.invoke("google:getManagersBranchList"),
-
-  getContragents: () =>
-    ipcRenderer.invoke("google:getContragents"),
-
-
-
-
-
-
 
 });

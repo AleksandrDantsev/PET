@@ -3,9 +3,9 @@ import { valuesToColumns } from "./dataHandlers";
 
 const ch = {
     getConfigConst(
-        data: IGoogleTableData
-    ): Record<string, string> | null {
-        if (!data?.values) return null;
+        data: IGoogleTableData | null
+    ): Record<string, string> | null {  // { const: title}
+        if (!data?.values || data === null) return null;
 
         const columnsData = valuesToColumns(data);
 
@@ -53,8 +53,8 @@ const ch = {
 
     getConfigContragentsList(data: IGoogleTableData): Record<string, {
         branch: string;
-        manager: string;}> | null 
-    {
+        manager: string;
+    }> | null {
         if (!data?.values) return null;
 
         const columnsData = valuesToColumns(data);
@@ -89,8 +89,8 @@ const ch = {
 
 
 
-export const { 
-    getConfigConst, 
-    getConfigManagersBranchList, 
+export const {
+    getConfigConst,
+    getConfigManagersBranchList,
     getConfigContragentsList,
 } = ch;

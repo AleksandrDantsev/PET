@@ -1,6 +1,6 @@
 import type { IGoogleTableData } from "./types/TableSheetData.types";
 
-export {};
+export { };
 
 declare global {
   interface Window {
@@ -15,17 +15,6 @@ declare global {
 
       getSheetsGID(): Promise<
         Record<string, number>>;
-
-      getHeadersConst(): Promise<
-        Record<string, number>>;
-
-      getManagersBranchList(): Promise<
-        Record<string, number>>;
-
-      getContragents(): Promise<
-        Record<string, number>>;
-
-
 
     };
   }
