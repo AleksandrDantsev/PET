@@ -24,6 +24,8 @@ export default [
     rules: {
       "no-console": "warn",
       "no-debugger": "warn",
+      "indent": ['error', 4],
+      'vue/html-indent': ['error', 4]
     },
   },
 ];
