@@ -175,7 +175,6 @@ const passportRules: FormRules = {
         required: true,
         message: "Введите количество",
         trigger: ["change"],
-        type: "number",
     },
 
     dateOfDelivery: {
