@@ -2,8 +2,8 @@ import type { IGoogleTableData } from "@/types/TableSheetData.types";
 
 const dh = {
     dataToObjects: function (data: IGoogleTableData, positionHeaderRow: number = 0)  // [ {Артикул: a1, Цена: а2}, {Артикул: a3, Цена: а4} ]
-        : Record<string, string | number | boolean>[] | null {
-        if (!data?.values) return null;
+        : Record<string, string | number | boolean>[] | [] {
+        if (!data?.values) return [];
 
         const headers = data.values[positionHeaderRow];
 

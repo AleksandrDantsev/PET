@@ -37,21 +37,19 @@ type TCommonObj = Record<
 
 export function  prepareResult(targetObject: TCommonObj[]) {
     const result = targetObject.map((row: TCommonObj) => {
-      const obj: TCommonObj = {};
+        const obj: TCommonObj = {};
 
-      for (const key in row) {
-        const value = row[key];
+        for (const key in row) {
+            const value = row[key];
 
-        obj[key] =
-          typeof value === "string"
-            ? (value.trim() ? value : "-")
-            : value ?? "-";
-      }
-
-      return obj;
+            obj[key] = typeof value === "string"
+                ? (value.trim() ? value : "-")
+                : value ?? "-";
+        }
+        return obj;
     });
     return JSON.parse(JSON.stringify(result));
-  }
+}
 
 
 export function setDaysText(days: string | number): string {
@@ -105,7 +103,7 @@ export function getColor(nomenclature: string): string {
 
     for (const color in colors) {
         if (text.includes(color)) {
-        return colors[color]
+            return colors[color]
         }
     }
     return "";
