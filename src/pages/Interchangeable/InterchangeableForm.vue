@@ -357,9 +357,7 @@ const save = async () => {
         </n-form>
     </div>
 </template>
-
-<style scoped lang="scss">
-
+<style lang="scss" scoped>
 .search-wrapper {
     position: sticky;
     top: 0;
@@ -368,36 +366,21 @@ const save = async () => {
     width: 100%;
     box-sizing: border-box;
 
-    padding: 18px 20px 16px;
+    padding: 12px 14px;
 
-    background:
-        linear-gradient(
-            180deg,
-            #faf9f6 0%,
-            #f7f6f2 100%
-        );
+    background: #f8f8f6;
 
-    border: 1px solid rgba(31, 31, 31, 0.08);
-    border-radius: 18px;
+    border: 1px solid #e3e3df;
+    border-radius: 8px;
 
-    box-shadow:
-        0 8px 30px rgba(20, 20, 20, 0.05),
-        0 2px 8px rgba(20, 20, 20, 0.025);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.035);
 
-    overflow: hidden;
-
-    /*
-     * ВАЖНО:
-     * wrapper остаётся sticky,
-     * но верхняя форма всегда находится
-     * поверх второй.
-     */
+    overflow: visible;
 }
 
 
 /* =========================================================
-   ПЕРВАЯ ФОРМА
-   Всегда остаётся сверху
+   ОСНОВНАЯ ФОРМА
 ========================================================= */
 
 .search-form {
@@ -407,26 +390,22 @@ const save = async () => {
     display: grid;
 
     grid-template-columns:
-        minmax(220px, 1fr)
-        minmax(280px, 1fr)
-        110px;
+        minmax(200px, 1fr)
+        minmax(240px, 1fr)
+        96px;
 
-    gap: 16px;
+    gap: 10px;
 
     align-items: end;
 
-    padding: 4px 0 2px;
+    padding: 0;
 
-    /*
-     * Непрозрачный фон нужен,
-     * чтобы passport-fields не просвечивал.
-     */
-    background: #faf9f6;
+    background: #f8f8f6;
 }
 
 
 /* =========================================================
-   ВТОРАЯ ФОРМА
+   ДОПОЛНИТЕЛЬНЫЕ ПОЛЯ
 ========================================================= */
 
 .passport-fields {
@@ -436,32 +415,22 @@ const save = async () => {
     display: grid;
 
     grid-template-columns:
-        minmax(160px, 1.1fr)
-        minmax(140px, 0.8fr)
-        minmax(140px, 0.8fr)
-        minmax(150px, 0.9fr)
-        minmax(100px, 0.55fr)
-        minmax(190px, 1.2fr)
-        44px;
+        minmax(140px, 1.1fr)
+        minmax(120px, 0.8fr)
+        minmax(120px, 0.8fr)
+        minmax(130px, 0.9fr)
+        minmax(90px, 0.55fr)
+        minmax(160px, 1.2fr)
+        36px;
 
-    gap: 16px;
+    gap: 10px;
 
     align-items: end;
 
-    margin-top: 14px;
-    padding: 14px 0 2px;
+    margin-top: 10px;
+    padding: 10px 0 0;
 
-    border-top: 1px solid rgba(31, 31, 31, 0.07);
-
-    /*
-     * Это позволяет второй строке
-     * визуально уходить под первую.
-     */
-    transform: translateY(0);
-
-    transition:
-        transform 0.25s ease,
-        opacity 0.25s ease;
+    border-top: 1px solid #e4e4e0;
 }
 
 
@@ -470,55 +439,53 @@ const save = async () => {
 ========================================================= */
 
 :deep(.n-form-item-label) {
-    padding-bottom: 7px !important;
+    padding-bottom: 4px !important;
 }
 
 :deep(.n-form-item-label__text) {
-    color: #77736c;
+    color: #777;
 
     font-size: 10px;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.1;
 
-    letter-spacing: 0.13em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
 
 /* =========================================================
-   INPUTS
+   ОБЩИЕ INPUT / SELECT / DATE
 ========================================================= */
 
 :deep(.n-input),
 :deep(.n-input-number),
 :deep(.n-base-selection),
 :deep(.n-date-picker) {
-    --n-border: rgba(32, 32, 32, 0.13) !important;
-    --n-border-hover: rgba(32, 32, 32, 0.35) !important;
-    --n-border-focus: #222 !important;
+    --n-border: #d8d8d4 !important;
+    --n-border-hover: #b8b8b3 !important;
+    --n-border-focus: #555 !important;
 
     --n-box-shadow-focus:
-        0 0 0 1px rgba(32, 32, 32, 0.06) !important;
+        0 0 0 2px rgba(40, 40, 40, 0.06) !important;
 
     --n-color: #fff !important;
-    --n-text-color: #292824 !important;
-    --n-placeholder-color: #a29e96 !important;
+    --n-text-color: #292929 !important;
+    --n-placeholder-color: #999 !important;
 
-    --n-height: 40px !important;
+    --n-height: 36px !important;
 
-    min-height: 40px;
+    min-height: 36px;
 
     background: #fff !important;
 
-    border-radius: 10px !important;
+    border-radius: 6px !important;
 
-    font-size: 13px !important;
-
-    letter-spacing: 0.01em;
+    font-size: 12px !important;
 
     transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 
@@ -528,18 +495,17 @@ const save = async () => {
 
 :deep(.n-input) {
     background: #fff !important;
+}
 
-    &:hover {
-        background: #fff !important;
-    }
+:deep(.n-input:hover) {
+    background: #fff !important;
+}
 
-    &:focus-within {
-        background: #fff !important;
+:deep(.n-input:focus-within) {
+    background: #fff !important;
 
-        box-shadow:
-            0 0 0 3px rgba(20, 20, 20, 0.035),
-            0 5px 18px rgba(20, 20, 20, 0.04);
-    }
+    box-shadow:
+        0 0 0 2px rgba(40, 40, 40, 0.055) !important;
 }
 
 
@@ -550,13 +516,13 @@ const save = async () => {
 :deep(.n-input__input-el),
 :deep(.n-input__textarea-el),
 :deep(.n-input-number-input__input) {
-    color: #292824 !important;
+    color: #292929 !important;
 
-    font-size: 13px !important;
+    font-size: 12px !important;
 }
 
 :deep(input::placeholder) {
-    color: #aaa69e !important;
+    color: #a3a39e !important;
 }
 
 
@@ -567,16 +533,17 @@ const save = async () => {
 :deep(.n-input__suffix),
 :deep(.n-input__prefix),
 :deep(.n-base-selection__arrow) {
-    color: #96928a !important;
+    color: #888 !important;
 }
 
 :deep(.n-input__clear),
 :deep(.n-base-selection__clear) {
-    color: #9b978f !important;
+    color: #999 !important;
+}
 
-    &:hover {
-        color: #222 !important;
-    }
+:deep(.n-input__clear:hover),
+:deep(.n-base-selection__clear:hover) {
+    color: #333 !important;
 }
 
 
@@ -588,16 +555,12 @@ const save = async () => {
     width: 100%;
 
     background: #fff !important;
-
-    &:hover {
-        background: #fff !important;
-    }
 }
 
 :deep(.n-base-selection-label) {
     background: #fff !important;
 
-    border-radius: 10px !important;
+    border-radius: 6px !important;
 }
 
 :deep(.n-base-selection-input) {
@@ -605,17 +568,16 @@ const save = async () => {
 }
 
 :deep(.n-base-selection-input__content) {
-    color: #292824 !important;
+    color: #292929 !important;
 
-    font-size: 13px !important;
+    font-size: 12px !important;
 }
 
 :deep(.n-base-selection--active) {
     background: #fff !important;
 
     box-shadow:
-        0 0 0 3px rgba(20, 20, 20, 0.035),
-        0 5px 18px rgba(20, 20, 20, 0.04);
+        0 0 0 2px rgba(40, 40, 40, 0.055) !important;
 }
 
 
@@ -648,12 +610,14 @@ const save = async () => {
 
 :deep(.n-input-number__minus),
 :deep(.n-input-number__plus) {
-    color: #96928a !important;
+    color: #888 !important;
+}
 
-    &:hover {
-        color: #222 !important;
-        background: #f4f3ef !important;
-    }
+:deep(.n-input-number__minus:hover),
+:deep(.n-input-number__plus:hover) {
+    color: #333 !important;
+
+    background: #f2f2ef !important;
 }
 
 
@@ -686,14 +650,13 @@ const save = async () => {
 :deep(.n-auto-complete-menu) {
     overflow: hidden;
 
-    border: 1px solid rgba(30, 30, 30, 0.08) !important;
-    border-radius: 12px !important;
+    border: 1px solid #deded9 !important;
+    border-radius: 7px !important;
 
-    background: rgba(255, 255, 255, 0.98) !important;
+    background: #fff !important;
 
     box-shadow:
-        0 15px 45px rgba(20, 20, 20, 0.11),
-        0 3px 10px rgba(20, 20, 20, 0.04) !important;
+        0 8px 24px rgba(0, 0, 0, 0.08) !important;
 }
 
 
@@ -702,27 +665,27 @@ const save = async () => {
 ========================================================= */
 
 :deep(.n-base-select-option) {
-    min-height: 38px !important;
+    min-height: 34px !important;
 
-    padding: 0 14px !important;
+    padding: 0 10px !important;
 
-    border-radius: 7px !important;
+    border-radius: 4px !important;
 
-    color: #383631 !important;
+    color: #333 !important;
 
-    font-size: 13px !important;
+    font-size: 12px !important;
+}
 
-    &:hover {
-        background: #f4f3ef !important;
-    }
+:deep(.n-base-select-option:hover) {
+    background: #f3f3f0 !important;
+}
 
-    &.n-base-select-option--selected {
-        background: #eeede9 !important;
+:deep(.n-base-select-option.n-base-select-option--selected) {
+    background: #ecece8 !important;
 
-        color: #111 !important;
+    color: #111 !important;
 
-        font-weight: 500;
-    }
+    font-weight: 500;
 }
 
 
@@ -731,14 +694,13 @@ const save = async () => {
 ========================================================= */
 
 :deep(.n-date-panel) {
-    border: 1px solid rgba(30, 30, 30, 0.08) !important;
-    border-radius: 12px !important;
+    border: 1px solid #deded9 !important;
+    border-radius: 7px !important;
 
     background: #fff !important;
 
     box-shadow:
-        0 15px 45px rgba(20, 20, 20, 0.11),
-        0 3px 10px rgba(20, 20, 20, 0.04) !important;
+        0 8px 24px rgba(0, 0, 0, 0.08) !important;
 }
 
 
@@ -747,76 +709,78 @@ const save = async () => {
 ========================================================= */
 
 .search-button {
-    width: 110px !important;
-    height: 40px !important;
+    width: 96px !important;
+    height: 36px !important;
 
-    border: 1px solid #222 !important;
-    border-radius: 10px !important;
+    border: 1px solid #333 !important;
+    border-radius: 6px !important;
 
-    background: #222 !important;
+    background: #333 !important;
     color: #fff !important;
 
-    font-size: 11px !important;
+    font-size: 10px !important;
     font-weight: 600 !important;
 
-    letter-spacing: 0.16em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
 
     box-shadow: none !important;
 
     transition:
-        background 0.2s ease,
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
 
-    &:hover {
-        background: #000 !important;
+.search-button:hover {
+    background: #222 !important;
 
-        transform: translateY(-1px);
+    border-color: #222 !important;
 
-        box-shadow:
-            0 7px 20px rgba(0, 0, 0, 0.14) !important;
-    }
+    transform: none;
 
-    &:active {
-        transform: translateY(0);
-    }
+    box-shadow: none !important;
+}
+
+.search-button:active {
+    background: #111 !important;
 }
 
 
 /* =========================================================
-   SAVE
+   SAVE BUTTON
 ========================================================= */
 
 .save-button {
-    width: 40px !important;
-    min-width: 40px !important;
-    height: 40px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
 
     padding: 0 !important;
 
-    border: 1px solid rgba(32, 32, 32, 0.15) !important;
-    border-radius: 10px !important;
+    border: 1px solid #d6d6d1 !important;
+    border-radius: 6px !important;
 
     background: #fff !important;
-    color: #272622 !important;
+    color: #555 !important;
 
-    font-size: 15px !important;
+    font-size: 14px !important;
 
-    box-shadow:
-        0 3px 12px rgba(20, 20, 20, 0.04) !important;
+    box-shadow: none !important;
 
     transition:
-        background 0.2s ease,
-        color 0.2s ease,
-        transform 0.2s ease;
-    
-    &:hover {
-        background: #222 !important;
-        color: #fff !important;
+        background 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
+}
 
-        transform: translateY(-1px);
-    }
+.save-button:hover {
+    background: #f1f1ee !important;
+
+    border-color: #c8c8c3 !important;
+
+    color: #222 !important;
+
+    transform: none;
 }
 
 
@@ -825,7 +789,7 @@ const save = async () => {
 ========================================================= */
 
 :deep(.n-form-item-feedback-wrapper) {
-    font-size: 11px;
+    font-size: 10px;
 }
 
 :deep(.n-form-item--error .n-input),
@@ -846,8 +810,8 @@ const save = async () => {
 @media (max-width: 1250px) {
     .passport-fields {
         grid-template-columns:
-            repeat(3, minmax(150px, 1fr))
-            44px;
+            repeat(3, minmax(130px, 1fr))
+            36px;
     }
 }
 
@@ -858,13 +822,13 @@ const save = async () => {
 
 @media (max-width: 850px) {
     .search-wrapper {
-        padding: 14px;
-        border-radius: 14px;
+        padding: 10px;
+        border-radius: 7px;
     }
 
     .search-form {
         grid-template-columns: 1fr;
-        gap: 10px;
+        gap: 8px;
     }
 
     .search-button {
@@ -873,9 +837,12 @@ const save = async () => {
 
     .passport-fields {
         grid-template-columns:
-            repeat(2, minmax(140px, 1fr));
+            repeat(2, minmax(130px, 1fr));
 
-        gap: 10px;
+        gap: 8px;
+
+        margin-top: 8px;
+        padding-top: 8px;
     }
 
     .save-button {
@@ -896,7 +863,9 @@ const save = async () => {
 ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-    .passport-fields {
+    .passport-fields,
+    .search-button,
+    .save-button {
         transition: none;
     }
 }

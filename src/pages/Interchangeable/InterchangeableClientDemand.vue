@@ -80,72 +80,44 @@ const clientsDemandMemo = computed(() => {
 </template>
 
 <style scoped lang="scss">
+
 .contragent-desc-container {
-    --ink: #181817;
-    --secondary: #777671;
-    --line: #deddd9;
-    --line-light: #ebeae7;
-    --background: #ffffff;
-
-    width: 100%;
-    box-sizing: border-box;
-
-    margin-top: 26px;
-
-    color: var(--ink);
-
-    font-family:
-        Inter,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
+    width: 91%;
+    margin: 25px auto;
+    color: #292824;
 }
 
 
-// ═══════════════════════════════════════
-// Заголовок
-// ═══════════════════════════════════════
+/* =========================================================
+   TITLE
+========================================================= */
 
 .contragent-desc-title {
-    display: flex;
-    align-items: center;
+    margin-bottom: 12px;
 
-    margin: 0 0 17px;
+    color: #66635d;
 
-    color: var(--ink);
-
-    font-size: 11px;
-    line-height: 1;
+    font-size: 12px;
     font-weight: 600;
 
+    line-height: 1.3;
+
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-
-    letter-spacing: 0.13em;
-
-    white-space: nowrap;
-
-    &::after {
-        content: "";
-
-        width: 100%;
-        height: 1px;
-
-        margin-left: 18px;
-
-        background: var(--line-light);
-    }
 }
 
 
-// ═══════════════════════════════════════
-// Поля
-// ═══════════════════════════════════════
+/* =========================================================
+   LIST
+========================================================= */
 
 .contragent-desc-wrapper {
-    margin: 0;
+    display: flex;
+    flex-direction: column;
 
-    border-top: 1px solid var(--line);
+    gap: 7px;
+
+    width: 100%;
 
     > div {
         display: flex;
@@ -153,174 +125,115 @@ const clientsDemandMemo = computed(() => {
 
         min-width: 0;
 
-        margin: 0;
-
-        padding: 11px 2px;
-
-        color: var(--ink);
-
-        font-size: 13px;
-        line-height: 1.4;
-
-        border-bottom: 1px solid var(--line-light);
-
-        overflow-wrap: anywhere;
-
-        &:last-child {
-            border-bottom-color: var(--line);
-        }
+        line-height: 1.45;
     }
 }
 
 
-// ═══════════════════════════════════════
-// Подписи
-// ═══════════════════════════════════════
+/* =========================================================
+   LABEL
+========================================================= */
 
 .subtitle {
-    flex: 0 0 185px;
+    flex: 0 0 180px;
 
-    display: inline-block;
+    margin-right: 10px;
 
-    margin: 0;
+    color: #8a8780;
 
-    color: var(--secondary);
-
-    font-size: 8px;
-    line-height: 1.3;
+    font-size: 11px;
     font-weight: 600;
 
-    text-transform: uppercase;
+    line-height: 1.4;
 
-    letter-spacing: 0.11em;
+    white-space: nowrap;
 }
 
 
-// ═══════════════════════════════════════
-// Первое поле — контрагент
-// ═══════════════════════════════════════
+/* =========================================================
+   VALUE
+========================================================= */
+
+.value {
+    min-width: 0;
+
+    color: #3d3b36;
+
+    font-size: 13px;
+    line-height: 1.45;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   CLIENT
+========================================================= */
 
 .contragent-desc-wrapper > div:first-child {
-    padding-top: 13px;
-    padding-bottom: 13px;
+    margin-bottom: 2px;
 
-    font-size: 15px;
-    font-weight: 600;
+    .value {
+        color: #292824;
 
-    letter-spacing: -0.01em;
-
-    .subtitle {
-        font-size: 8px;
+        font-size: 14px;
+        font-weight: 600;
     }
 }
 
 
-// ═══════════════════════════════════════
-// Ошибка
-// ═══════════════════════════════════════
+/* =========================================================
+   NOT FOUND
+========================================================= */
 
 .interchangeable-unit-not-found {
-    position: relative;
+    padding: 10px 0;
 
-    margin: 20px 0;
+    color: #85827b;
 
-    padding: 15px 0 15px 16px;
-
-    color: var(--secondary);
-
-    font-size: 12px;
-    line-height: 1.55;
-
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-
-    &::before {
-        content: "";
-
-        position: absolute;
-
-        left: 0;
-        top: 15px;
-        bottom: 15px;
-
-        width: 1px;
-
-        background: #aaa8a2;
-    }
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 
-// ═══════════════════════════════════════
-// Планшет
-// ═══════════════════════════════════════
+/* =========================================================
+   MOBILE
+========================================================= */
 
-@media (max-width: 800px) {
+@media (max-width: 600px) {
+
     .contragent-desc-container {
-        margin-top: 22px;
+        margin-top: 14px;
     }
 
     .contragent-desc-title {
-        font-size: 10px;
-    }
-
-    .subtitle {
-        flex-basis: 155px;
-    }
-}
-
-
-// ═══════════════════════════════════════
-// Телефон
-// ═══════════════════════════════════════
-
-@media (max-width: 500px) {
-    .contragent-desc-container {
-        margin-top: 18px;
-    }
-
-    .contragent-desc-title {
-        margin-bottom: 13px;
-
-        font-size: 9px;
-
-        letter-spacing: 0.1em;
-
-        &::after {
-            margin-left: 12px;
-        }
-    }
-
-    .contragent-desc-wrapper {
-        > div {
-            padding: 9px 1px;
-
-            font-size: 11px;
-        }
-    }
-
-    .subtitle {
-        flex-basis: 115px;
-
-        font-size: 7px;
-    }
-
-    .contragent-desc-wrapper > div:first-child {
-        padding-top: 11px;
-        padding-bottom: 11px;
-
-        font-size: 13px;
-
-        .subtitle {
-            font-size: 7px;
-        }
-    }
-
-    .interchangeable-unit-not-found {
-        margin: 15px 0;
-
-        padding: 12px 0 12px 12px;
+        margin-bottom: 10px;
 
         font-size: 11px;
     }
+
+    .contragent-desc-wrapper {
+        gap: 8px;
+
+        > div {
+            display: block;
+        }
+    }
+
+    .subtitle {
+        display: block;
+
+        margin: 0 0 2px;
+
+        font-size: 9px;
+    }
+
+    .value {
+        display: block;
+
+        font-size: 12px;
+    }
+
 }
+
 </style>
