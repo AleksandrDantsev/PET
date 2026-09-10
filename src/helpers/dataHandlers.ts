@@ -1,4 +1,4 @@
-import type { IGoogleTableData } from "@/types/TableSheetData.types";
+import type { IGoogleTableData } from "@/types/TableSheetData";
 
 const dh = {
     dataToObjects: function (data: IGoogleTableData, positionHeaderRow: number = 0)  // [ {Артикул: a1, Цена: а2}, {Артикул: a3, Цена: а4} ]

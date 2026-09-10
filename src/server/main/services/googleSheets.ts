@@ -1,4 +1,4 @@
-import type { IGoogleTableData } from "@/types/TableSheetData.types";
+import type { IGoogleTableData } from "../../../types/TableSheetData.js";
 import { google } from "googleapis";
 import path from "node:path";
 

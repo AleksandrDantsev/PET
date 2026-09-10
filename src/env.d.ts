@@ -1,21 +1,21 @@
-import type { IGoogleTableData } from "./types/TableSheetData.types";
+/// <reference types="vite/client" />
 
-export { };
+import type { IGoogleTableData } from "./types/TableSheetData";
+
+export {};
 
 declare global {
-  interface Window {
-    electronAPI: {
-      getSheet(
-        range: string
-      ): Promise<string[][]>;
+    interface Window {
+        electronAPI: {
+            getSheet(
+                range: string
+            ): Promise<string[][]>;
 
-      getSheetValuesById(
-        id: number | string
-      ): IGoogleTableData;
+            getSheetValuesById(
+                id: number | string
+            ): IGoogleTableData;
 
-      getSheetsGID(): Promise<
-        Record<string, number>>;
-
-    };
-  }
+            getSheetsGID(): Promise<Record<string, number>>;
+        };
+    }
 }

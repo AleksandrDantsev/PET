@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { normalizeForSorting } from "@/utils/normalize";
-import type { IGoogleTableData } from "@/types/TableSheetData.types";
+import type { IGoogleTableData } from "../../types/TableSheetData";
 import type { FormInst, FormRules } from "naive-ui";
 import {
     NAutoComplete,
@@ -13,6 +13,19 @@ import {
     NInputNumber,
     NSelect,
 } from "naive-ui";
+
+const props = defineProps<{
+    actualData?: IGoogleTableData | null;
+    constTitles?: Record<string, string> | null;
+    contragents: Record<string, {
+        branch: string;
+        manager: string;
+    }> | null;
+    managersBranches: Record<string, string> | null;
+    search: (value: Record<string, string>) => void;
+}>();
+
+
 
 const nomenclature = ref("");
 const selectedContragent = ref("");
@@ -36,18 +49,6 @@ const branchOptions = [
         value: "КРАСНОДАР",
     },
 ];
-
-const props = defineProps<{
-    actualData?: IGoogleTableData | null;
-    constTitles?: Record<string, string> | null;
-    contragents: Record<string, {
-        branch: string;
-        manager: string;
-    }> | null;
-    managersBranches: Record<string, string> | null;
-    search: (value: Record<string, string>) => void;
-}>();
-
 
 const managerOptions = computed(() => {
     if (!props?.managersBranches) {
@@ -175,6 +176,7 @@ const passportRules: FormRules = {
         required: true,
         message: "Введите количество",
         trigger: ["change"],
+        type: "number",
     },
 
     dateOfDelivery: {
@@ -235,6 +237,7 @@ const save = async () => {
                 <n-input
                     v-model:value="nomenclature"
                     placeholder="Введите номенклатуру"
+                    clearable
                 />
             </n-form-item>
 
@@ -246,6 +249,7 @@ const save = async () => {
                     v-model:value="selectedContragent"
                     :options="contragentOptions"
                     placeholder="Введите контрагента"
+                    clearable
                     :input-props="{
                         autocomplete: 'off',
                     }"
@@ -313,6 +317,7 @@ const save = async () => {
                 <n-input
                     v-model:value="znurType"
                     placeholder="Тип ЗНУР"
+                    clearable
                 />
             </n-form-item>
 
@@ -323,8 +328,9 @@ const save = async () => {
                 <n-input-number
                     v-model:value="quantity"
                     :min="1"
-                    placeholder="Количество"
+                    placeholder="Кол-во"
                     class="full-width"
+                    clearable
                 />
             </n-form-item>
 
@@ -353,42 +359,546 @@ const save = async () => {
 </template>
 
 <style scoped lang="scss">
+
 .search-wrapper {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: #fcfcfc;
-    border-radius: 7px;
+
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 18px 20px 16px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #faf9f6 0%,
+            #f7f6f2 100%
+        );
+
+    border: 1px solid rgba(31, 31, 31, 0.08);
+    border-radius: 18px;
+
+    box-shadow:
+        0 8px 30px rgba(20, 20, 20, 0.05),
+        0 2px 8px rgba(20, 20, 20, 0.025);
+
+    overflow: hidden;
+
+    /*
+     * ВАЖНО:
+     * wrapper остаётся sticky,
+     * но верхняя форма всегда находится
+     * поверх второй.
+     */
 }
+
+
+/* =========================================================
+   ПЕРВАЯ ФОРМА
+   Всегда остаётся сверху
+========================================================= */
 
 .search-form {
+    position: relative;
+    z-index: 20;
+
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
-    gap: 10px;
+
+    grid-template-columns:
+        minmax(220px, 1fr)
+        minmax(280px, 1fr)
+        110px;
+
+    gap: 16px;
+
     align-items: end;
-    padding: 5px 15px;
+
+    padding: 4px 0 2px;
+
+    /*
+     * Непрозрачный фон нужен,
+     * чтобы passport-fields не просвечивал.
+     */
+    background: #faf9f6;
 }
+
+
+/* =========================================================
+   ВТОРАЯ ФОРМА
+========================================================= */
 
 .passport-fields {
+    position: relative;
+    z-index: 1;
+
     display: grid;
-    grid-template-columns: repeat(6, 1fr) auto;
-    gap: 10px;
+
+    grid-template-columns:
+        minmax(160px, 1.1fr)
+        minmax(140px, 0.8fr)
+        minmax(140px, 0.8fr)
+        minmax(150px, 0.9fr)
+        minmax(100px, 0.55fr)
+        minmax(190px, 1.2fr)
+        44px;
+
+    gap: 16px;
+
     align-items: end;
-    margin-top: 10px;
-    padding: 0 15px 15px;
+
+    margin-top: 14px;
+    padding: 14px 0 2px;
+
+    border-top: 1px solid rgba(31, 31, 31, 0.07);
+
+    /*
+     * Это позволяет второй строке
+     * визуально уходить под первую.
+     */
+    transform: translateY(0);
+
+    transition:
+        transform 0.25s ease,
+        opacity 0.25s ease;
 }
 
-.search-button {
-    width: 100px;
+
+/* =========================================================
+   LABELS
+========================================================= */
+
+:deep(.n-form-item-label) {
+    padding-bottom: 7px !important;
 }
 
-.save-button {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
+:deep(.n-form-item-label__text) {
+    color: #77736c;
+
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.2;
+
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
 }
+
+
+/* =========================================================
+   INPUTS
+========================================================= */
+
+:deep(.n-input),
+:deep(.n-input-number),
+:deep(.n-base-selection),
+:deep(.n-date-picker) {
+    --n-border: rgba(32, 32, 32, 0.13) !important;
+    --n-border-hover: rgba(32, 32, 32, 0.35) !important;
+    --n-border-focus: #222 !important;
+
+    --n-box-shadow-focus:
+        0 0 0 1px rgba(32, 32, 32, 0.06) !important;
+
+    --n-color: #fff !important;
+    --n-text-color: #292824 !important;
+    --n-placeholder-color: #a29e96 !important;
+
+    --n-height: 40px !important;
+
+    min-height: 40px;
+
+    background: #fff !important;
+
+    border-radius: 10px !important;
+
+    font-size: 13px !important;
+
+    letter-spacing: 0.01em;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+:deep(.n-input) {
+    background: #fff !important;
+
+    &:hover {
+        background: #fff !important;
+    }
+
+    &:focus-within {
+        background: #fff !important;
+
+        box-shadow:
+            0 0 0 3px rgba(20, 20, 20, 0.035),
+            0 5px 18px rgba(20, 20, 20, 0.04);
+    }
+}
+
+
+/* =========================================================
+   TEXT
+========================================================= */
+
+:deep(.n-input__input-el),
+:deep(.n-input__textarea-el),
+:deep(.n-input-number-input__input) {
+    color: #292824 !important;
+
+    font-size: 13px !important;
+}
+
+:deep(input::placeholder) {
+    color: #aaa69e !important;
+}
+
+
+/* =========================================================
+   ICONS
+========================================================= */
+
+:deep(.n-input__suffix),
+:deep(.n-input__prefix),
+:deep(.n-base-selection__arrow) {
+    color: #96928a !important;
+}
+
+:deep(.n-input__clear),
+:deep(.n-base-selection__clear) {
+    color: #9b978f !important;
+
+    &:hover {
+        color: #222 !important;
+    }
+}
+
+
+/* =========================================================
+   SELECT
+========================================================= */
+
+:deep(.n-base-selection) {
+    width: 100%;
+
+    background: #fff !important;
+
+    &:hover {
+        background: #fff !important;
+    }
+}
+
+:deep(.n-base-selection-label) {
+    background: #fff !important;
+
+    border-radius: 10px !important;
+}
+
+:deep(.n-base-selection-input) {
+    background: transparent !important;
+}
+
+:deep(.n-base-selection-input__content) {
+    color: #292824 !important;
+
+    font-size: 13px !important;
+}
+
+:deep(.n-base-selection--active) {
+    background: #fff !important;
+
+    box-shadow:
+        0 0 0 3px rgba(20, 20, 20, 0.035),
+        0 5px 18px rgba(20, 20, 20, 0.04);
+}
+
+
+/* =========================================================
+   AUTOCOMPLETE
+========================================================= */
+
+:deep(.n-auto-complete) {
+    width: 100%;
+}
+
+:deep(.n-auto-complete .n-input) {
+    background: #fff !important;
+}
+
+
+/* =========================================================
+   NUMBER
+========================================================= */
+
+:deep(.n-input-number) {
+    width: 100%;
+
+    background: #fff !important;
+}
+
+:deep(.n-input-number-input) {
+    background: #fff !important;
+}
+
+:deep(.n-input-number__minus),
+:deep(.n-input-number__plus) {
+    color: #96928a !important;
+
+    &:hover {
+        color: #222 !important;
+        background: #f4f3ef !important;
+    }
+}
+
+
+/* =========================================================
+   DATE
+========================================================= */
 
 .full-width {
     width: 100%;
 }
+
+:deep(.n-date-picker) {
+    width: 100%;
+
+    background: #fff !important;
+}
+
+:deep(.n-date-picker .n-input) {
+    width: 100%;
+
+    background: #fff !important;
+}
+
+
+/* =========================================================
+   DROPDOWN
+========================================================= */
+
+:deep(.n-base-select-menu),
+:deep(.n-auto-complete-menu) {
+    overflow: hidden;
+
+    border: 1px solid rgba(30, 30, 30, 0.08) !important;
+    border-radius: 12px !important;
+
+    background: rgba(255, 255, 255, 0.98) !important;
+
+    box-shadow:
+        0 15px 45px rgba(20, 20, 20, 0.11),
+        0 3px 10px rgba(20, 20, 20, 0.04) !important;
+}
+
+
+/* =========================================================
+   OPTIONS
+========================================================= */
+
+:deep(.n-base-select-option) {
+    min-height: 38px !important;
+
+    padding: 0 14px !important;
+
+    border-radius: 7px !important;
+
+    color: #383631 !important;
+
+    font-size: 13px !important;
+
+    &:hover {
+        background: #f4f3ef !important;
+    }
+
+    &.n-base-select-option--selected {
+        background: #eeede9 !important;
+
+        color: #111 !important;
+
+        font-weight: 500;
+    }
+}
+
+
+/* =========================================================
+   DATE PANEL
+========================================================= */
+
+:deep(.n-date-panel) {
+    border: 1px solid rgba(30, 30, 30, 0.08) !important;
+    border-radius: 12px !important;
+
+    background: #fff !important;
+
+    box-shadow:
+        0 15px 45px rgba(20, 20, 20, 0.11),
+        0 3px 10px rgba(20, 20, 20, 0.04) !important;
+}
+
+
+/* =========================================================
+   SEARCH BUTTON
+========================================================= */
+
+.search-button {
+    width: 110px !important;
+    height: 40px !important;
+
+    border: 1px solid #222 !important;
+    border-radius: 10px !important;
+
+    background: #222 !important;
+    color: #fff !important;
+
+    font-size: 11px !important;
+    font-weight: 600 !important;
+
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+
+    box-shadow: none !important;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+
+    &:hover {
+        background: #000 !important;
+
+        transform: translateY(-1px);
+
+        box-shadow:
+            0 7px 20px rgba(0, 0, 0, 0.14) !important;
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+}
+
+
+/* =========================================================
+   SAVE
+========================================================= */
+
+.save-button {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+
+    padding: 0 !important;
+
+    border: 1px solid rgba(32, 32, 32, 0.15) !important;
+    border-radius: 10px !important;
+
+    background: #fff !important;
+    color: #272622 !important;
+
+    font-size: 15px !important;
+
+    box-shadow:
+        0 3px 12px rgba(20, 20, 20, 0.04) !important;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+    
+    &:hover {
+        background: #222 !important;
+        color: #fff !important;
+
+        transform: translateY(-1px);
+    }
+}
+
+
+/* =========================================================
+   VALIDATION
+========================================================= */
+
+:deep(.n-form-item-feedback-wrapper) {
+    font-size: 11px;
+}
+
+:deep(.n-form-item--error .n-input),
+:deep(.n-form-item--error .n-base-selection),
+:deep(.n-form-item--error .n-input-number) {
+    --n-border: rgba(150, 45, 45, 0.45) !important;
+}
+
+:deep(.n-form-item-feedback--error) {
+    color: #9a4545 !important;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1250px) {
+    .passport-fields {
+        grid-template-columns:
+            repeat(3, minmax(150px, 1fr))
+            44px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 850px) {
+    .search-wrapper {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .search-form {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .search-button {
+        width: 100% !important;
+    }
+
+    .passport-fields {
+        grid-template-columns:
+            repeat(2, minmax(140px, 1fr));
+
+        gap: 10px;
+    }
+
+    .save-button {
+        width: 100% !important;
+    }
+}
+
+
+@media (max-width: 560px) {
+    .passport-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    .passport-fields {
+        transition: none;
+    }
+}
+
 </style>

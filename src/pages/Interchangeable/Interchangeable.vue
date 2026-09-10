@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import type { IGoogleTableData } from "@/types/TableSheetData.types";
+import type { IGoogleTableData } from "../../types/TableSheetData.ts";
 import { dataToObjects } from "@/helpers/dataHandlers.ts";
 import InterchangeableForm from "./InterchangeableForm.vue";
 import InterchangeableResult from "./InterchangeableResult.vue";
@@ -22,7 +22,7 @@ const props = defineProps<{
 }>();
 
 const filteredActualResultObjs = ref<DataObject[]>([]);
-const inputFieldsValues = ref<{[key: string]: string} | null>(null);
+const clientsDemand = ref<DataObject>({});
 
 const actualDataObjs = computed(() => {
     if (!props?.actualData) {
@@ -50,7 +50,9 @@ const search = (fields: Record<string, string>) => {
     
 
     const contragent = "Ахтемов Сулейман ИП (Аджимамбетов Эмиль Рустемович ИП)" || fields?.contragent; // TODO
+    // const contragent = fields?.contragent; // TODO
     const desriptionProduct = ih.getDescriptionProduct("21,0 гр. 1810 белая (2100) АТФ" || fields.nomenclature);
+    // const desriptionProduct = ih.getDescriptionProduct(fields.nomenclature);
     const productTypeInput = desriptionProduct?.type;
     
     const clientDemand = interchangeableDataObjs.value.find(item => {
@@ -94,6 +96,8 @@ const search = (fields: Record<string, string>) => {
     if (!clientDemand) {
         return null;
     }
+
+    clientsDemand.value = clientDemand;
 
     const result = actualDataObjs.value.filter((item) => {
         const nomenclature = item["Номенклатура 1С"];
@@ -176,7 +180,10 @@ const search = (fields: Record<string, string>) => {
             :managers-branches="managersBranches"
             :search="search"
         />
-        <InterchangeableResult />
+        <InterchangeableResult 
+            :clients-demand="clientsDemand"
+            :filtered-actual-result-objs="filteredActualResultObjs"
+        />
     </div>
 </template>
 
@@ -186,7 +193,6 @@ const search = (fields: Record<string, string>) => {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: #fcfcfc;
     border-radius: 7px;
 }
 

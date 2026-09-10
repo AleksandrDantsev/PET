@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { api } from "@/api/api";
 import { ref, onMounted } from "vue"
-import type { IGoogleTableData } from "@/types/TableSheetData.types"
+import type { IGoogleTableData } from "../types/TableSheetData";
 import Interchangeable from "@/pages/Interchangeable/Interchangeable.vue";
 import { LocalStorage } from "@/utils/localStorage";
 import { NConfigProvider, NGlobalStyle, ruRU } from "naive-ui";

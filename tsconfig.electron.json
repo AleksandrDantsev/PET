@@ -3,11 +3,17 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+
     "outDir": "dist-electron",
-    "rootDir": "src/server/main",
+    "rootDir": "src",
+
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["src/server/main/**/*"]
+
+  "include": [
+    "src/server/main/**/*",
+    "src/types/**/*"
+  ]
 }
