@@ -1,15 +1,14 @@
+import type { IGoogleTableData } from "@/types/TableSheetData";
+
 export const api = {
-  google: {
-    getSheet: (range: string) =>
-      window.electronAPI.getSheet(range),
+    google: {
+        getSheet: (range: string): Promise<IGoogleTableData> =>
+            window.electronAPI.getSheet(range),
 
-    getSheetValuesById: (id: string | number) =>
-      window.electronAPI.getSheetValuesById(id),
+        getSheetValuesById: (id: string | number): Promise<IGoogleTableData> =>
+            window.electronAPI.getSheetValuesById(id),
 
-    getSheetsGID: () =>
-      window.electronAPI.getSheetsGID(),
-
-
-  },
-
+        getSheetsGID: (): Promise<IGoogleTableData> =>
+            window.electronAPI.getSheetsGID(),
+    },
 };

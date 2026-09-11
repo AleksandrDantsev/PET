@@ -32,36 +32,26 @@ onMounted(async () => {
         "interchangeableData"
     );
 
-    // Если данные есть в localStorage — сразу используем их
     if (savedActualData) ACTUAL_DATA.value = savedActualData;
     if (savedConfigData) CONFIG_DATA.value = savedConfigData;
     if (savedInterchangeableData) INTERCHANGEABLE_DATA.value = savedInterchangeableData;
 
-    // Формируем только те запросы, которых не хватает
-    const actualPromise = savedActualData
-        ? Promise.resolve(null)
-        : api.google.getSheetValuesById(358090170);
-
-    const configPromise = savedConfigData
-        ? Promise.resolve(null)
-        : api.google.getSheetValuesById(581263708);
-
-    const interchangeablePromise = savedInterchangeableData
-        ? Promise.resolve(null)
-        : api.google.getSheetValuesById(778545787);
-
-    // Отсутствующие данные загружаются параллельно
     const [
         actualData,
         configData,
         interchangeableData,
     ] = await Promise.all([
-        actualPromise,
-        configPromise,
-        interchangeablePromise,
+        api.google
+            .getSheetValuesById(358090170)
+            .catch(() => null),
+        api.google
+            .getSheetValuesById(581263708)
+            .catch(() => null),
+        api.google
+            .getSheetValuesById(778545787)
+            .catch(() => null),
     ]);
 
-    // Сохраняем то, что получили с сервера
     if (actualData) {
         ACTUAL_DATA.value = actualData;
         LocalStorage.save("actualData", actualData);
@@ -80,7 +70,6 @@ onMounted(async () => {
         );
     }
 
-    // Формируем конфигурацию
     if (CONFIG_DATA.value) {
         CONST_TITLES.value = getConfigConst(
             CONFIG_DATA.value

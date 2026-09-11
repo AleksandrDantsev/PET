@@ -29,48 +29,48 @@ const clientsDemandMemo = computed(() => {
             </div>
 
             <div class="contragent-desc-wrapper">
-                <div>
+                <div class="subtitle-client-container">
                     <span class="subtitle">Контрагент:</span>
                     {{ clientsDemandMemo["Клиент"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-client-container">
                     <span class="subtitle">Филиал:</span>
                     {{ clientsDemandMemo["Филиал"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-client-container">
                     <span class="subtitle">Менеджер клиента:</span>
                     {{ clientsDemandMemo["Менеджер"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-client-container">
                     <span class="subtitle">Тип товара:</span>
                     {{ clientsDemandMemo["Тип"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-client-container">
                     <span class="subtitle">Стандарт:</span>
                     {{ clientsDemandMemo["Стандарт"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-client-container">
                     <span class="subtitle">Диапазон граммаж:</span>
                     {{ clientsDemandMemo['Граммаж "от"'] }} -
                     {{ clientsDemandMemo['Граммаж "до"'] }}
                 </div>
 
-                <div>
+                <div class="subtitle-client-container"> 
                     <span class="subtitle">Основной цвет:</span>
                     {{ clientsDemandMemo["Основной цвет"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-client-container">
                     <span class="subtitle">Взаимозаменяемые цвета:</span>
                     {{ clientsDemandMemo["Взаимозаменяемые цвета"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-client-container">
                     <span class="subtitle">Возможные цвета:</span>
                     {{ clientsDemandMemo["Возможные цвета"] }}
                 </div>
@@ -129,23 +129,19 @@ const clientsDemandMemo = computed(() => {
     }
 }
 
-
+.subtitle-client-container {
+    font-size: 12px;
+}
 /* =========================================================
    LABEL
 ========================================================= */
 
 .subtitle {
     flex: 0 0 180px;
-
     margin-right: 10px;
-
     color: #8a8780;
-
-    font-size: 11px;
-    font-weight: 600;
-
+    font-weight: 700;
     line-height: 1.4;
-
     white-space: nowrap;
 }
 

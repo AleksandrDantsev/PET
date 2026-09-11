@@ -9,13 +9,13 @@ declare global {
         electronAPI: {
             getSheet(
                 range: string
-            ): Promise<string[][]>;
+            ): Promise<IGoogleTableData>;
 
             getSheetValuesById(
                 id: number | string
-            ): IGoogleTableData;
+            ): Promise<IGoogleTableData>;
 
-            getSheetsGID(): Promise<Record<string, number>>;
+            getSheetsGID(): Promise<IGoogleTableData>;
         };
     }
 }

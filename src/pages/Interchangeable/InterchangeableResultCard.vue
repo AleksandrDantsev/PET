@@ -57,32 +57,32 @@ defineProps({
             </div>
 
             <div class="interchangeable-unit-desc-conteiner">
-                <div>
+                <div class="subtitle-conteiner">
                     <span class="subtitle">Личный номер:</span>
                     {{ result["Личный номер"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-conteiner">
                     <span class="subtitle">Филиал:</span>
                     {{ result["Филиал"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-conteiner">
                     <span class="subtitle">Менеджер:</span>
                     {{ result["Ответственный за продажу"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-conteiner">
                     <span class="subtitle">Клиент:</span>
                     {{ result["Какому клиенту планируется продажа"] }}
                 </div>
 
-                <div>
+                <div class="subtitle-conteiner">
                     <span class="subtitle">Стоимость:</span>
                     {{ result["Стоимость недопроданного товара"] }} р.
                 </div>
 
-                <div>
+                <div class="subtitle-conteiner">
                     <span class="subtitle">Жесткость:</span>
 
                     <!-- <span
@@ -278,14 +278,10 @@ defineProps({
 
 .subtitle {
     margin-right: 4px;
-
     color: #929088;
-
     font-size: 8px;
     font-weight: 600;
-
     letter-spacing: 0.04em;
-
     text-transform: uppercase;
 }
 
