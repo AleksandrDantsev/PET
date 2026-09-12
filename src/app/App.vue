@@ -107,3 +107,23 @@ onMounted(async () => {
         </div>
     </n-config-provider>
 </template>
+
+<style>
+* {
+    font-family:  Inter,
+    "Segoe UI",
+    "Roboto",
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+body {
+    font-variant-numeric: tabular-nums;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+}
+::selection {
+    background-color: rgb(83, 92, 82);
+    color: white;
+}
+</style>

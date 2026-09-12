@@ -4,7 +4,7 @@ import InterchangeableResultCard from "./InterchangeableResultCard.vue";
 
 type DataObject = Record<string, string | number | boolean | null>;
 
-const props = defineProps<{
+defineProps<{
     clientsDemand: DataObject | null;
     filteredActualResultObjs: DataObject[];
 }>();
@@ -12,30 +12,31 @@ const props = defineProps<{
 </script>
 
 <template>
-    <div class="result-conteiner">
-        <InterchangeableClientDemand
-            v-if="clientsDemand && Object.keys(clientsDemand).length"
-            :clients-demand="clientsDemand"
-        />
-
-        <div
-            v-if="filteredActualResultObjs?.length"
-            class="container-result-cards"
-        >
-            <InterchangeableResultCard
-                v-for="(value, index) in filteredActualResultObjs"
-                :key="index"
-                :result="value"
-                :index="index"
-            />
-        </div>
+    <div class="result-container">
+        <Transition name="result-fade">
+            <div
+                v-if="filteredActualResultObjs.length"
+                class="container-result-cards"
+            >
+                <InterchangeableClientDemand
+                    v-if="clientsDemand && Object.keys(clientsDemand).length"
+                    :clients-demand="clientsDemand"
+                />
+                <InterchangeableResultCard
+                    v-for="(value, index) in filteredActualResultObjs"
+                    :key="index + String(value)"
+                    :result="value"
+                    :index="index"
+                />
+            </div>
+        </Transition>
     </div>
 </template>
 
 <style scoped lang="scss">
 
 .result-container {
-    width: 81%;
+    width: 91%;
     margin: 20px auto;
 }
 .container-result-cards {
@@ -81,9 +82,24 @@ const props = defineProps<{
 }
 
 
-/* =========================================================
-   TABLET
-========================================================= */
+.result-fade-enter-active,
+.result-fade-leave-active {
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease;
+}
+
+.result-fade-enter-from,
+.result-fade-leave-to {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
+.result-fade-enter-to,
+.result-fade-leave-from {
+    opacity: 1;
+    transform: translateY(0);
+}
 
 @media (max-width: 900px) {
     .result-container {

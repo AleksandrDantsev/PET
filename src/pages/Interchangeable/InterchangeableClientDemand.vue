@@ -1,22 +1,32 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { setColorText } from "@/utils/tableHelpers";
+import { computed } from "vue";
 
 type DataObject = Record<string, string | number | boolean | null>;
 
 const props = defineProps<{
-    clientsDemand: DataObject;
+    clientsDemand: DataObject | undefined | null;
 }>();
 
-const clientsDemandMemo = computed(() => {
-    return props.clientsDemand;
+
+const colorsData = computed(() => {
+    if (!props.clientsDemand) return undefined;
+    return {
+        mainColors: setColorText(props.clientsDemand["Основной цвет"]),
+        interchangeableColors: setColorText(props.clientsDemand["Взаимозаменяемые цвета"]),
+        possibleColors: setColorText(props.clientsDemand["Возможные цвета"])
+    }
 });
+
+const setComma = (length: number, index: number) =>
+    index < length - 1 ? ",\u00A0" : "";
 
 </script>
 
 <template>
     <div class="contragent-desc-container">
         <div 
-            v-if="!clientsDemandMemo" 
+            v-if="!clientsDemand" 
             class="interchangeable-unit-not-found"
         >
             Не найдено подходящих данных о контрагенте в листе
@@ -31,48 +41,75 @@ const clientsDemandMemo = computed(() => {
             <div class="contragent-desc-wrapper">
                 <div class="subtitle-client-container">
                     <span class="subtitle">Контрагент:</span>
-                    {{ clientsDemandMemo["Клиент"] }}
+                    {{ clientsDemand["Клиент"] }}
                 </div>
 
                 <div class="subtitle-client-container">
                     <span class="subtitle">Филиал:</span>
-                    {{ clientsDemandMemo["Филиал"] }}
+                    {{ clientsDemand["Филиал"] }}
                 </div>
 
                 <div class="subtitle-client-container">
                     <span class="subtitle">Менеджер клиента:</span>
-                    {{ clientsDemandMemo["Менеджер"] }}
+                    {{ clientsDemand["Менеджер"] }}
                 </div>
 
                 <div class="subtitle-client-container">
                     <span class="subtitle">Тип товара:</span>
-                    {{ clientsDemandMemo["Тип"] }}
+                    {{ clientsDemand["Тип"] }}
                 </div>
 
                 <div class="subtitle-client-container">
                     <span class="subtitle">Стандарт:</span>
-                    {{ clientsDemandMemo["Стандарт"] }}
+                    {{ clientsDemand["Стандарт"] }}
                 </div>
 
                 <div class="subtitle-client-container">
                     <span class="subtitle">Диапазон граммаж:</span>
-                    {{ clientsDemandMemo['Граммаж "от"'] }} -
-                    {{ clientsDemandMemo['Граммаж "до"'] }}
+                    {{ clientsDemand['Граммаж "от"'] }} - {{ clientsDemand['Граммаж "до"'] }} 
+                    {{ clientsDemand['Граммаж "от"'] && "гр." }}
                 </div>
 
-                <div class="subtitle-client-container"> 
+                <div 
+                    v-if="colorsData?.mainColors?.length"
+                    class="subtitle-client-container"
+                >
                     <span class="subtitle">Основной цвет:</span>
-                    {{ clientsDemandMemo["Основной цвет"] }}
+                    <span
+                        v-for="(value, index) in colorsData.mainColors"
+                        :key="value.colorName + value.color"
+                        :style="{ color: value.color }"
+                    >
+                        {{ value.colorName + setComma(colorsData.mainColors.length, index) }}
+                    </span>
                 </div>
 
-                <div class="subtitle-client-container">
+                <div 
+                    v-if="colorsData?.interchangeableColors?.length"
+                    class="subtitle-client-container"
+                >
                     <span class="subtitle">Взаимозаменяемые цвета:</span>
-                    {{ clientsDemandMemo["Взаимозаменяемые цвета"] }}
+                    <span
+                        v-for="(value, index) in colorsData.interchangeableColors"
+                        :key="value.colorName + value.color"
+                        :style="{ color: value.color }"
+                    >
+                        {{ value.colorName + setComma(colorsData.interchangeableColors.length, index) }}
+                    </span>
                 </div>
 
-                <div class="subtitle-client-container">
+                <div 
+                    v-if="colorsData?.possibleColors?.length"
+                    class="subtitle-client-container"
+                >
                     <span class="subtitle">Возможные цвета:</span>
-                    {{ clientsDemandMemo["Возможные цвета"] }}
+                    <span
+                        v-for="(value, index) in colorsData.possibleColors"
+                        :key="value.colorName + value.color"
+                        :style="{ color: value.color }"
+                    >
+                        {{ value.colorName + setComma(colorsData.possibleColors.length, index) }}
+                    </span>
                 </div>
             </div>
         </template>
@@ -82,49 +119,31 @@ const clientsDemandMemo = computed(() => {
 <style scoped lang="scss">
 
 .contragent-desc-container {
-    width: 91%;
+    width: 93%;
     margin: 25px auto;
     color: #292824;
 }
 
-
-/* =========================================================
-   TITLE
-========================================================= */
-
 .contragent-desc-title {
     margin-bottom: 12px;
-
     color: #66635d;
-
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
-
     line-height: 1.3;
-
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
 
-
-/* =========================================================
-   LIST
-========================================================= */
-
 .contragent-desc-wrapper {
     display: flex;
     flex-direction: column;
-
     gap: 7px;
-
     width: 100%;
 
     > div {
         display: flex;
         align-items: baseline;
-
         min-width: 0;
-
         line-height: 1.45;
     }
 }
@@ -132,9 +151,6 @@ const clientsDemandMemo = computed(() => {
 .subtitle-client-container {
     font-size: 12px;
 }
-/* =========================================================
-   LABEL
-========================================================= */
 
 .subtitle {
     flex: 0 0 180px;
@@ -142,75 +158,44 @@ const clientsDemandMemo = computed(() => {
     color: #8a8780;
     font-weight: 700;
     line-height: 1.4;
-    white-space: nowrap;
 }
-
-
-/* =========================================================
-   VALUE
-========================================================= */
 
 .value {
     min-width: 0;
-
     color: #3d3b36;
-
     font-size: 13px;
     line-height: 1.45;
-
     overflow-wrap: anywhere;
 }
 
-
-/* =========================================================
-   CLIENT
-========================================================= */
-
 .contragent-desc-wrapper > div:first-child {
     margin-bottom: 2px;
-
     .value {
         color: #292824;
-
         font-size: 14px;
         font-weight: 600;
     }
 }
 
-
-/* =========================================================
-   NOT FOUND
-========================================================= */
-
 .interchangeable-unit-not-found {
     padding: 10px 0;
-
     color: #85827b;
-
     font-size: 13px;
     line-height: 1.5;
 }
 
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
 @media (max-width: 600px) {
-
     .contragent-desc-container {
         margin-top: 14px;
     }
 
     .contragent-desc-title {
         margin-bottom: 10px;
-
         font-size: 11px;
     }
 
     .contragent-desc-wrapper {
         gap: 8px;
-
         > div {
             display: block;
         }
@@ -218,15 +203,12 @@ const clientsDemandMemo = computed(() => {
 
     .subtitle {
         display: block;
-
         margin: 0 0 2px;
-
         font-size: 9px;
     }
 
     .value {
         display: block;
-
         font-size: 12px;
     }
 
