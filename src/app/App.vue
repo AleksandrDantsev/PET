@@ -6,6 +6,7 @@ import Interchangeable from "@/pages/Interchangeable/Interchangeable.vue";
 import { LocalStorage } from "@/utils/localStorage";
 import { NConfigProvider, NGlobalStyle, ruRU } from "naive-ui";
 import { themeOverrides } from "@/theme/naiveTheme";
+import bt from "@/pages/Interchangeable/bt.vue";
 import { 
     getConfigConst, 
     getConfigManagersBranchList, 
@@ -43,14 +44,33 @@ onMounted(async () => {
     ] = await Promise.all([
         api.google
             .getSheetValuesById(358090170)
-            .catch(() => null),
+            .catch(error => {
+                console.error("actualData error:", error);
+                return null;
+            }),
+
         api.google
             .getSheetValuesById(581263708)
-            .catch(() => null),
+            .catch(error => {
+                console.error("configData error:", error);
+                return null;
+            }),
+
         api.google
             .getSheetValuesById(778545787)
-            .catch(() => null),
+            .catch(error => {
+                console.error("interchangeableData error:", error);
+                return null;
+            }),
     ]);
+    console.log("actualData:", actualData);
+console.log("localStorage before:", localStorage.length);
+
+if (actualData) {
+    ACTUAL_DATA.value = actualData;
+    LocalStorage.save("actualData", actualData);
+    console.log("saved:", localStorage.getItem("actualData"));
+}
 
     if (actualData) {
         ACTUAL_DATA.value = actualData;
@@ -105,6 +125,7 @@ onMounted(async () => {
                 :managers-branches="MANAGERS_BRANCHES"
             />
         </div>
+        <bt />
     </n-config-provider>
 </template>
 

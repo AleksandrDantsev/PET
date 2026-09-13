@@ -13,6 +13,7 @@ import {
     NSwitch,
     NTag,
 } from "naive-ui";
+import { hasValue, normalizeForSorting, toNumber, toTimestamp } from "@/utils/normalize";
 
 type DataObject = Record<
     string,
@@ -63,22 +64,9 @@ export interface IInterchangeableFilters {
     sortFields: SortField[];
 }
 
-/* =========================================================
-   PROPS
-========================================================= */
-
 const props = withDefaults(
     defineProps<{
-        /*
-         * Исходный результат поиска.
-         * Фильтры считаются именно от него.
-         */
         result?: DataObject[];
-
-        /*
-         * Результат, который сейчас отображается.
-         * Именно его сортируем.
-         */
         currentResult?: DataObject[];
     }>(),
     {
@@ -92,10 +80,6 @@ const emit = defineEmits<{
     sort: [result: DataObject[]];
     reset: [];
 }>();
-
-/* =========================================================
-   FILTERS
-========================================================= */
 
 const filters = reactive<IInterchangeableFilters>({
     search: "",
@@ -131,24 +115,12 @@ const filters = reactive<IInterchangeableFilters>({
     sortFields: [],
 });
 
-/* =========================================================
-   SORT HISTORY
-========================================================= */
-
-const sortHistory = reactive<
-    SortHistoryItem[]
->([]);
-
+const sortHistory = reactive<SortHistoryItem[]>([]);
 let nextHistoryId = 1;
 
-/**
- * Добавляет текущую конфигурацию сортировки
- * в историю.
- */
+
 const addToSortHistory = () => {
-    if (filters.sortFields.length === 0) {
-        return;
-    }
+    if (filters.sortFields.length === 0)  return;
 
     const fields: SortField[] =
         filters.sortFields.map(sort => ({
@@ -156,62 +128,31 @@ const addToSortHistory = () => {
             direction: sort.direction,
         }));
 
-    /*
-     * Если такая сортировка уже есть,
-     * удаляем старую запись.
-     */
-    const existingIndex =
-        sortHistory.findIndex(
-            historyItem =>
-                JSON.stringify(
-                    historyItem.fields
-                ) === JSON.stringify(fields)
-        );
+    const existingIndex = sortHistory.findIndex(historyItem =>
+        JSON.stringify(historyItem.fields) === JSON.stringify(fields)
+    );
 
     if (existingIndex !== -1) {
-        sortHistory.splice(
-            existingIndex,
-            1
-        );
+        sortHistory.splice(existingIndex, 1);
     }
 
-    /*
-     * Новую сортировку помещаем наверх.
-     */
     sortHistory.unshift({
         id: nextHistoryId++,
         fields,
     });
 
-    /*
-     * Храним максимум 5 записей.
-     */
     if (sortHistory.length > 5) {
         sortHistory.splice(5);
     }
 };
 
-/**
- * Восстановить сортировку из истории.
- */
-const applySortHistory = (
-    historyItem: SortHistoryItem
-) => {
-    /*
-     * Не заменяем filters.sortFields новым
-     * массивом, а изменяем существующий.
-     *
-     * Это безопаснее для reactive().
-     */
-    filters.sortFields.splice(
-        0,
-        filters.sortFields.length,
-        ...historyItem.fields.map(
-            sort => ({
-                field: sort.field,
-                direction: sort.direction,
-            })
-        )
+const applySortHistory = (historyItem: SortHistoryItem) => {
+
+    filters.sortFields.splice(0, filters.sortFields.length,
+        ...historyItem.fields.map(sort => ({
+            field: sort.field,
+            direction: sort.direction,
+        }))
     );
 
     applySorting();
@@ -221,13 +162,8 @@ const clearSortHistory = () => {
     sortHistory.splice(0);
 };
 
-/* =========================================================
-   OPTIONS
-========================================================= */
 
-const getOptions = (
-    field: string
-) => {
+const getOptions = (field: string) => {
     const values = props.result
         .map(item => item[field])
         .filter(
@@ -238,60 +174,41 @@ const getOptions = (
         )
         .map(String);
 
-    return [...new Set(values)].map(
-        value => ({
+    return [...new Set(values)]
+        .sort((a, b) => normalizeForSorting(a).localeCompare(
+            normalizeForSorting(b), "ru")
+        )
+        .map(value => ({
             label: value,
             value,
-        })
-    );
+        }));
 };
 
-const branchOptions = [
-    {
-        label: "КРЫМ",
-        value: "КРЫМ",
-    },
-    {
-        label: "КРАСНОДАР",
-        value: "КРАСНОДАР",
-    },
-];
 
-const managerOptions = computed(() =>
-    getOptions(
-        "Ответственный за продажу"
-    )
+const branchOptions = computed(() =>
+    getOptions("Филиал")
 );
-
+const managerOptions = computed(() =>
+    getOptions("Ответственный за продажу")
+);
 const colorOptions = computed(() =>
     getOptions("цвет")
 );
-
 const neckOptions = computed(() =>
     getOptions("горло")
 );
-
-const componentTypeOptions =
-    computed(() =>
-        getOptions("комплектующие")
-    );
-
+const componentTypeOptions = computed(() =>
+    getOptions("комплектующие")
+);
 const hardnessOptions = computed(() =>
     getOptions("Жесткость")
 );
-
-const nomenclatureOptions =
-    computed(() =>
-        getOptions("Номенклатура 1С")
-    );
-
+const nomenclatureOptions = computed(() =>
+    getOptions("Номенклатура 1С")
+);
 const clientOptions = computed(() =>
     getOptions("Кому недопродано")
 );
-
-/* =========================================================
-   SORT OPTIONS
-========================================================= */
 
 const sortOptions = [
     {
@@ -342,71 +259,10 @@ const sortOptions = [
         label: "Комплектующие",
         value: "комплектующие",
     },
-];
+].sort((a, b) => 
+    normalizeForSorting(a.value).localeCompare(normalizeForSorting(b.value), "ru")
+);
 
-/* =========================================================
-   HELPERS
-========================================================= */
-
-const toNumber = (
-    value: DataObject[string]
-): number | null => {
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-        return null;
-    }
-
-    const number = Number(
-        String(value)
-            .replace(/\s/g, "")
-            .replace(",", ".")
-    );
-
-    return Number.isNaN(number)
-        ? null
-        : number;
-};
-
-const toTimestamp = (
-    value: DataObject[string]
-): number | null => {
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-        return null;
-    }
-
-    if (typeof value === "number") {
-        return value;
-    }
-
-    const timestamp = new Date(
-        String(value)
-    ).getTime();
-
-    return Number.isNaN(timestamp)
-        ? null
-        : timestamp;
-};
-
-const hasValue = (
-    value: DataObject[string]
-): boolean => {
-    return (
-        value !== null &&
-        value !== undefined &&
-        value !== ""
-    );
-};
-
-/* =========================================================
-   SEARCH
-========================================================= */
 
 const includesSearch = (
     item: DataObject,
@@ -419,6 +275,7 @@ const includesSearch = (
     const normalizedSearch =
         search.toLowerCase().trim();
 
+    // Поля по которым работает поиск по вхождениию (самый верхний поиск)
     const fields = [
         "Номенклатура 1С",
         "Кому недопродано",
@@ -437,305 +294,197 @@ const includesSearch = (
     );
 };
 
-/* =========================================================
-   FILTERING
-========================================================= */
-
 const filteredResult = computed(() => {
     return props.result.filter(item => {
         /* Поиск */
 
-        if (
-            !includesSearch(
-                item,
-                filters.search
-            )
-        ) {
+        if (!includesSearch(item, filters.search)) 
+        {
             return false;
         }
 
         /* Номенклатура */
 
-        if (
-            filters.nomenclature !== null &&
-            String(
-                item["Номенклатура 1С"] ?? ""
-            ) !== filters.nomenclature
-        ) {
+        if (filters.nomenclature !== null &&
+            filters.nomenclature !== String(item["Номенклатура 1С"] ?? "")) 
+        {
             return false;
         }
 
         /* Клиент */
 
-        if (
-            filters.client !== null &&
-            String(
-                item["Кому недопродано"] ?? ""
-            ) !== filters.client
-        ) {
+        if (filters.client !== null &&
+            filters.client !== String(item["Кому недопродано"] ?? "")) 
+        {
             return false;
         }
 
         /* Филиал */
 
-        if (
-            filters.branch !== null &&
-            String(
-                item["Филиал"] ?? ""
-            ) !== filters.branch
-        ) {
+        if (filters.branch !== null &&
+            filters.branch !==  String(item["Филиал"] ?? "")) 
+        {
             return false;
         }
 
         /* Менеджер */
 
-        if (
-            filters.manager !== null &&
-            String(
-                item[
-                    "Ответственный за продажу"
-                ] ?? ""
-            ) !== filters.manager
-        ) {
+        if (filters.manager !== null &&
+            filters.manager !== String(item["Ответственный за продажу"] ?? "")) 
+        {
             return false;
         }
 
         /* Жесткость */
 
-        if (
-            filters.hardness !== null &&
-            String(
-                item["Жесткость"] ?? ""
-            ) !== filters.hardness
-        ) {
+        if (filters.hardness !== null &&
+            filters.hardness !== String(item["Жесткость"] ?? "")) 
+        {
             return false;
         }
 
         /* Цвет */
 
-        if (
-            filters.color !== null &&
-            String(
-                item["цвет"] ?? ""
-            ) !== filters.color
-        ) {
+        if (filters.color !== null &&
+            filters.color !== String(item["цвет"] ?? "")) 
+        {
             return false;
         }
 
         /* Горло */
 
-        if (
-            filters.neck !== null &&
-            String(
-                item["горло"] ?? ""
-            ) !== filters.neck
-        ) {
+        if (filters.neck !== null &&
+            filters.neck !== String(item["горло"] ?? "")) 
+        {
             return false;
         }
 
         /* Комплектующие */
 
-        if (
-            filters.componentType !== null &&
-            String(
-                item["комплектующие"] ?? ""
-            ) !== filters.componentType
-        ) {
+        if (filters.componentType !== null &&
+            filters.componentType !== String(item["комплектующие"] ?? "")) 
+        {
             return false;
         }
 
         /* Дата привоза */
 
         const arrivalDate =
-            toTimestamp(
+            toTimestamp<DataObject[string]>(
                 item["Дата привоза"]
             );
 
-        if (
-            filters.arrivalDateFrom !==
-                null &&
-            (
-                arrivalDate === null ||
-                arrivalDate <
-                    filters.arrivalDateFrom
-            )
-        ) {
-            return false;
-        }
+        if (filters.arrivalDateFrom !== null &&
+            (arrivalDate === null ||
+             arrivalDate < filters.arrivalDateFrom
+            )) return false;
 
-        if (
-            filters.arrivalDateTo !==
-                null &&
+        if (filters.arrivalDateTo !== null &&
             (
                 arrivalDate === null ||
-                arrivalDate >
-                    filters.arrivalDateTo
-            )
-        ) {
-            return false;
-        }
+                arrivalDate > filters.arrivalDateTo
+            )) return false;
 
         /* Есть дата привоза */
 
-        if (
-            filters.hasArrivalDate !==
-                null
-        ) {
-            const hasArrivalDate =
-                hasValue(
-                    item["Дата привоза"]
-                );
+        if (filters.hasArrivalDate !== null) {
 
-            if (
-                hasArrivalDate !==
-                filters.hasArrivalDate
-            ) {
+            const hasArrivalDate =
+                hasValue<DataObject[string]>(item["Дата привоза"]);
+
+            if (hasArrivalDate !== filters.hasArrivalDate) {
                 return false;
             }
         }
 
         /* Дни */
 
-        const days = toNumber(
-            item[
-                "Кол-во дней с даты привоза"
-            ]
+        const days = toNumber<DataObject[string]>(
+            item["Кол-во дней с даты привоза"]  // TODO
         );
 
-        if (
-            filters.daysFrom !== null &&
+        if (filters.daysFrom !== null &&
             (
                 days === null ||
                 days < filters.daysFrom
-            )
-        ) {
-            return false;
-        }
+            )) return false;
 
-        if (
-            filters.daysTo !== null &&
+
+        if (filters.daysTo !== null &&
             (
                 days === null ||
                 days > filters.daysTo
-            )
-        ) {
-            return false;
-        }
+            )) return false;
 
         /* Количество */
 
-        const quantity = toNumber(
-            item[
-                "Реальное кол-во недопрод. товара на 02.09.2026"
-            ]
+        const quantity = toNumber<DataObject[string]>(
+            item["Реальное кол-во недопрод. товара на 02.09.2026"]
         );
 
-        if (
-            filters.quantityFrom !== null &&
+
+        if (filters.quantityFrom !== null &&
             (
                 quantity === null ||
-                quantity <
-                    filters.quantityFrom
-            )
-        ) {
-            return false;
-        }
+                quantity < filters.quantityFrom
+            )) return false;
 
-        if (
-            filters.quantityTo !== null &&
+
+        if (filters.quantityTo !== null &&
             (
                 quantity === null ||
-                quantity >
-                    filters.quantityTo
-            )
-        ) {
-            return false;
-        }
+                quantity > filters.quantityTo
+            )) return false;
 
-        /* Стоимость */
 
-        const cost = toNumber(
-            item[
-                "Стоимость недопроданного товара"
-            ]
+        const cost = toNumber<DataObject[string]>(
+            item["Стоимость недопроданного товара"]
         );
 
-        if (
-            filters.costFrom !== null &&
+        if (filters.costFrom !== null &&
             (
                 cost === null ||
                 cost < filters.costFrom
-            )
-        ) {
-            return false;
-        }
+            )) return false;
 
-        if (
-            filters.costTo !== null &&
+
+        if (filters.costTo !== null &&
             (
                 cost === null ||
                 cost > filters.costTo
-            )
-        ) {
-            return false;
-        }
+            )) return false;
 
         /* Паспорт */
 
-        if (
-            filters.hasPassport !== null
-        ) {
+        if (filters.hasPassport !== null) {
             const hasPassport =
-                hasValue(
-                    item[
-                        "Дата создания паспорта сделки"
-                    ]
+                hasValue<DataObject[string]>(
+                    item["Дата создания паспорта сделки"]
                 );
 
-            if (
-                hasPassport !==
-                filters.hasPassport
-            ) {
+            if (hasPassport !== filters.hasPassport) {
                 return false;
             }
         }
 
-        /* Задача */
 
-        if (
-            filters.hasTask !== null
-        ) {
-            const hasTask =
-                hasValue(
-                    item[
-                        "Номер задачи в битрикс"
-                    ]
-                );
+        if (filters.hasTask !== null) {
+            const hasTask = hasValue<DataObject[string]>(
+                item["Номер задачи в битрикс"]
+            );
 
-            if (
-                hasTask !==
-                filters.hasTask
-            ) {
+            if (hasTask !== filters.hasTask) {
                 return false;
             }
         }
 
-        /* Ответственный */
 
-        if (
-            filters.hasManager !== null
-        ) {
-            const hasManager =
-                hasValue(
-                    item[
-                        "Ответственный за продажу"
-                    ]
-                );
+        if (filters.hasManager !== null) {
+            const hasManager = hasValue<DataObject[string]>(
+                item["Ответственный за продажу"]
+            );
 
-            if (
-                hasManager !==
-                filters.hasManager
-            ) {
+            if (hasManager !== filters.hasManager) {
                 return false;
             }
         }
@@ -744,48 +493,35 @@ const filteredResult = computed(() => {
     });
 });
 
-/* =========================================================
-   SORT COMPARISON
-========================================================= */
 
 const compareValues = (
     aValue: DataObject[string],
     bValue: DataObject[string],
     field: string
 ): number => {
-    /*
-     * Пустые значения отправляем в конец.
-     */
     if (
-        !hasValue(aValue) &&
-        !hasValue(bValue)
+        !hasValue<DataObject[string]>(aValue) &&
+        !hasValue<DataObject[string]>(bValue)
     ) {
         return 0;
     }
 
-    if (!hasValue(aValue)) {
+    if (!hasValue<DataObject[string]>(aValue)) {
         return 1;
     }
 
-    if (!hasValue(bValue)) {
+    if (!hasValue<DataObject[string]>(bValue)) {
         return -1;
     }
 
-    /* Числовые поля */
-
     if (
-        field ===
-            "Кол-во дней с даты привоза" ||
-        field ===
-            "Реальное кол-во недопрод. товара на 02.09.2026" ||
-        field ===
-            "Стоимость недопроданного товара"
+        field === "Кол-во дней с даты привоза" ||
+        field === "Реальное кол-во недопрод. товара на 02.09.2026" ||
+        field === "Стоимость недопроданного товара"
     ) {
-        const aNumber =
-            toNumber(aValue);
+        const aNumber = toNumber<DataObject[string]>(aValue);
 
-        const bNumber =
-            toNumber(bValue);
+        const bNumber = toNumber<DataObject[string]>(bValue);
 
         if (
             aNumber !== null &&
@@ -801,16 +537,10 @@ const compareValues = (
         return -1;
     }
 
-    /* Дата */
+    if (field === "Дата привоза") {
+        const aDate = toTimestamp<DataObject[string]>(aValue);
 
-    if (
-        field === "Дата привоза"
-    ) {
-        const aDate =
-            toTimestamp(aValue);
-
-        const bDate =
-            toTimestamp(bValue);
+        const bDate = toTimestamp<DataObject[string]>(bValue);
 
         if (
             aDate !== null &&
@@ -826,10 +556,8 @@ const compareValues = (
         return -1;
     }
 
-    /* Строковые значения */
-
-    return String(aValue).localeCompare(
-        String(bValue),
+    return normalizeForSorting<DataObject[string]>(aValue).localeCompare(
+        normalizeForSorting<DataObject[string]>(bValue),
         "ru",
         {
             numeric: true,
@@ -838,14 +566,11 @@ const compareValues = (
     );
 };
 
-/* =========================================================
-   SORT
-========================================================= */
 
 const sortResult = (
     source: DataObject[],
-    sortFields: SortField[]
-): DataObject[] => {
+    sortFields: SortField[]): DataObject[] => 
+{
     if (
         !Array.isArray(sortFields) ||
         sortFields.length === 0
@@ -856,15 +581,13 @@ const sortResult = (
     const result = [...source];
 
     result.sort((a, b) => {
-        for (
-            const sortField of sortFields
-        ) {
-            const comparison =
-                compareValues(
-                    a[sortField.field],
-                    b[sortField.field],
-                    sortField.field
-                );
+        for (const sortField of sortFields) {
+
+            const comparison = compareValues(
+                a[sortField.field],
+                b[sortField.field],
+                sortField.field
+            );
 
             if (comparison !== 0) {
                 return sortField.direction ===
@@ -880,9 +603,6 @@ const sortResult = (
     return result;
 };
 
-/*
- * Сортируем именно currentResult.
- */
 const sortedCurrentResult = computed(
     () => {
         return sortResult(
@@ -892,20 +612,13 @@ const sortedCurrentResult = computed(
     }
 );
 
-/* =========================================================
-   SORTING ACTIONS
-========================================================= */
 
 const addSortField = () => {
-    const availableOption =
-        sortOptions.find(
-            option =>
-                !filters.sortFields.some(
-                    sort =>
-                        sort.field ===
-                        option.value
-                )
-        );
+    const availableOption = sortOptions.find(option =>
+        !filters.sortFields.some(
+            sort => sort.field === option.value
+        )
+    );
 
     if (!availableOption) {
         return;
@@ -917,9 +630,7 @@ const addSortField = () => {
     });
 };
 
-const removeSortField = (
-    index: number
-) => {
+const removeSortField = (index: number) => {
     if (
         index < 0 ||
         index >= filters.sortFields.length
@@ -927,28 +638,21 @@ const removeSortField = (
         return;
     }
 
-    filters.sortFields.splice(
-        index,
-        1
-    );
+    filters.sortFields.splice(index, 1);
 };
 
 const getAvailableSortOptions = (
     currentIndex: number
 ) => {
-    const selectedFields =
-        filters.sortFields
-            .map((sort, index) =>
-                index === currentIndex
-                    ? null
-                    : sort.field
-            )
-            .filter(
-                (
-                    field
-                ): field is string =>
-                    field !== null
-            );
+    const selectedFields = filters.sortFields
+        .map((sort, index) =>
+            index === currentIndex
+                ? null
+                : sort.field
+        )
+        .filter((field): field is string =>
+            field !== null
+        );
 
     return sortOptions.filter(
         option =>
@@ -957,10 +661,6 @@ const getAvailableSortOptions = (
             )
     );
 };
-
-/* =========================================================
-   DRAG & DROP
-========================================================= */
 
 const draggedSortIndex =
     ref<number | null>(null);
@@ -983,21 +683,13 @@ const onSortDragOver = (
     dragOverSortIndex.value = index;
 };
 
-const onSortDrop = (
-    index: number
-) => {
-    const fromIndex =
-        draggedSortIndex.value;
+const onSortDrop = (index: number) => {
+    const fromIndex = draggedSortIndex.value;
 
-    /*
-     * Ничего не делаем,
-     * если индекс некорректный.
-     */
     if (
         fromIndex === null ||
         fromIndex < 0 ||
-        fromIndex >=
-            filters.sortFields.length
+        fromIndex >= filters.sortFields.length
     ) {
         draggedSortIndex.value = null;
         dragOverSortIndex.value = null;
@@ -1005,9 +697,6 @@ const onSortDrop = (
         return;
     }
 
-    /*
-     * Перетащили на самого себя.
-     */
     if (fromIndex === index) {
         draggedSortIndex.value = null;
         dragOverSortIndex.value = null;
@@ -1025,19 +714,11 @@ const onSortDrop = (
         return;
     }
 
-    /*
-     * Удаляем исходный элемент.
-     */
     filters.sortFields.splice(
         fromIndex,
         1
     );
 
-    /*
-     * Если тащили вниз,
-     * индекс цели после удаления
-     * уменьшается на единицу.
-     */
     const targetIndex =
         fromIndex < index
             ? index - 1
@@ -1058,94 +739,48 @@ const onSortDragEnd = () => {
     dragOverSortIndex.value = null;
 };
 
-/* =========================================================
-   APPLY SORTING
-========================================================= */
 
 const applySorting = () => {
     if (
-        !Array.isArray(
-            filters.sortFields
-        ) ||
+        !Array.isArray(filters.sortFields) ||
         filters.sortFields.length === 0
-    ) {
-        return;
-    }
+    ) return;
 
     if (
-        !Array.isArray(
-            props.currentResult
-        ) ||
+        !Array.isArray(props.currentResult) ||
         props.currentResult.length === 0
     ) {
         return;
     }
 
-    /*
-     * Сначала сохраняем конфигурацию.
-     */
     addToSortHistory();
-
-    /*
-     * Затем применяем сортировку
-     * к текущему результату.
-     */
-    emit(
-        "sort",
-        sortedCurrentResult.value
-    );
+    emit("sort", sortedCurrentResult.value);
 };
 
-/* =========================================================
-   APPLY FILTERS
-========================================================= */
 
 const applyFilters = () => {
-    /*
-     * Фильтры всегда считаются
-     * от исходного результата поиска.
-     *
-     * Сортировка здесь специально
-     * не применяется.
-     */
-    emit(
-        "filter",
-        filteredResult.value
-    );
+    emit("filter", filteredResult.value);
 };
 
-/* =========================================================
-   ACTIVE FILTERS
-========================================================= */
 
 const hasActiveFilters = computed(
-    () => {
-        return Object.entries(
-            filters
-        ).some(([key, value]) => {
-            if (
-                key === "sortFields"
-            ) {
-                return false;
-            }
+    () => Object.entries(filters).some(([key, value]) => {
+        if (key === "sortFields") {
+            return false;
+        }
 
-            if (key === "search") {
-                return value !== "";
-            }
+        if (key === "search") {
+            return value !== "";
+        }
 
-            return value !== null;
-        });
-    }
+        return value !== null;
+    })
 );
 
 const activeFiltersCount =
-    computed(() => {
-        return Object.entries(
-            filters
-        ).filter(([key, value]) => {
-            if (
-                key === "sortFields"
-            ) {
+    computed(() => Object.entries(filters)
+        .filter(([key, value]) => {
+            if (key === "sortFields") {
                 return false;
             }
 
@@ -1154,87 +789,38 @@ const activeFiltersCount =
             }
 
             return value !== null;
-        }).length;
-    });
+        }).length
+    )
 
-/* =========================================================
-   RESET
-========================================================= */
 
 const resetFilters = () => {
-    filters.search = "";
-
-    filters.branch = null;
-    filters.manager = null;
-    filters.hardness = null;
-    filters.color = null;
-    filters.neck = null;
-    filters.componentType = null;
-
-    filters.nomenclature = null;
-    filters.client = null;
-
-    filters.arrivalDateFrom = null;
-    filters.arrivalDateTo = null;
-
-    filters.daysFrom = null;
-    filters.daysTo = null;
-
-    filters.quantityFrom = null;
-    filters.quantityTo = null;
-
-    filters.costFrom = null;
-    filters.costTo = null;
-
-    filters.hasPassport = null;
-    filters.hasTask = null;
-
-    filters.hasArrivalDate = null;
-    filters.hasManager = null;
-
-    /*
-     * Не заменяем reactive-массив.
-     */
-    filters.sortFields.splice(
-        0,
-        filters.sortFields.length
-    );
+    (Object.keys(filters) as Array<keyof typeof filters>).forEach(key => {
+        if (key === "sortFields") {
+            filters.sortFields.splice(0);
+        } else if (key === "search") {
+            filters.search = "";
+        } else {
+            filters[key] = null;
+        }
+    });
 
     emit("reset");
 };
 
-/* =========================================================
-   HISTORY LABEL
-========================================================= */
 
-const getSortLabel = (
-    field: string
-): string => {
-    const option =
-        sortOptions.find(
-            item =>
-                item.value === field
-        );
+const getSortLabel = (field: string): string => {
+    const option = sortOptions.find(
+        item => item.value === field
+    );
 
     return option?.label ?? field;
 };
 
-const getHistoryLabel = (
-    item: SortHistoryItem
-): string => {
+const getHistoryLabel = ( item: SortHistoryItem): string => {
     return item.fields
-        .map(
-            sort =>
-                `${getSortLabel(
-                    sort.field
-                )} ${
-                    sort.direction ===
-                    "asc"
-                        ? "↑"
-                        : "↓"
-                }`
-        )
-        .join(" → ");
+        .map(sort => 
+            `${getSortLabel(sort.field)} ${sort.direction === "asc" ? "↑" : "↓"}`
+        ).join(" → ");
 };
 </script>
 
@@ -1244,10 +830,6 @@ const getHistoryLabel = (
             label-placement="top"
             size="small"
         >
-            <!-- =================================================
-                 STICKY TOP
-            ================================================== -->
-
             <div class="filters-top">
                 <div class="filters-header">
                     <div class="filters-title">
@@ -1256,34 +838,22 @@ const getHistoryLabel = (
                         </span>
 
                         <n-tag
-                            v-if="
-                                activeFiltersCount
-                            "
+                            v-if="activeFiltersCount"
                             size="small"
                             round
-                            :bordered="
-                                false
-                            "
+                            :bordered="false"
                         >
-                            <span
-                                class="counter"
-                            >
-                                {{
-                                    activeFiltersCount
-                                }}
+                            <span class="counter">
+                                {{activeFiltersCount}}
                             </span>
                         </n-tag>
                     </div>
 
                     <n-button
-                        v-if="
-                            hasActiveFilters
-                        "
+                        v-if=" hasActiveFilters"
                         text
                         size="small"
-                        @click="
-                            resetFilters
-                        "
+                        @click="resetFilters"
                     >
                         Сбросить
                     </n-button>
@@ -1295,127 +865,62 @@ const getHistoryLabel = (
                     label="Поиск"
                 >
                     <n-input
-                        v-model:value="
-                            filters.search
-                        "
+                        v-model:value="filters.search"
                         placeholder="Товар, клиент, задача..."
                         clearable
                     />
                 </n-form-item>
 
-                <!-- =================================================
-                     SORTING
-                ================================================== -->
-
                 <div class="sorting">
                     <div
                         class="sorting-header"
                     >
-                        <span
-                            class="sorting-title"
-                        >
+                        <span class="sorting-title">
                             Сортировка
                         </span>
 
                         <span
-                            v-if="
-                                filters
-                                    .sortFields
-                                    .length > 0
-                            "
+                            v-if="filters.sortFields.length > 0"
                             class="sorting-hint"
                         >
-                            {{
-                                filters
-                                    .sortFields
-                                    .length
-                            }}
-                            {{
-                                filters
-                                    .sortFields
-                                    .length ===
-                                1
-                                    ? "уровень"
-                                    : "уровня"
-                            }}
+                            {{ filters.sortFields.length }}
+                            {{ filters.sortFields.length === 1 ? "уровень" : "уровня" }}
                         </span>
                     </div>
 
-                    <!-- LEVELS -->
-
                     <div
-                        v-if="
-                            filters
-                                .sortFields
-                                .length > 0
-                        "
+                        v-if="filters.sortFields.length > 0"
                         class="sort-list"
                     >
                         <div
-                            v-for="(
-                                sort,
-                                index
-                            ) in filters.sortFields"
-                            :key="
-                                `${sort.field}-${index}`
-                            "
+                            v-for="(sort, index) in filters.sortFields"
+                            :key="`${sort.field}-${index}`"
                             class="sort-row"
                             :class="{
-                                'sort-row-dragging':
-                                    draggedSortIndex ===
-                                    index,
-
-                                'sort-row-drag-over':
-                                    dragOverSortIndex ===
-                                        index &&
-                                    draggedSortIndex !==
-                                        index,
+                                'sort-row-dragging': draggedSortIndex === index,
+                                'sort-row-drag-over': dragOverSortIndex === index &&
+                                    draggedSortIndex !== index,
                             }"
                             draggable="true"
-                            @dragstart="
-                                onSortDragStart(
-                                    index
-                                )
-                            "
-                            @dragover="
-                                onSortDragOver(
-                                    $event,
-                                    index
-                                )
-                            "
-                            @drop="
-                                onSortDrop(
-                                    index
-                                )
-                            "
-                            @dragend="
-                                onSortDragEnd
-                            "
+                            @dragstart="onSortDragStart(index)"
+                            @dragover="onSortDragOver($event, index)"
+                            @drop="onSortDrop(index)"
+                            @dragend="onSortDragEnd"
                         >
                             <span
                                 class="sort-drag-handle"
                                 title="Перетащить"
-                            >
-                                ⋮⋮
-                            </span>
+                            > ⋮⋮ </span>
 
                             <span
                                 class="sort-index"
                             >
-                                {{
-                                    index + 1
-                                }}.
+                                {{ index + 1 }}.
                             </span>
 
                             <n-select
-                                v-model:value="
-                                    sort.field
-                                "
-                                :options="
-                                    getAvailableSortOptions(
-                                        index
-                                    )
-                                "
+                                v-model:value="sort.field"
+                                :options="getAvailableSortOptions(index)"
                                 size="small"
                             />
 
@@ -1423,52 +928,28 @@ const getHistoryLabel = (
                                 size="small"
                                 quaternary
                                 class="sort-direction"
-                                @click="
-                                    sort.direction =
-                                        sort.direction ===
-                                        'asc'
-                                            ? 'desc'
-                                            : 'asc'
-                                "
+                                @click="sort.direction = (sort.direction === 'asc') ? 'desc' : 'asc'"
                             >
-                                {{
-                                    sort.direction ===
-                                    "asc"
-                                        ? "↑"
-                                        : "↓"
-                                }}
+                                {{ sort.direction === "asc" ? "↑" : "↓"}}
                             </n-button>
 
                             <n-button
                                 size="small"
                                 quaternary
                                 class="remove-sort"
-                                @click="
-                                    removeSortField(
-                                        index
-                                    )
-                                "
+                                @click="removeSortField(index)"
                             >
                                 ×
                             </n-button>
                         </div>
                     </div>
 
-                    <!-- ADD LEVEL -->
-
                     <n-button
                         dashed
                         size="small"
                         block
-                        :disabled="
-                            filters
-                                .sortFields
-                                .length >=
-                            sortOptions.length
-                        "
-                        @click="
-                            addSortField
-                        "
+                        :disabled="filters.sortFields.length >= sortOptions.length"
+                        @click="addSortField"
                     >
                         + Добавить уровень
                     </n-button>
@@ -1479,45 +960,25 @@ const getHistoryLabel = (
                         type="primary"
                         size="small"
                         block
-                        :disabled="
-                            filters
-                                .sortFields
-                                .length ===
-                                0 ||
-                            currentResult.length ===
-                                0
-                        "
-                        @click="
-                            applySorting
-                        "
+                        :disabled="filters.sortFields.length === 0 || currentResult.length === 0"
+                        @click="applySorting"
                     >
                         Сортировать
                     </n-button>
 
-                    <!-- =================================================
-                         HISTORY
-                    ================================================== -->
-
                     <div
-                        v-if="
-                            sortHistory.length > 0
-                        "
+                        v-if="sortHistory.length > 0"
                         class="sort-history"
                     >
-                        <div
-                            class="sort-history-header"
-                        >
+                        <div class="sort-history-header">
                             <span>
-                                Последние
-                                сортировки
+                                Последние сортировки
                             </span>
 
                             <n-button
                                 text
                                 size="tiny"
-                                @click="
-                                    clearSortHistory
-                                "
+                                @click="clearSortHistory"
                             >
                                 Очистить
                             </n-button>
@@ -1527,34 +988,16 @@ const getHistoryLabel = (
                             class="sort-history-list"
                         >
                             <button
-                                v-for="
-                                    historyItem in sortHistory
-                                "
-                                :key="
-                                    historyItem.id
-                                "
+                                v-for="historyItem in sortHistory"
+                                :key="historyItem.id"
                                 type="button"
                                 class="sort-history-item"
-                                @click="
-                                    applySortHistory(
-                                        historyItem
-                                    )
-                                "
+                                @click="applySortHistory(historyItem)"
                             >
-                                <span
-                                    class="history-icon"
-                                >
-                                    ↻
-                                </span>
+                                <span class="history-icon"> ↻ </span>
 
-                                <span
-                                    class="history-text"
-                                >
-                                    {{
-                                        getHistoryLabel(
-                                            historyItem
-                                        )
-                                    }}
+                                <span class="history-text">
+                                    {{ getHistoryLabel(historyItem)}}
                                 </span>
                             </button>
                         </div>
@@ -1564,20 +1007,12 @@ const getHistoryLabel = (
 
             <n-divider />
 
-            <!-- =================================================
-                 НОМЕНКЛАТУРА / КЛИЕНТ
-            ================================================== -->
-
             <n-form-item
                 label="Номенклатура"
             >
                 <n-select
-                    v-model:value="
-                        filters.nomenclature
-                    "
-                    :options="
-                        nomenclatureOptions
-                    "
+                    v-model:value="filters.nomenclature"
+                    :options="nomenclatureOptions"
                     placeholder="Все товары"
                     filterable
                     clearable
@@ -1588,30 +1023,18 @@ const getHistoryLabel = (
                 label="Кому недопродано"
             >
                 <n-select
-                    v-model:value="
-                        filters.client
-                    "
-                    :options="
-                        clientOptions
-                    "
+                    v-model:value="filters.client"
+                    :options="clientOptions"
                     placeholder="Все клиенты"
                     filterable
                     clearable
                 />
             </n-form-item>
 
-            <!-- =================================================
-                 ОСНОВНЫЕ ФИЛЬТРЫ
-            ================================================== -->
-
             <n-form-item label="Филиал">
                 <n-select
-                    v-model:value="
-                        filters.branch
-                    "
-                    :options="
-                        branchOptions
-                    "
+                    v-model:value="filters.branch"
+                    :options="branchOptions"
                     placeholder="Все филиалы"
                     clearable
                 />
@@ -1621,12 +1044,8 @@ const getHistoryLabel = (
                 label="Ответственный за продажу"
             >
                 <n-select
-                    v-model:value="
-                        filters.manager
-                    "
-                    :options="
-                        managerOptions
-                    "
+                    v-model:value="filters.manager"
+                    :options="managerOptions"
                     placeholder="Все менеджеры"
                     filterable
                     clearable
@@ -1637,12 +1056,8 @@ const getHistoryLabel = (
                 label="Жесткость"
             >
                 <n-select
-                    v-model:value="
-                        filters.hardness
-                    "
-                    :options="
-                        hardnessOptions
-                    "
+                    v-model:value="filters.hardness"
+                    :options="hardnessOptions"
                     placeholder="Любая"
                     clearable
                 />

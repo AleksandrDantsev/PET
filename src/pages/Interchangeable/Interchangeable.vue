@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import type { IGoogleTableData } from "../../types/TableSheetData.ts";
 import { dataToObjects } from "@/helpers/dataHandlers.ts";
 import InterchangeableForm from "./InterchangeableForm.vue";
@@ -12,6 +12,7 @@ import {
     NButton,
     NDrawer,
     NDrawerContent,
+    NEmpty,
 } from "naive-ui";
 
 type DataObject = Record<string, string | number | boolean | null>;
@@ -32,6 +33,14 @@ const filtersOpen = ref(false);
 const searchResultObjs = ref<DataObject[]>([]);
 const filteredActualResultObjs = ref<DataObject[]>([]);
 const clientsDemand = ref<DataObject>({});
+const isSearched = ref<boolean>(false);
+
+onMounted(() => {
+    if (props.actualData) {
+        searchResultObjs.value = dataToObjects(props.actualData);
+        filteredActualResultObjs.value = dataToObjects(props.actualData);
+    }
+});
 
 const actualDataObjs = computed(() => {
     if (!props.actualData) {
@@ -171,6 +180,7 @@ const search = (fields: Record<string, string>) => {
 
     searchResultObjs.value = result;
     filteredActualResultObjs.value = result;
+    isSearched.value = true;
 
     console.log(result);
 };
@@ -212,9 +222,22 @@ const resetFilters = () => {
         </div>
 
         <InterchangeableResult
+            v-if="Object.keys(clientsDemand)?.length || filteredActualResultObjs?.length || searchResultObjs?.length"
             :clients-demand="clientsDemand"
             :filtered-actual-result-objs="filteredActualResultObjs"
         />
+        <NEmpty
+            v-else
+            :description="isSearched ? 'Ничего не найдено' : 'Попробуйте найти что-что'"
+        >
+            <template #icon>
+                <NImage
+                    width="48"
+                    preview-disabled
+                    src=""
+                />
+            </template>
+        </NEmpty>
 
         <NDrawer
             v-model:show="filtersOpen"
