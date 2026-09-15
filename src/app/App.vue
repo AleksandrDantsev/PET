@@ -63,14 +63,12 @@ onMounted(async () => {
                 return null;
             }),
     ]);
-    console.log("actualData:", actualData);
-console.log("localStorage before:", localStorage.length);
 
-if (actualData) {
-    ACTUAL_DATA.value = actualData;
-    LocalStorage.save("actualData", actualData);
-    console.log("saved:", localStorage.getItem("actualData"));
-}
+
+    if (actualData) {
+        ACTUAL_DATA.value = actualData;
+        LocalStorage.save("actualData", actualData);
+    }
 
     if (actualData) {
         ACTUAL_DATA.value = actualData;

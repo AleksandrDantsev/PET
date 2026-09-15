@@ -36,11 +36,11 @@ export function getHardnessColor(days: string | number): string {
         return "";
     }
 
-    if (days < 15) {
+    if (days <= 15) {
         return colors.green;
     }
 
-    if (days < 30) {
+    if (days <= 30) {
         return colors.yellow;
     }
 
@@ -124,7 +124,7 @@ export function setColorText(text: string | number | boolean | null) {
         "розов": "#ec407a",
         "син": "#1e88e5",
         "черн": "#000000",
-        "бел": "inherit",
+        "бел": "#ffffff",
     };
 
     const result: {
@@ -146,4 +146,16 @@ export function setColorText(text: string | number | boolean | null) {
     }
 
     return result;
+}
+
+export function formatNumber(value: string | number | undefined | null): string {
+    if (!value) return "";
+
+    const number = Number(String(value).replace(',', '.'));
+
+    if (isNaN(number)) return "";
+
+    return new Intl.NumberFormat('ru-RU', {
+        maximumFractionDigits: 0,
+    }).format(number);
 }

@@ -78,7 +78,9 @@ const setComma = (length: number, index: number) =>
                     <span
                         v-for="(value, index) in colorsData.mainColors"
                         :key="value.colorName + value.color"
-                        :style="{ color: value.color }"
+                        :style="{ 
+                            color: value.color === '#ffffff' ? 'inherit' : value.color 
+                        }"
                     >
                         {{ value.colorName + setComma(colorsData.mainColors.length, index) }}
                     </span>
@@ -92,7 +94,9 @@ const setComma = (length: number, index: number) =>
                     <span
                         v-for="(value, index) in colorsData.interchangeableColors"
                         :key="value.colorName + value.color"
-                        :style="{ color: value.color }"
+                        :style="{ 
+                            color: value.color === '#ffffff' ? 'inherit' : value.color 
+                        }"
                     >
                         {{ value.colorName + setComma(colorsData.interchangeableColors.length, index) }}
                     </span>
@@ -106,7 +110,9 @@ const setComma = (length: number, index: number) =>
                     <span
                         v-for="(value, index) in colorsData.possibleColors"
                         :key="value.colorName + value.color"
-                        :style="{ color: value.color }"
+                        :style="{ 
+                            color: value.color === '#ffffff' ? 'inherit' : value.color 
+                        }"
                     >
                         {{ value.colorName + setComma(colorsData.possibleColors.length, index) }}
                     </span>

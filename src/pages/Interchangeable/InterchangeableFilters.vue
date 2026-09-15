@@ -216,11 +216,11 @@ const sortOptions = [
         value: "Ответственный за продажу",
     },
     {
-        label: "Дата привоза",
-        value: "Дата привоза",
+        label: "Клиент",
+        value: "Какому клиенту планируется продажа",
     },
     {
-        label: "Дней с даты привоза",
+        label: "Дата привоза",
         value: "Кол-во дней с даты привоза",
     },
     {
@@ -236,10 +236,6 @@ const sortOptions = [
         value: "Номенклатура 1С",
     },
     {
-        label: "Клиент",
-        value: "Кому недопродано",
-    },
-    {
         label: "Филиал",
         value: "Филиал",
     },
@@ -250,14 +246,6 @@ const sortOptions = [
     {
         label: "Горло",
         value: "горло",
-    },
-    {
-        label: "Жесткость",
-        value: "Жесткость",
-    },
-    {
-        label: "Комплектующие",
-        value: "комплектующие",
     },
 ].sort((a, b) => 
     normalizeForSorting(a.value).localeCompare(normalizeForSorting(b.value), "ru")
@@ -619,7 +607,7 @@ const addSortField = () => {
             sort => sort.field === option.value
         )
     );
-
+    console.log(availableOption)
     if (!availableOption) {
         return;
     }
@@ -1065,12 +1053,8 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 
             <n-form-item label="Цвет">
                 <n-select
-                    v-model:value="
-                        filters.color
-                    "
-                    :options="
-                        colorOptions
-                    "
+                    v-model:value="filters.color"
+                    :options="colorOptions"
                     placeholder="Любой"
                     filterable
                     clearable
@@ -1079,12 +1063,8 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 
             <n-form-item label="Горло">
                 <n-select
-                    v-model:value="
-                        filters.neck
-                    "
-                    :options="
-                        neckOptions
-                    "
+                    v-model:value="filters.neck"
+                    :options="neckOptions"
                     placeholder="Любое"
                     filterable
                     clearable
@@ -1095,22 +1075,14 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                 label="Комплектующие"
             >
                 <n-select
-                    v-model:value="
-                        filters.componentType
-                    "
-                    :options="
-                        componentTypeOptions
-                    "
+                    v-model:value="filters.componentType"
+                    :options="componentTypeOptions"
                     placeholder="Любые"
                     clearable
                 />
             </n-form-item>
 
             <n-divider />
-
-            <!-- =================================================
-                 ДАТА
-            ================================================== -->
 
             <n-form-item
                 label="Дата привоза"
@@ -1121,9 +1093,7 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                     style="width: 100%"
                 >
                     <n-date-picker
-                        v-model:value="
-                            filters.arrivalDateFrom
-                        "
+                        v-model:value="filters.arrivalDateFrom"
                         type="date"
                         clearable
                         placeholder="От"
@@ -1131,9 +1101,7 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                     />
 
                     <n-date-picker
-                        v-model:value="
-                            filters.arrivalDateTo
-                        "
+                        v-model:value="filters.arrivalDateTo"
                         type="date"
                         clearable
                         placeholder="До"
@@ -1142,10 +1110,6 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                 </n-space>
             </n-form-item>
 
-            <!-- =================================================
-                 ДИАПАЗОНЫ
-            ================================================== -->
-
             <n-form-item
                 label="Дней с даты привоза"
             >
@@ -1153,18 +1117,14 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                     class="range-fields"
                 >
                     <n-input-number
-                        v-model:value="
-                            filters.daysFrom
-                        "
+                        v-model:value="filters.daysFrom"
                         :min="0"
                         placeholder="От"
                         clearable
                     />
 
                     <n-input-number
-                        v-model:value="
-                            filters.daysTo
-                        "
+                        v-model:value="filters.daysTo"
                         :min="0"
                         placeholder="До"
                         clearable
@@ -1179,18 +1139,14 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                     class="range-fields"
                 >
                     <n-input-number
-                        v-model:value="
-                            filters.quantityFrom
-                        "
+                        v-model:value="filters.quantityFrom"
                         :min="0"
                         placeholder="От"
                         clearable
                     />
 
                     <n-input-number
-                        v-model:value="
-                            filters.quantityTo
-                        "
+                        v-model:value="filters.quantityTo"
                         :min="0"
                         placeholder="До"
                         clearable
@@ -1205,18 +1161,14 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                     class="range-fields"
                 >
                     <n-input-number
-                        v-model:value="
-                            filters.costFrom
-                        "
+                        v-model:value="filters.costFrom"
                         :min="0"
                         placeholder="От"
                         clearable
                     />
 
                     <n-input-number
-                        v-model:value="
-                            filters.costTo
-                        "
+                        v-model:value="filters.costTo"
                         :min="0"
                         placeholder="До"
                         clearable
@@ -1226,10 +1178,6 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 
             <n-divider />
 
-            <!-- =================================================
-                 SWITCHES
-            ================================================== -->
-
             <div class="switches">
                 <div class="switch-row">
                     <span>
@@ -1237,17 +1185,8 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                     </span>
 
                     <n-switch
-                        :value="
-                            filters.hasPassport ===
-                            true
-                        "
-                        @update:value="
-                            value =>
-                                filters.hasPassport =
-                                    value
-                                        ? true
-                                        : null
-                        "
+                        :value="filters.hasPassport === true"
+                        @update:value="value => filters.hasPassport = value ? true : null"
                     />
                 </div>
 
@@ -1257,17 +1196,8 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                     </span>
 
                     <n-switch
-                        :value="
-                            filters.hasTask ===
-                            true
-                        "
-                        @update:value="
-                            value =>
-                                filters.hasTask =
-                                    value
-                                        ? true
-                                        : null
-                        "
+                        :value="filters.hasTask === true"
+                        @update:value="(value) => filters.hasTask = value ? true : null"
                     />
                 </div>
 
@@ -1277,17 +1207,8 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                     </span>
 
                     <n-switch
-                        :value="
-                            filters.hasArrivalDate ===
-                            true
-                        "
-                        @update:value="
-                            value =>
-                                filters.hasArrivalDate =
-                                    value
-                                        ? true
-                                        : null
-                        "
+                        :value="filters.hasArrivalDate === true"
+                        @update:value="(value) => filters.hasArrivalDate = value ? true : null"
                     />
                 </div>
 
@@ -1297,17 +1218,8 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
                     </span>
 
                     <n-switch
-                        :value="
-                            filters.hasManager ===
-                            true
-                        "
-                        @update:value="
-                            value =>
-                                filters.hasManager =
-                                    value
-                                        ? true
-                                        : null
-                        "
+                        :value="filters.hasManager === true"
+                        @update:value="(value) => filters.hasManager = value ? true : null"
                     />
                 </div>
             </div>
@@ -1315,17 +1227,11 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
             <div class="bottom-spacer" />
         </n-form>
 
-        <!-- =====================================================
-             STICKY BOTTOM
-        ====================================================== -->
-
         <div class="filters-bottom">
             <n-button
                 type="primary"
                 block
-                @click="
-                    applyFilters
-                "
+                @click="applyFilters"
             >
                 Применить фильтры
             </n-button>
@@ -1336,51 +1242,42 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 <style lang="scss" scoped>
 .filters-panel {
     position: relative;
-
     width: 100%;
     box-sizing: border-box;
-
     padding: 0 14px 14px;
-
     background: #fafafa;
 }
-
-/* =========================================================
-   STICKY TOP
-========================================================= */
 
 .filters-top {
     position: sticky;
     top: 0;
-
     z-index: 100;
-
     padding-top: 14px;
     padding-bottom: 4px;
-
     background: #fafafa;
-
     box-shadow:
         0 5px 10px -10px
         rgb(0 0 0 / 45%);
+}
+
+@media screen and (min-width: 900px) {
+  .filters-top {
+    position: static;
+  }
 }
 
 .filters-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     padding-bottom: 8px;
 }
 
 .filters-title {
     display: flex;
     align-items: center;
-
     gap: 7px;
-
     color: #292929;
-
     font-size: 13px;
     font-weight: 600;
 }
@@ -1389,16 +1286,10 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
     font-size: 8px;
 }
 
-/* =========================================================
-   SORTING
-========================================================= */
-
 .sorting {
     display: flex;
     flex-direction: column;
-
     gap: 7px;
-
     margin-top: 4px;
 }
 
@@ -1410,31 +1301,25 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 
 .sorting-title {
     color: #777;
-
     font-size: 10px;
     font-weight: 600;
-
     letter-spacing: 0.06em;
-
     text-transform: uppercase;
 }
 
 .sorting-hint {
     color: #aaa;
-
     font-size: 9px;
 }
 
 .sort-list {
     display: flex;
     flex-direction: column;
-
     gap: 5px;
 }
 
 .sort-row {
     display: grid;
-
     grid-template-columns:
         18px
         20px
@@ -1443,15 +1328,10 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
         30px;
 
     align-items: center;
-
     gap: 4px;
-
     padding: 3px;
-
     border-radius: 5px;
-
     background: transparent;
-
     transition:
         background 0.15s,
         opacity 0.15s,
@@ -1464,27 +1344,21 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 
 .sort-row-dragging {
     opacity: 0.45;
-
     background: #e8e8e8;
-
     transform: scale(0.99);
 }
 
 .sort-row-drag-over {
     background: #e5e5e5;
-
     box-shadow:
         inset 0 2px 0 #999;
 }
 
 .sort-drag-handle {
     color: #999;
-
     font-size: 13px;
     line-height: 1;
-
     cursor: grab;
-
     user-select: none;
 }
 
@@ -1494,24 +1368,19 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 
 .sort-index {
     color: #999;
-
     font-size: 10px;
     font-weight: 600;
-
     text-align: center;
 }
 
 .sort-direction {
     min-width: 30px;
-
     font-size: 16px;
 }
 
 .remove-sort {
     min-width: 30px;
-
     color: #999;
-
     font-size: 18px;
 }
 
@@ -1519,20 +1388,12 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
     color: #d03050;
 }
 
-/* =========================================================
-   SORT HISTORY
-========================================================= */
-
 .sort-history {
     display: flex;
     flex-direction: column;
-
     gap: 5px;
-
     margin-top: 4px;
-
     padding-top: 8px;
-
     border-top: 1px solid #e8e8e8;
 }
 
@@ -1540,44 +1401,31 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     color: #999;
-
     font-size: 9px;
     font-weight: 600;
-
     text-transform: uppercase;
 }
 
 .sort-history-list {
     display: flex;
     flex-direction: column;
-
     gap: 2px;
 }
 
 .sort-history-item {
     display: flex;
     align-items: center;
-
     width: 100%;
-
     padding: 5px 6px;
-
     border: 0;
     border-radius: 4px;
-
     background: transparent;
-
     color: #666;
-
     font-family: inherit;
     font-size: 10px;
-
     text-align: left;
-
     cursor: pointer;
-
     transition:
         background 0.15s,
         color 0.15s;
@@ -1585,53 +1433,33 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 
 .sort-history-item:hover {
     background: #eeeeee;
-
     color: #222;
 }
 
 .history-icon {
     flex: 0 0 auto;
-
     width: 18px;
-
     color: #999;
-
     font-size: 12px;
 }
 
 .history-text {
     overflow: hidden;
-
     text-overflow: ellipsis;
-
     white-space: nowrap;
 }
-
-/* =========================================================
-   RANGE
-========================================================= */
-
 .range-fields {
     display: grid;
-
     grid-template-columns:
         1fr 1fr;
-
     gap: 6px;
-
     width: 100%;
 }
-
-/* =========================================================
-   SWITCHES
-========================================================= */
 
 .switches {
     display: flex;
     flex-direction: column;
-
     gap: 12px;
-
     margin-bottom: 16px;
 }
 
@@ -1639,17 +1467,10 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     min-height: 24px;
-
     color: #555;
-
     font-size: 11px;
 }
-
-/* =========================================================
-   BOTTOM BUTTON
-========================================================= */
 
 .bottom-spacer {
     height: 65px;
@@ -1658,22 +1479,14 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 .filters-bottom {
     position: sticky;
     bottom: 0;
-
     z-index: 100;
-
     margin: 0 -14px;
     padding: 12px 14px 14px;
-
     background: #fafafa;
-
     box-shadow:
         0 -5px 10px -10px
         rgb(0 0 0 / 45%);
 }
-
-/* =========================================================
-   NAIVE UI
-========================================================= */
 
 :deep(.n-form-item-label) {
     padding-bottom: 4px;
@@ -1681,12 +1494,9 @@ const getHistoryLabel = ( item: SortHistoryItem): string => {
 
 :deep(.n-form-item-label__text) {
     color: #777;
-
     font-size: 10px;
     font-weight: 600;
-
     letter-spacing: 0.06em;
-
     text-transform: uppercase;
 }
 
