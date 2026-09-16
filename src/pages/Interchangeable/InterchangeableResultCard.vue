@@ -12,6 +12,7 @@ import {
     getProductColor,
     formatNumber
 } from '@/utils/tableHelpers';
+import { trimTrailingZeros } from '@/utils/normalize';
 
 const props = defineProps({
     result: {
@@ -64,10 +65,16 @@ const cost = computed(() =>
 ========================================= */
 
 const includedFields = [
+    "Номер задачи в битрикс",
     "Дата привоза",
+    "Кол-во дней с даты привоза",
+    "Кол-во недопрод. товара",
     "Кто заказал",
     "Кому недопродано",
-    "Номер задачи в битрикс"
+    "Все остатки из 1С",
+    "Недопродал потому что",
+    "Ближайшее действие",
+    "Все клиенты, которым отгр. ном. + менеджер",
 ];
 
 const additionalFields = computed(() => {
@@ -356,7 +363,7 @@ onBeforeUnmount(() => {
                         Остатки:
                     </span>
 
-                    {{ result["Все остатки из 1С"] || "-" }}
+                    {{ trimTrailingZeros(result["Кол-во кор. на остатках из 1С"]) || "-" }}
                 </div>
 
             </div>
@@ -425,7 +432,6 @@ onBeforeUnmount(() => {
     border-radius: 7px;
 
     cursor: pointer;
-    user-select: none;
 
     transition:
         background 0.15s ease,
@@ -660,7 +666,7 @@ onBeforeUnmount(() => {
     left: 0;
     right: 0;
 
-    padding: 10px 12px 12px;
+    padding: 11px 14px 13px;
 
     box-sizing: border-box;
 
@@ -684,12 +690,14 @@ onBeforeUnmount(() => {
 
     gap: 8px;
 
-    margin-bottom: 9px;
+    margin-bottom: 6px;
 
     color: #aaa79f;
 
     font-size: 9px;
     font-weight: 700;
+
+    line-height: 1.2;
 
     letter-spacing: 0.07em;
 
@@ -706,44 +714,49 @@ onBeforeUnmount(() => {
 }
 
 .additional-fields {
-    display: grid;
-
-    grid-template-columns:
-        repeat(4, minmax(0, 1fr));
-
-    gap: 7px 10px;
+    display: flex;
+    flex-direction: column;
 }
 
 .additional-field {
+    display: grid;
+
+    grid-template-columns:
+        minmax(130px, 0.35fr)
+        minmax(0, 1fr);
+
+    align-items: center;
+
     min-width: 0;
 
-    padding: 7px 9px;
+    padding: 6px 0;
 
-    background: #f8f7f4;
+    border-bottom: 1px solid #f0eee9;
 
-    border: 1px solid #eceae4;
-    border-radius: 5px;
+    &:last-child {
+        border-bottom: 0;
+    }
 }
 
 .additional-label {
-    margin-bottom: 3px;
+    min-width: 0;
 
     color: #aaa79f;
 
-    font-size: 8px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 600;
 
-    line-height: 1.2;
+    line-height: 1.3;
 
-    letter-spacing: 0.05em;
-
-    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .additional-value {
-    color: #484640;
+    min-width: 0;
 
-    font-size: 10px;
+    color: #41403b;
+
+    font-size: 11px;
     font-weight: 500;
 
     line-height: 1.35;
