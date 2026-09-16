@@ -74,6 +74,16 @@ function hasValue<T>(value: T): boolean {
     );
 };
 
+function trimTrailingZeros(value: string | number | null | undefined | "") {
+    if (value === null || value === undefined || value === '') {
+        return value;
+    }
+
+    return String(value)
+        .replace(/(\,\d*?[1-9])0+$/, '$1')
+        .replace(/\,0+$/, '');
+};
+
 
 
 export {
@@ -82,4 +92,5 @@ export {
     toNumber,
     toTimestamp,
     hasValue,
+    trimTrailingZeros,
 }
