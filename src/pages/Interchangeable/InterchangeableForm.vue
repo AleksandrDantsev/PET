@@ -279,6 +279,7 @@ const save = async () => {
                     :options="managerOptions"
                     placeholder="Менеджер"
                     clearable
+                    class="full-width"
                 />
             </n-form-item>
 
@@ -291,6 +292,7 @@ const save = async () => {
                     :options="branchOptions"
                     placeholder="Филиал"
                     clearable
+                    class="full-width"
                 />
             </n-form-item>
 
@@ -314,6 +316,7 @@ const save = async () => {
                     v-model:value="formValue.znurType"
                     placeholder="Тип ЗНУР"
                     clearable
+                    class="full-width"
                 />
             </n-form-item>
 
@@ -355,46 +358,118 @@ const save = async () => {
 </template>
 <style lang="scss" scoped>
 $backgroundHeader: #f8f8f8;
+
 .search-wrapper {
     position: sticky;
-    top: 0px;
+    top: 0;
     z-index: 100;
-    padding: 12px 14px 0px 14px;
+    padding: 12px 14px 0;
     background: $backgroundHeader;
     border-radius: 8px 8px 0 0;
 }
+
 .passport-wrapper {
     padding: 0 14px 12px;
     background: $backgroundHeader;
     border-radius: 0 0 8px 8px;
 }
+
+/* =========================================================
+   SEARCH FORM
+   ========================================================= */
+
 .search-form {
-    display: grid;
-    grid-template-columns:
-        minmax(200px, 1fr)
-        minmax(240px, 1fr)
-        96px;
+    display: flex;
     gap: 10px;
-    align-items: end;
+    align-items: flex-end;
+    width: 100%;
 }
 
+.search-form > :nth-child(1) {
+    flex: 1 1 0;
+    min-width: 200px;
+}
+
+.search-form > :nth-child(2) {
+    flex: 1 1 0;
+    min-width: 240px;
+}
+
+.search-form > :nth-child(3) {
+    flex: 0 0 96px;
+    width: 96px;
+    min-width: 96px;
+}
+
+/* =========================================================
+   PASSPORT FORM
+   ========================================================= */
+
 .passport-fields {
-    display: grid;
-    grid-template-columns:
-        minmax(140px, 1.1fr)
-        minmax(120px, 0.8fr)
-        minmax(120px, 0.8fr)
-        minmax(130px, 0.9fr)
-        minmax(90px, 0.55fr)
-        minmax(160px, 1.2fr)
-        36px;
+    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
-    align-items: end;
+    align-items: flex-end;
+    width: 100%;
     padding-top: 20px;
 }
+
+/*
+ * Аналог исходного Grid:
+ *
+ * 1.1fr
+ * 0.8fr
+ * 0.8fr
+ * 0.9fr
+ * 0.55fr
+ * 1.2fr
+ * 36px
+ */
+
+.passport-fields > :nth-child(1) {
+    flex: 1.1 1 0;
+    min-width: 140px;
+}
+
+.passport-fields > :nth-child(2) {
+    flex: 0.8 1 0;
+    min-width: 120px;
+}
+
+.passport-fields > :nth-child(3) {
+    flex: 0.8 1 0;
+    min-width: 120px;
+}
+
+.passport-fields > :nth-child(4) {
+    flex: 0.9 1 0;
+    min-width: 130px;
+}
+
+.passport-fields > :nth-child(5) {
+    flex: 0.55 1 0;
+    min-width: 90px;
+}
+
+.passport-fields > :nth-child(6) {
+    flex: 1.2 1 0;
+    min-width: 160px;
+}
+
+.passport-fields > :nth-child(7) {
+    flex: 0 0 36px;
+    width: 36px;
+    min-width: 36px;
+}
+
+/* =========================================================
+   FORM LABELS
+   ========================================================= */
+
 :deep(.n-form-item-label) {
     padding-bottom: 4px;
 }
+
 :deep(.n-form-item-label__text) {
     color: #777;
     font-size: 10px;
@@ -403,6 +478,11 @@ $backgroundHeader: #f8f8f8;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
 :deep(.n-input),
 :deep(.n-input-number),
 :deep(.n-base-selection),
@@ -415,6 +495,7 @@ $backgroundHeader: #f8f8f8;
     --n-text-color: #292929;
     --n-placeholder-color: #999;
     --n-height: 36px;
+
     min-height: 36px;
     font-size: 12px;
     border-radius: 6px;
@@ -422,86 +503,145 @@ $backgroundHeader: #f8f8f8;
         border-color 0.15s ease,
         box-shadow 0.15s ease;
 }
+
 :deep(.n-input) {
     background: #fff;
 }
+
 :deep(.n-input:focus-within) {
     box-shadow: 0 0 0 2px rgba(40, 40, 40, 0.055);
 }
+
 :deep(.n-input__input-el),
 :deep(.n-input__textarea-el),
 :deep(.n-input-number-input__input) {
     color: #292929;
     font-size: 12px;
 }
+
 :deep(input::placeholder) {
     color: #a3a39e;
 }
+
+/* =========================================================
+   INPUT ICONS
+   ========================================================= */
+
 :deep(.n-input__suffix),
 :deep(.n-input__prefix),
 :deep(.n-base-selection__arrow) {
     color: #888;
 }
+
 :deep(.n-input__clear),
 :deep(.n-base-selection__clear) {
     color: #999;
 }
+
 :deep(.n-input__clear:hover),
 :deep(.n-base-selection__clear:hover) {
     color: #333;
 }
+
+/* =========================================================
+   SELECT
+   ========================================================= */
+
 :deep(.n-base-selection) {
     width: 100%;
     background: #fff;
 }
+
 :deep(.n-base-selection-label) {
     background: #fff;
     border-radius: 6px;
 }
+
 :deep(.n-base-selection-input) {
     background: transparent;
 }
+
 :deep(.n-base-selection-input__content) {
     color: #292929;
     font-size: 12px;
 }
+
 :deep(.n-base-selection--active) {
     background: #fff;
     box-shadow: 0 0 0 2px rgba(40, 40, 40, 0.055);
 }
+
+/* =========================================================
+   AUTO COMPLETE
+   ========================================================= */
+
 :deep(.n-auto-complete) {
     width: 100%;
 }
+
 :deep(.n-auto-complete .n-input) {
+    width: 100%;
     background: #fff;
 }
+
+/* =========================================================
+   INPUT NUMBER
+   ========================================================= */
+
 :deep(.n-input-number) {
     width: 100%;
     background: #fff;
 }
+
 :deep(.n-input-number-input) {
     background: #fff;
 }
+
 :deep(.n-input-number__minus),
 :deep(.n-input-number__plus) {
     color: #888;
 }
+
 :deep(.n-input-number__minus:hover),
 :deep(.n-input-number__plus:hover) {
     color: #333;
     background: #f2f2ef;
 }
-.full-width {
-    width: 100%;
-}
+
+/* =========================================================
+   DATE PICKER
+   ========================================================= */
+
 :deep(.n-date-picker) {
     width: 100%;
     background: #fff;
 }
+
 :deep(.n-date-picker .n-input) {
     width: 100%;
     background: #fff;
 }
+
+/* =========================================================
+   FULL WIDTH
+   ========================================================= */
+
+/*
+ * Важно:
+ * здесь НЕ должно быть min-width: 200px,
+ * иначе оно ломает responsive flex для
+ * маленьких полей.
+ */
+
+.full-width {
+    width: 100%;
+    min-width: 0;
+}
+
+/* =========================================================
+   DROPDOWN
+   ========================================================= */
+
 :deep(.n-base-select-menu),
 :deep(.n-auto-complete-menu) {
     overflow: hidden;
@@ -510,6 +650,7 @@ $backgroundHeader: #f8f8f8;
     border-radius: 7px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
+
 :deep(.n-base-select-option) {
     min-height: 30px;
     padding: 0 8px;
@@ -521,20 +662,32 @@ $backgroundHeader: #f8f8f8;
     font-size: 11px;
     line-height: 1.2;
 }
+
 :deep(.n-base-select-option:hover) {
     background: #f3f3f0;
 }
+
 :deep(.n-base-select-option.n-base-select-option--selected) {
     background: #ecece8;
     color: #111;
     font-weight: 500;
 }
+
+/* =========================================================
+   DATE PANEL
+   ========================================================= */
+
 :deep(.n-date-panel) {
     background: #fff;
     border: 1px solid #deded9;
     border-radius: 7px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
+
+/* =========================================================
+   SEARCH BUTTON
+   ========================================================= */
+
 .search-button {
     width: 96px;
     height: 36px;
@@ -551,13 +704,20 @@ $backgroundHeader: #f8f8f8;
         background 0.15s ease,
         border-color 0.15s ease;
 }
+
 .search-button:hover {
     background: #222;
     border-color: #222;
 }
+
 .search-button:active {
     background: #111;
 }
+
+/* =========================================================
+   SAVE BUTTON
+   ========================================================= */
+
 .save-button {
     width: 36px;
     min-width: 36px;
@@ -574,61 +734,143 @@ $backgroundHeader: #f8f8f8;
         color 0.15s ease,
         border-color 0.15s ease;
 }
+
 .save-button:hover {
     background: #f1f1ee;
     border-color: #c8c8c3;
     color: #222;
 }
+
+/* =========================================================
+   FORM VALIDATION
+   ========================================================= */
+
 :deep(.n-form-item-feedback-wrapper) {
     font-size: 10px;
 }
+
 :deep(.n-form-item--error .n-input),
 :deep(.n-form-item--error .n-base-selection),
 :deep(.n-form-item--error .n-input-number) {
     --n-border: rgba(150, 45, 45, 0.45);
 }
+
 :deep(.n-form-item-feedback--error) {
     color: #9a4545;
 }
+
+/* =========================================================
+   <= 1250px
+   3 поля + кнопка
+   ========================================================= */
+
 @media (max-width: 1250px) {
     .passport-fields {
-        grid-template-columns:
-            repeat(3, minmax(130px, 1fr))
-            36px;
+        gap: 10px;
+    }
+
+    .passport-fields > :nth-child(1),
+    .passport-fields > :nth-child(2),
+    .passport-fields > :nth-child(3),
+    .passport-fields > :nth-child(4),
+    .passport-fields > :nth-child(5),
+    .passport-fields > :nth-child(6) {
+        flex: 1 1 calc((100% - 50px) / 3);
+        min-width: 130px;
+    }
+
+    .passport-fields > :nth-child(7) {
+        flex: 0 0 36px;
+        width: 36px;
+        min-width: 36px;
     }
 }
+
+/* =========================================================
+   <= 850px
+   2 поля в строке
+   ========================================================= */
+
 @media (max-width: 850px) {
     .search-wrapper {
         padding: 10px;
         border-radius: 7px;
     }
+
     .search-form {
-        grid-template-columns: 1fr;
+        flex-direction: column;
         gap: 8px;
+        align-items: stretch;
     }
+
+    .search-form > :nth-child(1),
+    .search-form > :nth-child(2),
+    .search-form > :nth-child(3) {
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+    }
+
     .search-button {
         width: 100%;
+        min-width: 0;
     }
+
     .passport-fields {
-        grid-template-columns:
-            repeat(2, minmax(130px, 1fr));
         gap: 8px;
         margin-top: 8px;
         padding-top: 8px;
     }
+
+    .passport-fields > :nth-child(1),
+    .passport-fields > :nth-child(2),
+    .passport-fields > :nth-child(3),
+    .passport-fields > :nth-child(4),
+    .passport-fields > :nth-child(5),
+    .passport-fields > :nth-child(6),
+    .passport-fields > :nth-child(7) {
+        flex: 1 1 calc((100% - 8px) / 2);
+        width: auto;
+        min-width: 130px;
+    }
+
     .save-button {
         width: 100%;
     }
 }
+
+/* =========================================================
+   <= 560px
+   1 поле в строке
+   ========================================================= */
+
 @media (max-width: 560px) {
-    .passport-fields {
-        grid-template-columns: 1fr;
+    .passport-fields > :nth-child(1),
+    .passport-fields > :nth-child(2),
+    .passport-fields > :nth-child(3),
+    .passport-fields > :nth-child(4),
+    .passport-fields > :nth-child(5),
+    .passport-fields > :nth-child(6),
+    .passport-fields > :nth-child(7) {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
     }
 }
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
 @media (prefers-reduced-motion: reduce) {
     .search-button,
-    .save-button {
+    .save-button,
+    :deep(.n-input),
+    :deep(.n-input-number),
+    :deep(.n-base-selection),
+    :deep(.n-date-picker) {
         transition: none;
     }
 }
 </style>
+
