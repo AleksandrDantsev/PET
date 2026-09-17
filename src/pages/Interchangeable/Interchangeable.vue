@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, defineAsyncComponent } from "vue";
 import type { IGoogleTableData } from "../../types/TableSheetData.ts";
 import { dataToObjects } from "@/helpers/dataHandlers.ts";
 import InterchangeableForm from "./InterchangeableForm.vue";
 import InterchangeableResult from "./InterchangeableResult.vue";
-import InterchangeableFilters from "./InterchangeableFilters.vue";
+const InterchangeableFilters = defineAsyncComponent({
+    loader: () => import("./InterchangeableFilters.vue"),
+    delay: 200,
+    timeout: 10000,
+});
 import { check } from "@/helpers/checkInterchangeablePositions.ts";
 import { ih } from "@/helpers/interchangeableFilters.ts";
 
