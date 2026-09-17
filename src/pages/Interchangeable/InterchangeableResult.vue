@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import InterchangeableClientDemand from "./InterchangeableClientDemand.vue";
+import { defineAsyncComponent } from "vue";
+const InterchangeableClientDemand = defineAsyncComponent({
+    loader: () => import("./InterchangeableClientDemand.vue"),
+});
 import InterchangeableResultCard from "./InterchangeableResultCard.vue";
 
 type DataObject = Record<string, string | number | boolean | null>;
