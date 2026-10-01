@@ -1,68 +1,52 @@
 <script setup>
-import {
-    computed,
-    onBeforeUnmount,
-    onMounted,
-    ref
-} from 'vue';
-
-import {
-    getHardnessColor,
-    setDaysText,
-    getProductColor,
-    formatNumber
-} from '@/utils/tableHelpers';
+import { computed, nextTick, ref } from 'vue';
+import { getHardnessColor, setDaysText, getProductColor, formatNumber } from '@/utils/tableHelpers';
 import { trimTrailingZeros } from '@/utils/normalize';
 
 const props = defineProps({
     result: {
         type: Object,
-        required: true
+        required: true,
     },
 
     index: {
         type: Number,
-        required: true
-    }
+        required: true,
+    },
+
+    isExpanded: {
+        type: Boolean,
+        required: true,
+    },
 });
 
-const isExpanded = ref(false);
+const emit = defineEmits([
+    'open',
+    'close',
+]);
 
 const cardRef = ref(null);
 
-const cardId = Symbol('interchangeable-card');
+const dropdownDirection = ref('down');
 
-/* =========================================
-   COMPUTED
-========================================= */
-
-const hardnessDaysForm = computed(() =>
-    setDaysText(
+const cardData = computed(() => ({
+    hardnessDaysForm: setDaysText(
         props.result["Кол-во дней с даты привоза"]
-    )
-);
+    ),
 
-const hardnessColor = computed(() =>
-    getHardnessColor(
+    hardnessColor: getHardnessColor(
         props.result["Кол-во дней с даты привоза"]
-    )
-);
+    ),
 
-const productColor = computed(() =>
-    getProductColor(
+    productColor: getProductColor(
         props.result["Номенклатура 1С"]
-    )
-);
+    ),
 
-const cost = computed(() =>
-    formatNumber(
+    cost: formatNumber(
         props.result["Стоимость недопроданного товара"]
-    )
-);
+    ),
+}));
 
-/* =========================================
-   ADDITIONAL FIELDS
-========================================= */
 
 const includedFields = [
     "Номер задачи в битрикс",
@@ -82,13 +66,15 @@ const additionalFields = computed(() => {
         .filter(key => {
             const value = props.result[key];
 
-            return value !== null
-                && value !== undefined
-                && value !== '';
+            return (
+                value !== null &&
+                value !== undefined &&
+                value !== ''
+            );
         })
         .map(key => ({
             key,
-            value: props.result[key]
+            value: props.result[key],
         }));
 });
 
@@ -102,8 +88,8 @@ const formatAdditionalValue = (value) => {
     }
 
     if (
-        typeof value === 'object'
-        && value !== null
+        typeof value === 'object' &&
+        value !== null
     ) {
         return JSON.stringify(value);
     }
@@ -111,86 +97,63 @@ const formatAdditionalValue = (value) => {
     return String(value);
 };
 
-/* =========================================
-   OPEN / CLOSE
-========================================= */
 
-/**
- * Открываем карточку.
- *
- * Перед открытием сообщаем всем остальным карточкам,
- * что появилась новая активная карточка.
- */
-const openCard = () => {
+const updateDropdownDirection = async () => {
+    if (!cardRef.value) return;
+
+    await nextTick();
+
+    const rect = cardRef.value.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+
+    const estimatedDropdownHeight = Math.min(
+        360,
+        Math.max(
+            150,
+            additionalFields.value.length * 40 + 60
+        )
+    );
+
+    const gap = 6;
+
+    const spaceBelow = viewportHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+
+    if (spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow) {
+        dropdownDirection.value = 'up';
+    } 
+    else {
+        dropdownDirection.value = 'down';
+    }
+};
+
+const openCard = async () => {
     if (!additionalFields.value.length) {
         return;
     }
 
-    window.dispatchEvent(
-        new CustomEvent('interchangeable-card-open', {
-            detail: {
-                id: cardId
-            }
-        })
-    );
+    emit('open', props.index);
 
-    isExpanded.value = true;
+    await updateDropdownDirection();
 };
 
 const closeCard = () => {
-    isExpanded.value = false;
+    emit('close', props.index);
 };
 
-const toggleExpanded = () => {
+const toggleExpanded = async () => {
     if (!additionalFields.value.length) {
         return;
     }
 
-    if (isExpanded.value) {
-        closeCard();
-    } else {
-        openCard();
-    }
+    if (props.isExpanded) closeCard();
+    else openCard();
 };
-
-/* =========================================
-   CLOSE OTHER CARDS
-========================================= */
-
-const handleOtherCardOpen = (event) => {
-    if (event.detail?.id === cardId) {
-        return;
-    }
-
-    closeCard();
-};
-
-/* =========================================
-   CLICK OUTSIDE
-========================================= */
-
-const handlePointerDown = (event) => {
-    if (!isExpanded.value) {
-        return;
-    }
-
-    if (!cardRef.value) {
-        return;
-    }
-
-    if (!cardRef.value.contains(event.target)) {
-        closeCard();
-    }
-};
-
-/* =========================================
-   KEYBOARD
-========================================= */
 
 const handleKeydown = (event) => {
     if (
-        event.key === 'Enter'
-        || event.key === ' '
+        event.key === 'Enter' ||
+        event.key === ' '
     ) {
         event.preventDefault();
 
@@ -202,32 +165,8 @@ const handleKeydown = (event) => {
     }
 };
 
-/* =========================================
-   LIFECYCLE
-========================================= */
-
-onMounted(() => {
-    window.addEventListener(
-        'interchangeable-card-open',
-        handleOtherCardOpen
-    );
-
-    document.addEventListener(
-        'pointerdown',
-        handlePointerDown
-    );
-});
-
-onBeforeUnmount(() => {
-    window.removeEventListener(
-        'interchangeable-card-open',
-        handleOtherCardOpen
-    );
-
-    document.removeEventListener(
-        'pointerdown',
-        handlePointerDown
-    );
+defineExpose({
+    updateDropdownDirection,
 });
 </script>
 
@@ -235,8 +174,11 @@ onBeforeUnmount(() => {
     <div
         ref="cardRef"
         class="interchangeable-unit"
+        data-interchangeable-card
         :class="{
-            'is-expanded': isExpanded
+            'is-expanded': isExpanded,
+            'dropdown-up': dropdownDirection === 'up',
+            'dropdown-down': dropdownDirection === 'down',
         }"
         role="button"
         tabindex="0"
@@ -244,10 +186,6 @@ onBeforeUnmount(() => {
         @click="toggleExpanded"
         @keydown="handleKeydown"
     >
-        <!-- =========================================
-             LEFT
-        ========================================== -->
-
         <div class="counter-color">
             <div class="interchangeable-unit-counter">
                 <span>
@@ -258,19 +196,11 @@ onBeforeUnmount(() => {
             <div
                 class="interchangeable-unit-color"
                 :style="{
-                    backgroundColor: productColor
+                    backgroundColor: cardData.productColor,
                 }"
             />
         </div>
-
-        <!-- =========================================
-             CONTENT
-        ========================================== -->
-
         <div class="interchangeable-unit-container">
-
-            <!-- HEADER -->
-
             <div class="interchangeable-unit-header">
                 <div class="interchangeable-unit-nomenclature">
                     {{ result["Номенклатура 1С"] || "-" }}
@@ -280,7 +210,7 @@ onBeforeUnmount(() => {
                     v-if="additionalFields.length"
                     class="expand-icon"
                     :class="{
-                        rotated: isExpanded
+                        rotated: isExpanded,
                     }"
                     aria-hidden="true"
                 >
@@ -299,52 +229,56 @@ onBeforeUnmount(() => {
                     </svg>
                 </div>
             </div>
-
-            <!-- MAIN DATA -->
-
-            <div class="interchangeable-unit-desc-conteiner">
-
-                <div class="subtitle-conteiner">
+            <div class="interchangeable-unit-desc-container">
+                <div class="subtitle-container">
                     <span class="subtitle">
                         Филиал:
                     </span>
 
-                    {{ result["Филиал"] || "-" }}
+                    <span class="field-value">
+                        {{ result["Филиал"] || "-" }}
+                    </span>
                 </div>
 
-                <div class="subtitle-conteiner">
+                <div class="subtitle-container">
                     <span class="subtitle">
                         Менеджер:
                     </span>
 
-                    {{ result["Ответственный за продажу"] || "-" }}
+                    <span class="field-value">
+                        {{ result["Ответственный за продажу"] || "-" }}
+                    </span>
                 </div>
 
-                <div class="subtitle-conteiner">
+                <div class="subtitle-container">
                     <span class="subtitle">
                         Клиент:
                     </span>
 
-                    {{ result["Какому клиенту планируется продажа"] || "-" }}
+                    <span class="field-value">
+                        {{ result["Какому клиенту планируется продажа"] || "-" }}
+                    </span>
                 </div>
 
-                <div class="subtitle-conteiner">
+                <div class="subtitle-container">
                     <span class="subtitle">
                         Стоимость:
                     </span>
 
-                    {{ cost ? cost + " р." : "-" }}
+                    <span class="field-value">
+                        {{ cardData.cost ? cardData.cost + " р." : "-" }}
+                    </span>
                 </div>
 
-                <div class="subtitle-conteiner">
+                <div class="subtitle-container">
                     <span class="subtitle">
                         Жесткость:
                     </span>
 
                     <span
-                        class="hardness"
+                        class="field-value hardness"
                         :style="{
-                            color: hardnessColor
+                            color: cardData.hardnessColor,
                         }"
                     >
                         {{ result["Жесткость"] || "-" }}
@@ -352,26 +286,26 @@ onBeforeUnmount(() => {
                         <span class="hardness-days">
                             (
                             {{ result["Кол-во дней с даты привоза"] || 0 }}
-                            {{ hardnessDaysForm }}
+                            {{ cardData.hardnessDaysForm }}
                             )
                         </span>
                     </span>
                 </div>
 
-                <div class="interchangeable-unit-leftover">
+                <div class="subtitle-container">
                     <span class="subtitle">
                         Остатки:
                     </span>
 
-                    {{ trimTrailingZeros(result["Кол-во кор. на остатках из 1С"]) || "-" }}
+                    <span class="field-value">
+                        {{
+                            trimTrailingZeros(
+                                result["Кол-во кор. на остатках из 1С"]
+                            ) || "-"
+                        }}
+                    </span>
                 </div>
-
             </div>
-
-            <!-- =========================================
-                 DROPDOWN
-            ========================================== -->
-
             <Transition name="dropdown">
                 <div
                     v-if="isExpanded"
@@ -379,13 +313,11 @@ onBeforeUnmount(() => {
                     @click.stop
                 >
                     <div class="additional-inner">
-
                         <div class="additional-title">
                             Дополнительная информация
                         </div>
 
                         <div class="additional-fields">
-
                             <div
                                 v-for="field in additionalFields"
                                 :key="field.key"
@@ -399,13 +331,10 @@ onBeforeUnmount(() => {
                                     {{ formatAdditionalValue(field.value) }}
                                 </div>
                             </div>
-
                         </div>
-
                     </div>
                 </div>
             </Transition>
-
         </div>
     </div>
 </template>
@@ -414,25 +343,17 @@ onBeforeUnmount(() => {
 .interchangeable-unit {
     position: relative;
     z-index: 1;
-
     display: flex;
-
     width: 100%;
     min-width: 0;
     min-height: 52px;
-
     padding: 12px;
-
     box-sizing: border-box;
-
     background: #fff;
-
     border: 1px solid transparent;
     border-bottom-color: #e4e2dc;
     border-radius: 7px;
-
     cursor: pointer;
-
     transition:
         background 0.15s ease,
         border-color 0.15s ease,
@@ -445,32 +366,21 @@ onBeforeUnmount(() => {
 
     &.is-expanded {
         z-index: 100;
-
         background: #fdfdfb;
-
         border-color: #d9d6ce;
-
         box-shadow:
             0 8px 24px rgba(0, 0, 0, 0.08);
     }
 }
 
-/* =========================================
-   COUNTER
-========================================= */
-
 .counter-color {
     display: flex;
     flex-direction: column;
     align-items: center;
-
     flex: 0 0 34px;
-
     width: 34px;
-
     padding-top: 2px;
     margin-right: 15px;
-
     box-sizing: border-box;
 }
 
@@ -478,17 +388,12 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-
     width: 22px;
     height: 22px;
-
     color: #85827b;
-
     font-size: 9px;
     font-weight: 600;
-
     background: #f6f5f1;
-
     border: 1px solid #e4e2dc;
     border-radius: 5px;
 }
@@ -496,78 +401,50 @@ onBeforeUnmount(() => {
 .interchangeable-unit-color {
     width: 8px;
     height: 8px;
-
     margin-top: 8px;
-
     border-radius: 50%;
-
     box-shadow:
         0 0 0 2px #fff,
         0 0 0 3px rgba(0, 0, 0, 0.04);
 }
-
-/* =========================================
-   CONTENT
-========================================= */
 
 .interchangeable-unit-container {
     flex: 1;
     min-width: 0;
 }
 
-/* =========================================
-   HEADER
-========================================= */
-
 .interchangeable-unit-header {
     display: flex;
     align-items: center;
-
     width: 100%;
     min-width: 0;
-
     margin-bottom: 7px;
 }
 
 .interchangeable-unit-nomenclature {
     flex: 1;
     min-width: 0;
-
     color: #292824;
-
     font-size: 12px;
     font-weight: 600;
     line-height: 1.25;
-
     overflow: hidden;
-
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
-/* =========================================
-   ICON
-========================================= */
 
 .expand-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-
     flex: 0 0 22px;
-
     width: 22px;
     height: 22px;
-
     margin-left: 8px;
-
     color: #aaa79f;
-
     background: #f7f6f2;
-
-    border: 1px solid #e8e6df;
+    border: 1px solid #aca89a;
     border-radius: 5px;
-
     transition:
         color 0.18s ease,
         background 0.18s ease,
@@ -580,58 +457,42 @@ onBeforeUnmount(() => {
 
     &.rotated {
         color: #5f5c55;
-
         background: #efeee9;
-
         transform: rotate(180deg);
     }
 }
 
-/* =========================================
-   MAIN DATA
-========================================= */
-
-.interchangeable-unit-desc-conteiner {
+.interchangeable-unit-desc-container {
     display: grid;
-
-    grid-template-columns:
-        repeat(3, minmax(0, 1fr));
-
-    grid-template-rows:
-        repeat(2, minmax(0, auto));
-
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     column-gap: 18px;
     row-gap: 5px;
-
     width: 100%;
     min-width: 0;
-
     font-size: 11px;
 }
 
-.interchangeable-unit-desc-conteiner > div {
+.subtitle-container {
+    display: flex;
+    align-items: baseline;
     min-width: 0;
-
-    overflow: hidden;
-
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    line-height: 1.4;
 }
 
 .subtitle {
+    flex: 0 0 auto;
     margin-right: 4px;
-
     color: #929088;
-
     font-weight: 600;
-
     letter-spacing: 0.04em;
-
     text-transform: uppercase;
 }
 
-.subtitle-conteiner {
-    font-size: 11px;
+.field-value {
+    min-width: 0;
+    color: #34332f;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .hardness {
@@ -645,39 +506,29 @@ onBeforeUnmount(() => {
 
 .interchangeable-unit-leftover {
     color: #34332f;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
-
-/* =========================================
-   DROPDOWN
-========================================= */
 
 .additional-wrapper {
     position: absolute;
-
     z-index: 1000;
-
-    top: calc(100% + 4px);
-
-    left: 0;
-    right: 0;
-
-    padding: 11px 14px 13px;
-
+    left: -1px;
+    right: -1px;
     box-sizing: border-box;
-
+    padding: 11px 14px 13px;
     background: #fff;
-
     border: 1px solid #ddd9d1;
     border-radius: 8px;
-
     box-shadow:
         0 12px 30px rgba(0, 0, 0, 0.09),
         0 3px 8px rgba(0, 0, 0, 0.04);
+}
+
+.dropdown-down .additional-wrapper {
+    top: calc(100% + 5px);
+}
+
+.dropdown-up .additional-wrapper {
+    bottom: calc(100% + 5px);
 }
 
 .additional-inner {
@@ -687,28 +538,19 @@ onBeforeUnmount(() => {
 .additional-title {
     display: flex;
     align-items: center;
-
     gap: 8px;
-
     margin-bottom: 6px;
-
     color: #aaa79f;
-
     font-size: 9px;
     font-weight: 700;
-
     line-height: 1.2;
-
     letter-spacing: 0.07em;
-
     text-transform: uppercase;
-
     &::before {
         content: '';
-
         width: 14px;
         height: 1px;
-
+        flex: 0 0 14px;
         background: #e5e2db;
     }
 }
@@ -716,23 +558,19 @@ onBeforeUnmount(() => {
 .additional-fields {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .additional-field {
     display: grid;
-
     grid-template-columns:
         minmax(130px, 0.35fr)
         minmax(0, 1fr);
 
-    align-items: center;
-
+    align-items: start;
     min-width: 0;
-
     padding: 6px 0;
-
     border-bottom: 1px solid #f0eee9;
-
     &:last-child {
         border-bottom: 0;
     }
@@ -740,36 +578,27 @@ onBeforeUnmount(() => {
 
 .additional-label {
     min-width: 0;
-
+    padding-right: 10px;
     color: #aaa79f;
-
     font-size: 10px;
     font-weight: 600;
-
     line-height: 1.3;
-
     letter-spacing: 0.03em;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .additional-value {
     min-width: 0;
-
     color: #41403b;
-
     font-size: 11px;
     font-weight: 500;
-
     line-height: 1.35;
+    white-space: normal;
 
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
-
-/* =========================================
-   ANIMATION
-========================================= */
 
 .dropdown-enter-active,
 .dropdown-leave-active {
@@ -778,23 +607,44 @@ onBeforeUnmount(() => {
         transform 0.16s ease;
 }
 
-.dropdown-enter-from,
-.dropdown-leave-to {
+.dropdown-down .dropdown-enter-from,
+.dropdown-down .dropdown-leave-to {
     opacity: 0;
-
     transform:
         translateY(-5px)
         scale(0.985);
 }
 
-/* =========================================
-   RESPONSIVE
-========================================= */
+.dropdown-down .dropdown-enter-to,
+.dropdown-down .dropdown-leave-from {
+    opacity: 1;
+    transform:
+        translateY(0)
+        scale(1);
+}
 
-@media (max-width: 800px) {
-    .additional-fields {
+.dropdown-up .dropdown-enter-from,
+.dropdown-up .dropdown-leave-to {
+    opacity: 0;
+    transform:
+        translateY(5px)
+        scale(0.985);
+}
+
+.dropdown-up .dropdown-enter-to,
+.dropdown-up .dropdown-leave-from {
+    opacity: 1;
+    transform:
+        translateY(0)
+        scale(1);
+}
+
+@media (max-width: 900px) {
+    .interchangeable-unit-desc-container {
         grid-template-columns:
             repeat(2, minmax(0, 1fr));
+
+        column-gap: 12px;
     }
 }
 
@@ -803,21 +653,51 @@ onBeforeUnmount(() => {
         padding: 9px;
     }
 
-    .interchangeable-unit-desc-conteiner {
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-
-        column-gap: 10px;
+    .counter-color {
+        flex-basis: 28px;
+        width: 28px;
+        margin-right: 10px;
     }
 
-    .additional-fields {
+    .interchangeable-unit-desc-container {
         grid-template-columns: 1fr;
+        gap: 5px;
+    }
+
+    .subtitle-container {
+        align-items: baseline;
+    }
+
+    .additional-wrapper {
+        padding: 10px;
+    }
+
+    .additional-field {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    .additional-label {
+        padding-right: 0;
     }
 }
 
 @media (max-width: 400px) {
-    .interchangeable-unit-desc-conteiner {
-        grid-template-columns: 1fr;
+    .interchangeable-unit-nomenclature {
+        font-size: 11px;
+    }
+
+    .subtitle-container {
+        font-size: 10px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .interchangeable-unit,
+    .expand-icon,
+    .dropdown-enter-active,
+    .dropdown-leave-active {
+        transition: none;
     }
 }
 </style>

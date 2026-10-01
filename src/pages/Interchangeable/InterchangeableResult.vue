@@ -1,51 +1,165 @@
 <script setup lang="ts">
-import { defineAsyncComponent } from "vue";
+import {
+    computed,
+    defineAsyncComponent,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+} from "vue";
+import InterchangeableResultCard from "./InterchangeableResultCard.vue";
+
 const InterchangeableClientDemand = defineAsyncComponent({
     loader: () => import("./InterchangeableClientDemand.vue"),
+    delay: 200,
+    timeout: 10000,
 });
-import InterchangeableResultCard from "./InterchangeableResultCard.vue";
 
 type DataObject = Record<string, string | number | boolean | null>;
 
-defineProps<{
+const props = defineProps<{
     clientsDemand: DataObject | null;
     filteredActualResultObjs: DataObject[];
 }>();
 
+const hasClientDemand = computed(() => {
+    return Boolean(
+        props.clientsDemand &&
+        Object.keys(props.clientsDemand).length
+    );
+});
 
+const hasResults = computed(() => {
+    return props.filteredActualResultObjs.length > 0;
+});
+
+const expandedCardIndex = ref<number | null>(null);
+const expandedCardRef = ref<{ updateDropdownDirection: () => Promise<void> } | null> (null);
+
+const handleCardOpen = async (index: number) => {
+    expandedCardIndex.value = index;
+
+    await nextTick();
+};
+
+const handleCardClose = (index: number) => {
+    if (expandedCardIndex.value === index) {
+        expandedCardIndex.value = null;
+    }
+};
+
+const handlePointerDown = (event: PointerEvent) => {
+    if (expandedCardIndex.value === null) {
+        return;
+    }
+
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+        return;
+    }
+
+    const card = target.closest("[data-interchangeable-card]");
+
+    if (card) {
+        return;
+    }
+
+    expandedCardIndex.value = null;
+};
+
+const handleViewportChange = () => {
+    if (expandedCardIndex.value === null) {
+        return;
+    }
+
+    expandedCardRef.value?.updateDropdownDirection();
+};
+
+const setExpandedCardRef = (
+    card: {
+        updateDropdownDirection: () => Promise<void>;
+    } | null
+) => {
+    expandedCardRef.value = card;
+};
+
+onMounted(() => {
+    document.addEventListener(
+        "pointerdown",
+        handlePointerDown
+    );
+
+    window.addEventListener(
+        "resize",
+        handleViewportChange
+    );
+
+    window.addEventListener(
+        "scroll",
+        handleViewportChange,
+        true
+    );
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener(
+        "pointerdown",
+        handlePointerDown
+    );
+
+    window.removeEventListener(
+        "resize",
+        handleViewportChange
+    );
+
+    window.removeEventListener(
+        "scroll",
+        handleViewportChange,
+        true
+    );
+});
 </script>
 
 <template>
     <div class="result-container">
-        <Transition name="result-fade">
-            <div
-                v-if="filteredActualResultObjs.length"
-                class="container-result-cards"
-            >
+        <div
+            v-if="hasResults"
+            class="container-result-cards"
+        >
+            <Transition name="client-demand">
                 <InterchangeableClientDemand
-                    v-if="clientsDemand && Object.keys(clientsDemand).length"
+                    v-if="hasClientDemand"
                     :clients-demand="clientsDemand"
                 />
+            </Transition>
+
+            <div class="result-list">
                 <InterchangeableResultCard
                     v-for="(value, index) in filteredActualResultObjs"
                     :key="index + String(value)"
+                    :ref="expandedCardIndex === index ? setExpandedCardRef : undefined"
                     :result="value"
                     :index="index"
+                    :is-expanded="expandedCardIndex === index"
+                    @open="handleCardOpen"
+                    @close="handleCardClose"
                 />
             </div>
-        </Transition>
+        </div>
     </div>
 </template>
 
 <style scoped lang="scss">
-
 .result-container {
     width: 91%;
     margin: 20px auto;
 }
+
 .container-result-cards {
+    width: 100%;
     height: 100%;
-    overflow-y: hidden;
+    overflow: hidden;
 }
 
 .result-list {
@@ -55,80 +169,44 @@ defineProps<{
     margin-top: 18px;
 }
 
-.result-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 180px;
-    margin-top: 16px;
-    padding: 30px;
-    box-sizing: border-box;
-    text-align: center;
-    background: #fafaf8;
-    border: 1px solid #e5e4df;
-    border-radius: 6px;
+.client-demand-enter-active,
+.client-demand-leave-active {
+    transition: opacity 0.15s ease;
 }
 
-.result-empty-title {
-    color: #4c4a45;
-
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.result-empty-text {
-    margin-top: 5px;
-
-    color: #99968f;
-
-    font-size: 11px;
-}
-
-
-.result-fade-enter-active,
-.result-fade-leave-active {
-    transition:
-        opacity 0.25s ease,
-        transform 0.25s ease;
-}
-
-.result-fade-enter-from,
-.result-fade-leave-to {
+.client-demand-enter-from,
+.client-demand-leave-to {
     opacity: 0;
-    transform: translateY(6px);
 }
 
-.result-fade-enter-to,
-.result-fade-leave-from {
+.client-demand-enter-to,
+.client-demand-leave-from {
     opacity: 1;
-    transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .client-demand-enter-active,
+    .client-demand-leave-active {
+        transition: none;
+    }
 }
 
 @media (max-width: 900px) {
     .result-container {
         width: calc(100% - 24px);
-
         margin-top: 16px;
     }
 }
 
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
 @media (max-width: 600px) {
     .result-container {
         width: calc(100% - 16px);
-
         margin-top: 12px;
         margin-bottom: 24px;
     }
 
     .result-list {
         gap: 5px;
-
         margin-top: 12px;
     }
 }
