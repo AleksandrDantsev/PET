@@ -1,33 +1,42 @@
-<script setup>
-import { computed, nextTick, ref } from 'vue';
-import { getHardnessColor, setDaysText, getProductColor, formatNumber } from '@/utils/tableHelpers';
-import { trimTrailingZeros } from '@/utils/normalize';
+<script setup lang="ts">
+import {
+    computed,
+    nextTick,
+    ref,
+} from "vue";
 
-const props = defineProps({
-    result: {
-        type: Object,
-        required: true,
-    },
+import {
+    getHardnessColor,
+    setDaysText,
+    getProductColor,
+    formatNumber,
+} from "@/utils/tableHelpers";
 
-    index: {
-        type: Number,
-        required: true,
-    },
+import { trimTrailingZeros } from "@/utils/normalize";
 
-    isExpanded: {
-        type: Boolean,
-        required: true,
-    },
-});
+const props = defineProps<{
+    result: Record<string, any>;
+    index: number;
+    isExpanded: boolean;
+}>();
 
-const emit = defineEmits([
-    'open',
-    'close',
-]);
+const emit = defineEmits<{
+    (
+        e: "open",
+        card: Record<string, any>,
+        element: HTMLElement | null,
+        updateDirection: () => void
+    ): void;
 
-const cardRef = ref(null);
+    (
+        e: "close",
+        card: Record<string, any>
+    ): void;
+}>();
 
-const dropdownDirection = ref('down');
+const cardRef = ref<HTMLElement | null>(null);
+
+const dropdownDirection = ref<"up" | "down">("down");
 
 const cardData = computed(() => ({
     hardnessDaysForm: setDaysText(
@@ -47,9 +56,7 @@ const cardData = computed(() => ({
     ),
 }));
 
-
 const includedFields = [
-    "Номер задачи в битрикс",
     "Дата привоза",
     "Кол-во дней с даты привоза",
     "Кол-во недопрод. товара",
@@ -69,7 +76,7 @@ const additionalFields = computed(() => {
             return (
                 value !== null &&
                 value !== undefined &&
-                value !== ''
+                value !== ""
             );
         })
         .map(key => ({
@@ -78,17 +85,17 @@ const additionalFields = computed(() => {
         }));
 });
 
-const formatAdditionalValue = (value) => {
-    if (typeof value === 'number') {
+const formatAdditionalValue = (value: any) => {
+    if (typeof value === "number") {
         return formatNumber(value) ?? value;
     }
 
     if (Array.isArray(value)) {
-        return value.join(', ');
+        return value.join(", ");
     }
 
     if (
-        typeof value === 'object' &&
+        typeof value === "object" &&
         value !== null
     ) {
         return JSON.stringify(value);
@@ -97,13 +104,39 @@ const formatAdditionalValue = (value) => {
     return String(value);
 };
 
+const updateDropdownDirection = async (
+    waitForDom = false
+) => {
+    if (!cardRef.value) {
+        return;
+    }
 
-const updateDropdownDirection = async () => {
-    if (!cardRef.value) return;
+    /*
+     * Ждём Vue только после открытия,
+     * когда DOM действительно изменился.
+     *
+     * При scroll этот параметр false,
+     * поэтому лишнего nextTick нет.
+     */
+    if (waitForDom) {
+        await nextTick();
+    }
 
-    await nextTick();
+    const card = cardRef.value;
 
-    const rect = cardRef.value.getBoundingClientRect();
+    const rect = card.getBoundingClientRect();
+
+    /*
+     * Высота нужна только CSS.
+     * Не используем reactive state,
+     * чтобы изменение высоты не вызывало
+     * дополнительный Vue render.
+     */
+    card.style.setProperty(
+        "--card-height",
+        `${rect.height}px`
+    );
+
     const viewportHeight = window.innerHeight;
 
     const estimatedDropdownHeight = Math.min(
@@ -116,14 +149,22 @@ const updateDropdownDirection = async () => {
 
     const gap = 6;
 
-    const spaceBelow = viewportHeight - rect.bottom - gap;
-    const spaceAbove = rect.top - gap;
+    const spaceBelow =
+        viewportHeight - rect.bottom - gap;
 
-    if (spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow) {
-        dropdownDirection.value = 'up';
-    } 
-    else {
-        dropdownDirection.value = 'down';
+    const spaceAbove =
+        rect.top - gap;
+
+    const newDirection =
+        spaceBelow < estimatedDropdownHeight &&
+        spaceAbove > spaceBelow
+            ? "up"
+            : "down";
+
+    if (
+        dropdownDirection.value !== newDirection
+    ) {
+        dropdownDirection.value = newDirection;
     }
 };
 
@@ -132,13 +173,25 @@ const openCard = async () => {
         return;
     }
 
-    emit('open', props.index);
+    emit(
+        "open",
+        props.result,
+        cardRef.value,
+        () => updateDropdownDirection()
+    );
 
-    await updateDropdownDirection();
+    /*
+     * Здесь DOM ещё должен успеть обновиться,
+     * поэтому ждём nextTick только при открытии.
+     */
+    await updateDropdownDirection(true);
 };
 
 const closeCard = () => {
-    emit('close', props.index);
+    emit(
+        "close",
+        props.result
+    );
 };
 
 const toggleExpanded = async () => {
@@ -146,21 +199,24 @@ const toggleExpanded = async () => {
         return;
     }
 
-    if (props.isExpanded) closeCard();
-    else openCard();
+    if (props.isExpanded) {
+        closeCard();
+    } else {
+        await openCard();
+    }
 };
 
-const handleKeydown = (event) => {
+const handleKeydown = (event: KeyboardEvent) => {
     if (
-        event.key === 'Enter' ||
-        event.key === ' '
+        event.key === "Enter" ||
+        event.key === " "
     ) {
         event.preventDefault();
 
         toggleExpanded();
     }
 
-    if (event.key === 'Escape') {
+    if (event.key === "Escape") {
         closeCard();
     }
 };
@@ -174,7 +230,6 @@ defineExpose({
     <div
         ref="cardRef"
         class="interchangeable-unit"
-        data-interchangeable-card
         :class="{
             'is-expanded': isExpanded,
             'dropdown-up': dropdownDirection === 'up',
@@ -200,6 +255,7 @@ defineExpose({
                 }"
             />
         </div>
+
         <div class="interchangeable-unit-container">
             <div class="interchangeable-unit-header">
                 <div class="interchangeable-unit-nomenclature">
@@ -229,6 +285,7 @@ defineExpose({
                     </svg>
                 </div>
             </div>
+
             <div class="interchangeable-unit-desc-container">
                 <div class="subtitle-container">
                     <span class="subtitle">
@@ -256,7 +313,11 @@ defineExpose({
                     </span>
 
                     <span class="field-value">
-                        {{ result["Какому клиенту планируется продажа"] || "-" }}
+                        {{
+                            result[
+                                "Какому клиенту планируется продажа"
+                            ] || "-"
+                        }}
                     </span>
                 </div>
 
@@ -266,7 +327,11 @@ defineExpose({
                     </span>
 
                     <span class="field-value">
-                        {{ cardData.cost ? cardData.cost + " р." : "-" }}
+                        {{
+                            cardData.cost
+                                ? cardData.cost + " р."
+                                : "-"
+                        }}
                     </span>
                 </div>
 
@@ -285,7 +350,11 @@ defineExpose({
 
                         <span class="hardness-days">
                             (
-                            {{ result["Кол-во дней с даты привоза"] || 0 }}
+                            {{
+                                result[
+                                    "Кол-во дней с даты привоза"
+                                ] || 0
+                            }}
                             {{ cardData.hardnessDaysForm }}
                             )
                         </span>
@@ -300,12 +369,15 @@ defineExpose({
                     <span class="field-value">
                         {{
                             trimTrailingZeros(
-                                result["Кол-во кор. на остатках из 1С"]
+                                result[
+                                    "Кол-во кор. на остатках из 1С"
+                                ]
                             ) || "-"
                         }}
                     </span>
                 </div>
             </div>
+
             <Transition name="dropdown">
                 <div
                     v-if="isExpanded"
@@ -328,7 +400,11 @@ defineExpose({
                                 </div>
 
                                 <div class="additional-value">
-                                    {{ formatAdditionalValue(field.value) }}
+                                    {{
+                                        formatAdditionalValue(
+                                            field.value
+                                        )
+                                    }}
                                 </div>
                             </div>
                         </div>
@@ -343,17 +419,31 @@ defineExpose({
 .interchangeable-unit {
     position: relative;
     z-index: 1;
+
     display: flex;
+
     width: 100%;
     min-width: 0;
     min-height: 52px;
+
     padding: 12px;
+
     box-sizing: border-box;
+
     background: #fff;
-    border: 1px solid transparent;
+
+    /*
+     * Сразу резервируем 2px.
+     * Теперь при is-expanded размер border
+     * не меняется и не вызывает дополнительный layout.
+     */
+    border: 2px solid transparent;
     border-bottom-color: #e4e2dc;
+
     border-radius: 7px;
+
     cursor: pointer;
+
     transition:
         background 0.15s ease,
         border-color 0.15s ease,
@@ -366,8 +456,11 @@ defineExpose({
 
     &.is-expanded {
         z-index: 100;
+
         background: #fdfdfb;
-        border-color: #d9d6ce;
+
+        border-color: #3bbb45;
+
         box-shadow:
             0 8px 24px rgba(0, 0, 0, 0.08);
     }
@@ -377,10 +470,14 @@ defineExpose({
     display: flex;
     flex-direction: column;
     align-items: center;
+
     flex: 0 0 34px;
+
     width: 34px;
+
     padding-top: 2px;
     margin-right: 15px;
+
     box-sizing: border-box;
 }
 
@@ -388,12 +485,17 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
+
     width: 22px;
     height: 22px;
+
     color: #85827b;
+
     font-size: 9px;
     font-weight: 600;
+
     background: #f6f5f1;
+
     border: 1px solid #e4e2dc;
     border-radius: 5px;
 }
@@ -401,8 +503,11 @@ defineExpose({
 .interchangeable-unit-color {
     width: 8px;
     height: 8px;
+
     margin-top: 8px;
+
     border-radius: 50%;
+
     box-shadow:
         0 0 0 2px #fff,
         0 0 0 3px rgba(0, 0, 0, 0.04);
@@ -410,24 +515,31 @@ defineExpose({
 
 .interchangeable-unit-container {
     flex: 1;
+
     min-width: 0;
 }
 
 .interchangeable-unit-header {
     display: flex;
     align-items: center;
+
     width: 100%;
     min-width: 0;
+
     margin-bottom: 7px;
 }
 
 .interchangeable-unit-nomenclature {
     flex: 1;
+
     min-width: 0;
+
     color: #292824;
+
     font-size: 12px;
     font-weight: 600;
     line-height: 1.25;
+
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -437,14 +549,23 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
+
     flex: 0 0 22px;
+
     width: 22px;
     height: 22px;
+
     margin-left: 8px;
+
     color: #aaa79f;
+
     background: #f7f6f2;
+
     border: 1px solid #aca89a;
     border-radius: 5px;
+
+    will-change: transform;
+
     transition:
         color 0.18s ease,
         background 0.18s ease,
@@ -457,40 +578,56 @@ defineExpose({
 
     &.rotated {
         color: #5f5c55;
+
         background: #efeee9;
+
         transform: rotate(180deg);
     }
 }
 
 .interchangeable-unit-desc-container {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
     column-gap: 18px;
     row-gap: 5px;
+
     width: 100%;
     min-width: 0;
+
     font-size: 11px;
 }
 
 .subtitle-container {
     display: flex;
     align-items: baseline;
+
     min-width: 0;
+
     line-height: 1.4;
 }
 
 .subtitle {
     flex: 0 0 auto;
+
     margin-right: 4px;
+
     color: #929088;
+
     font-weight: 600;
+
     letter-spacing: 0.04em;
+
     text-transform: uppercase;
 }
 
 .field-value {
     min-width: 0;
+
     color: #34332f;
+
     overflow-wrap: anywhere;
     word-break: break-word;
 }
@@ -501,34 +638,61 @@ defineExpose({
 
 .hardness-days {
     font-weight: 500;
-    opacity: 0.75;
-}
 
-.interchangeable-unit-leftover {
-    color: #34332f;
+    opacity: 0.75;
 }
 
 .additional-wrapper {
     position: absolute;
-    z-index: 1000;
+
+    z-index: 99999999;
+
     left: -1px;
     right: -1px;
+
+    top: calc(100% + 5px);
+
     box-sizing: border-box;
+
     padding: 11px 14px 13px;
+
     background: #fff;
+
     border: 1px solid #ddd9d1;
     border-radius: 8px;
+
     box-shadow:
-        0 12px 30px rgba(0, 0, 0, 0.09),
-        0 3px 8px rgba(0, 0, 0, 0.04);
+        0 10px 26px rgba(0, 0, 0, 0.08),
+        0 2px 7px rgba(0, 0, 0, 0.035);
+
+    /*
+     * Dropdown постоянно двигается только через transform
+     * и плавно появляется через opacity.
+     */
+    will-change: transform, opacity;
+
+    transition:
+        transform 0.28s cubic-bezier(
+            0.22,
+            1,
+            0.36,
+            1
+        );
 }
 
 .dropdown-down .additional-wrapper {
-    top: calc(100% + 5px);
+    transform: translateY(0);
 }
 
 .dropdown-up .additional-wrapper {
-    bottom: calc(100% + 5px);
+    transform:
+        translateY(
+            calc(
+                -100% -
+                var(--card-height) -
+                10px
+            )
+        );
 }
 
 .additional-inner {
@@ -538,19 +702,29 @@ defineExpose({
 .additional-title {
     display: flex;
     align-items: center;
+
     gap: 8px;
+
     margin-bottom: 6px;
+
     color: #aaa79f;
+
     font-size: 9px;
     font-weight: 700;
     line-height: 1.2;
+
     letter-spacing: 0.07em;
+
     text-transform: uppercase;
+
     &::before {
-        content: '';
+        content: "";
+
         width: 14px;
         height: 1px;
+
         flex: 0 0 14px;
+
         background: #e5e2db;
     }
 }
@@ -558,19 +732,25 @@ defineExpose({
 .additional-fields {
     display: flex;
     flex-direction: column;
+
     min-width: 0;
 }
 
 .additional-field {
     display: grid;
+
     grid-template-columns:
         minmax(130px, 0.35fr)
         minmax(0, 1fr);
 
     align-items: start;
+
     min-width: 0;
+
     padding: 6px 0;
+
     border-bottom: 1px solid #f0eee9;
+
     &:last-child {
         border-bottom: 0;
     }
@@ -578,22 +758,30 @@ defineExpose({
 
 .additional-label {
     min-width: 0;
+
     padding-right: 10px;
+
     color: #aaa79f;
+
     font-size: 10px;
     font-weight: 600;
     line-height: 1.3;
+
     letter-spacing: 0.03em;
+
     overflow-wrap: anywhere;
     word-break: break-word;
 }
 
 .additional-value {
     min-width: 0;
+
     color: #41403b;
+
     font-size: 11px;
     font-weight: 500;
     line-height: 1.35;
+
     white-space: normal;
 
     overflow-wrap: anywhere;
@@ -603,40 +791,17 @@ defineExpose({
 .dropdown-enter-active,
 .dropdown-leave-active {
     transition:
-        opacity 0.16s ease,
-        transform 0.16s ease;
+        opacity 0.18s ease;
 }
 
-.dropdown-down .dropdown-enter-from,
-.dropdown-down .dropdown-leave-to {
+.dropdown-enter-from,
+.dropdown-leave-to {
     opacity: 0;
-    transform:
-        translateY(-5px)
-        scale(0.985);
 }
 
-.dropdown-down .dropdown-enter-to,
-.dropdown-down .dropdown-leave-from {
+.dropdown-enter-to,
+.dropdown-leave-from {
     opacity: 1;
-    transform:
-        translateY(0)
-        scale(1);
-}
-
-.dropdown-up .dropdown-enter-from,
-.dropdown-up .dropdown-leave-to {
-    opacity: 0;
-    transform:
-        translateY(5px)
-        scale(0.985);
-}
-
-.dropdown-up .dropdown-enter-to,
-.dropdown-up .dropdown-leave-from {
-    opacity: 1;
-    transform:
-        translateY(0)
-        scale(1);
 }
 
 @media (max-width: 900px) {
@@ -655,12 +820,15 @@ defineExpose({
 
     .counter-color {
         flex-basis: 28px;
+
         width: 28px;
+
         margin-right: 10px;
     }
 
     .interchangeable-unit-desc-container {
         grid-template-columns: 1fr;
+
         gap: 5px;
     }
 
@@ -674,6 +842,7 @@ defineExpose({
 
     .additional-field {
         grid-template-columns: 1fr;
+
         gap: 2px;
     }
 
@@ -695,6 +864,7 @@ defineExpose({
 @media (prefers-reduced-motion: reduce) {
     .interchangeable-unit,
     .expand-icon,
+    .additional-wrapper,
     .dropdown-enter-active,
     .dropdown-leave-active {
         transition: none;

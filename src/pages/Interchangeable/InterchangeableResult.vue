@@ -6,7 +6,9 @@ import {
     onBeforeUnmount,
     onMounted,
     ref,
+    watch,
 } from "vue";
+
 import InterchangeableResultCard from "./InterchangeableResultCard.vue";
 
 const InterchangeableClientDemand = defineAsyncComponent({
@@ -33,56 +35,96 @@ const hasResults = computed(() => {
     return props.filteredActualResultObjs.length > 0;
 });
 
-const expandedCardIndex = ref<number | null>(null);
-const expandedCardRef = ref<{ updateDropdownDirection: () => Promise<void> } | null> (null);
+const expandedCard = ref<DataObject | null>(null);
+const expandedCardElement = ref<HTMLElement | null>(null);
+const updateExpandedCardDirection = ref<(() => void) | null>(null);
 
-const handleCardOpen = async (index: number) => {
-    expandedCardIndex.value = index;
+let viewportUpdateRaf: number | null = null;
+
+const handleCardOpen = async (
+    card: DataObject,
+    element: HTMLElement | null,
+    updateDirection: () => void
+) => {
+    expandedCard.value = card;
+    expandedCardElement.value = element;
+    updateExpandedCardDirection.value = updateDirection;
 
     await nextTick();
+
+    updateDirection();
 };
 
-const handleCardClose = (index: number) => {
-    if (expandedCardIndex.value === index) {
-        expandedCardIndex.value = null;
+const handleCardClose = (card: DataObject) => {
+    if (expandedCard.value !== card) {
+        return;
     }
+
+    expandedCard.value = null;
+    expandedCardElement.value = null;
+    updateExpandedCardDirection.value = null;
+};
+
+const closeExpandedCard = () => {
+    expandedCard.value = null;
+    expandedCardElement.value = null;
+    updateExpandedCardDirection.value = null;
 };
 
 const handlePointerDown = (event: PointerEvent) => {
-    if (expandedCardIndex.value === null) {
+    if (!expandedCard.value) {
         return;
     }
 
     const target = event.target;
 
-    if (!(target instanceof Element)) {
+    if (!(target instanceof Node)) {
         return;
     }
 
-    const card = target.closest("[data-interchangeable-card]");
-
-    if (card) {
-        return;
+    if (
+        expandedCardElement.value &&
+        !expandedCardElement.value.contains(target)
+    ) {
+        closeExpandedCard();
     }
-
-    expandedCardIndex.value = null;
 };
 
 const handleViewportChange = () => {
-    if (expandedCardIndex.value === null) {
+    if (!expandedCard.value) {
         return;
     }
 
-    expandedCardRef.value?.updateDropdownDirection();
+    /*
+     * Scroll может генерировать много событий за один кадр.
+     * Выполняем пересчёт максимум один раз за animation frame.
+     */
+    if (viewportUpdateRaf !== null) {
+        return;
+    }
+
+    viewportUpdateRaf = requestAnimationFrame(() => {
+        viewportUpdateRaf = null;
+
+        if (!expandedCard.value) {
+            return;
+        }
+
+        updateExpandedCardDirection.value?.();
+    });
 };
 
-const setExpandedCardRef = (
-    card: {
-        updateDropdownDirection: () => Promise<void>;
-    } | null
-) => {
-    expandedCardRef.value = card;
-};
+watch(
+    () => props.filteredActualResultObjs,
+    results => {
+        if (
+            expandedCard.value &&
+            !results.includes(expandedCard.value)
+        ) {
+            closeExpandedCard();
+        }
+    }
+);
 
 onMounted(() => {
     document.addEventListener(
@@ -118,6 +160,11 @@ onBeforeUnmount(() => {
         handleViewportChange,
         true
     );
+
+    if (viewportUpdateRaf !== null) {
+        cancelAnimationFrame(viewportUpdateRaf);
+        viewportUpdateRaf = null;
+    }
 });
 </script>
 
@@ -137,11 +184,10 @@ onBeforeUnmount(() => {
             <div class="result-list">
                 <InterchangeableResultCard
                     v-for="(value, index) in filteredActualResultObjs"
-                    :key="index + String(value)"
-                    :ref="expandedCardIndex === index ? setExpandedCardRef : undefined"
+                    :key="JSON.stringify(value)"
                     :result="value"
                     :index="index"
-                    :is-expanded="expandedCardIndex === index"
+                    :is-expanded="expandedCard === value"
                     @open="handleCardOpen"
                     @close="handleCardClose"
                 />
