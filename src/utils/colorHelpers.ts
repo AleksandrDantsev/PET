@@ -1,3 +1,5 @@
+import { normalize } from "./normalize";
+
 const productColors = {
     "бело-желт": {
         colorName: "бело-желтый",
@@ -110,15 +112,14 @@ export function getProductColor(
     nomenclature: string | undefined
 ): string {
 
-    if (!nomenclature) return "inherit";
-
-    const text = nomenclature
-        .toLowerCase()
-        .replaceAll("ё", "е");
-
+    if (!nomenclature) {
+        return "inherit";
+    }
+    const normalizedText = normalize(nomenclature);
+        
     return Object.entries(productColors)
         .sort(([a], [b]) => b.length - a.length)
-        .find(([name]) => text.includes(name))?.[1].color ?? "";
+        .find(([name]) => normalizedText.includes(name))?.[1].color ?? "";
 }
 
 
@@ -131,11 +132,7 @@ export function setColorText(
             color: "",
         }];
     }
-
-    const normalizedText = String(text)
-        .toLowerCase()
-        .replaceAll("ё", "е")
-        .trim();
+    const normalizedText = normalize(text);
 
     const matchedColors = Object.entries(productColors)
         .filter(([name]) => normalizedText.includes(name))
