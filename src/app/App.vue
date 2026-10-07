@@ -6,7 +6,7 @@ import Interchangeable from "@/pages/Interchangeable/Interchangeable.vue";
 import { LocalStorage } from "@/utils/localStorage";
 import { NConfigProvider, NGlobalStyle, ruRU } from "naive-ui";
 import { themeOverrides } from "@/theme/naiveTheme";
-import bt from "@/pages/Interchangeable/bt.vue";
+import UpButton from "@/components/common/UpButton.vue";
 import { 
     getConfigConst, 
     getConfigManagersBranchList, 
@@ -93,15 +93,13 @@ onMounted(async () => {
             CONFIG_DATA.value
         );
 
-        MANAGERS_BRANCHES.value =
-            getConfigManagersBranchList(
-                CONFIG_DATA.value
-            );
-
-        CONTRAGENTS.value =
-            getConfigContragentsList(
-                CONFIG_DATA.value
-            );
+        MANAGERS_BRANCHES.value = getConfigManagersBranchList(
+            CONFIG_DATA.value
+        );
+        
+        CONTRAGENTS.value = getConfigContragentsList(
+            CONFIG_DATA.value
+        );
     }
 });
 
@@ -123,7 +121,7 @@ onMounted(async () => {
                 :managers-branches="MANAGERS_BRANCHES"
             />
         </div>
-        <bt />
+        <UpButton />
     </n-config-provider>
 </template>
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineAsyncComponent } from "vue";
-import type { IGoogleTableData } from "../../types/TableSheetData.ts";
+import type { DataObject, IGoogleTableData, TContragentsConst } from "../../types/TableSheetData.ts";
 import { dataToObjects } from "@/helpers/dataHandlers.ts";
 import InterchangeableForm from "./InterchangeableForm.vue";
 import InterchangeableResult from "./InterchangeableResult.vue";
@@ -19,16 +19,11 @@ import {
     NEmpty,
 } from "naive-ui";
 
-type DataObject = Record<string, string | number | boolean | null>;
-
 const props = defineProps<{
     actualData?: IGoogleTableData | null;
     interchangeableData: IGoogleTableData | null;
     constTitles?: Record<string, string> | null;
-    contragents: Record<string, {
-        branch: string;
-        manager: string;
-    }> | null;
+    contragents: TContragentsConst | null;
     managersBranches: Record<string, string> | null;
 }>();
 

@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import {
-    computed,
     defineAsyncComponent,
-    nextTick,
     onBeforeUnmount,
     onMounted,
     ref,
     watch,
 } from "vue";
-
+import type { DataObject } from "@/types/TableSheetData.ts";
 import InterchangeableResultCard from "./InterchangeableResultCard.vue";
 
 const InterchangeableClientDemand = defineAsyncComponent({
@@ -17,23 +15,10 @@ const InterchangeableClientDemand = defineAsyncComponent({
     timeout: 10000,
 });
 
-type DataObject = Record<string, string | number | boolean | null>;
-
 const props = defineProps<{
     clientsDemand: DataObject | null;
     filteredActualResultObjs: DataObject[];
 }>();
-
-const hasClientDemand = computed(() => {
-    return Boolean(
-        props.clientsDemand &&
-        Object.keys(props.clientsDemand).length
-    );
-});
-
-const hasResults = computed(() => {
-    return props.filteredActualResultObjs.length > 0;
-});
 
 const expandedCard = ref<DataObject | null>(null);
 const expandedCardElement = ref<HTMLElement | null>(null);
@@ -50,19 +35,7 @@ const handleCardOpen = async (
     expandedCardElement.value = element;
     updateExpandedCardDirection.value = updateDirection;
 
-    await nextTick();
-
     updateDirection();
-};
-
-const handleCardClose = (card: DataObject) => {
-    if (expandedCard.value !== card) {
-        return;
-    }
-
-    expandedCard.value = null;
-    expandedCardElement.value = null;
-    updateExpandedCardDirection.value = null;
 };
 
 const closeExpandedCard = () => {
@@ -71,18 +44,19 @@ const closeExpandedCard = () => {
     updateExpandedCardDirection.value = null;
 };
 
+const handleCardClose = (card: DataObject) => {
+    if (expandedCard.value !== card) return;
+
+    closeExpandedCard();
+};
+
 const handlePointerDown = (event: PointerEvent) => {
-    if (!expandedCard.value) {
-        return;
-    }
+    if (!expandedCard.value) return;
 
     const target = event.target;
 
-    if (!(target instanceof Node)) {
-        return;
-    }
-
     if (
+        target instanceof Node &&
         expandedCardElement.value &&
         !expandedCardElement.value.contains(target)
     ) {
@@ -91,17 +65,7 @@ const handlePointerDown = (event: PointerEvent) => {
 };
 
 const handleViewportChange = () => {
-    if (!expandedCard.value) {
-        return;
-    }
-
-    /*
-     * Scroll может генерировать много событий за один кадр.
-     * Выполняем пересчёт максимум один раз за animation frame.
-     */
-    if (viewportUpdateRaf !== null) {
-        return;
-    }
+    if (!expandedCard.value || viewportUpdateRaf !== null) return;
 
     viewportUpdateRaf = requestAnimationFrame(() => {
         viewportUpdateRaf = null;
@@ -114,17 +78,11 @@ const handleViewportChange = () => {
     });
 };
 
-watch(
-    () => props.filteredActualResultObjs,
-    results => {
-        if (
-            expandedCard.value &&
-            !results.includes(expandedCard.value)
-        ) {
-            closeExpandedCard();
-        }
+watch(() => props.filteredActualResultObjs, results => {
+    if (expandedCard.value && !results.includes(expandedCard.value)) {
+        closeExpandedCard();
     }
-);
+});
 
 onMounted(() => {
     document.addEventListener(
@@ -171,12 +129,12 @@ onBeforeUnmount(() => {
 <template>
     <div class="result-container">
         <div
-            v-if="hasResults"
+            v-if="filteredActualResultObjs.length"
             class="container-result-cards"
         >
             <Transition name="client-demand">
                 <InterchangeableClientDemand
-                    v-if="hasClientDemand"
+                    v-if="clientsDemand && Object.keys(clientsDemand).length"
                     :clients-demand="clientsDemand"
                 />
             </Transition>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { setColorText } from "@/utils/tableHelpers";
+import type { DataObject } from "@/types/TableSheetData";
+import { setColorText } from "@/utils/colorHelpers";
 import { computed } from "vue";
 
-type DataObject = Record<string, string | number | boolean | null>;
 
 const props = defineProps<{
     clientsDemand: DataObject | undefined | null;
@@ -10,11 +10,19 @@ const props = defineProps<{
 
 
 const colorsData = computed(() => {
-    if (!props.clientsDemand) return undefined;
+    if (!props.clientsDemand) {
+        return undefined;
+    }
     return {
-        mainColors: setColorText(props.clientsDemand["Основной цвет"]),
-        interchangeableColors: setColorText(props.clientsDemand["Взаимозаменяемые цвета"]),
-        possibleColors: setColorText(props.clientsDemand["Возможные цвета"])
+        mainColors: setColorText(
+            props.clientsDemand["Основной цвет"]
+        ),
+        interchangeableColors: setColorText(
+            props.clientsDemand["Взаимозаменяемые цвета"]
+        ),
+        possibleColors: setColorText(
+            props.clientsDemand["Возможные цвета"]
+        )
     }
 });
 
@@ -65,7 +73,7 @@ const setComma = (length: number, index: number) =>
                 </div>
 
                 <div class="subtitle-client-container">
-                    <span class="subtitle">Диапазон граммаж:</span>
+                    <span class="subtitle">Диапазон граммажей:</span>
                     {{ clientsDemand['Граммаж "от"'] }} - {{ clientsDemand['Граммаж "до"'] }} 
                     {{ clientsDemand['Граммаж "от"'] && "гр." }}
                 </div>

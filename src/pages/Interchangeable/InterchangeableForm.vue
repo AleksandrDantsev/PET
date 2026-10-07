@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from "vue";
 import { normalizeForSorting } from "@/utils/normalize";
-import type { IGoogleTableData } from "../../types/TableSheetData";
+import type { TContragentsConst } from "../../types/TableSheetData";
+// import type { IGoogleTableData, TContragentsConst } from "../../types/TableSheetData";
 import type { FormInst, FormRules } from "naive-ui";
 import {
     NAutoComplete,
@@ -15,118 +16,12 @@ import {
 } from "naive-ui";
 
 const props = defineProps<{
-    actualData?: IGoogleTableData | null;
-    constTitles?: Record<string, string> | null;
-    contragents: Record<string, {
-        branch: string;
-        manager: string;
-    }> | null;
+    // actualData?: IGoogleTableData | null;
+    // constTitles?: Record<string, string> | null;
+    contragents: TContragentsConst | null;
     managersBranches: Record<string, string> | null;
     search: (value: Record<string, string>) => void;
 }>();
-
-const formRef = ref<FormInst | null>(null);
-const passportFormRef = ref<FormInst | null>(null);
-
-const branchOptions = [
-    {
-        label: "КРЫМ",
-        value: "КРЫМ",
-    },
-    {
-        label: "КРАСНОДАР",
-        value: "КРАСНОДАР",
-    },
-];
-
-const managerOptions = computed(() => {
-    if (!props?.managersBranches) {
-        return [];
-    }
-
-    return Object.keys(
-        props.managersBranches
-    ).map(el => ({
-        label: el,
-        value: el,
-    }));
-});
-
-
-const formValue = reactive({
-    nomenclature: "",
-    contragent: "",
-    manager: null as string | null,
-    branch: null as string | null,
-    date: Date.now(),
-    znurType: "",
-    quantity: null as number | null,
-    dateOfDelivery: Date.now() as number | null,
-});
-
-
-watch(
-    () => formValue.manager,
-    (newManager) => {
-        if (!newManager || !props.managersBranches) {
-            formValue.branch = null;
-            return;
-        }
-        const managerBranch = props.managersBranches[newManager];
-
-        if (!managerBranch) {
-            formValue.branch = null;
-            return;
-        }
-
-        const normalizedBranch = managerBranch.toUpperCase().trim();
-
-        const hasMultipleBranches = ["КРЫМ", "КРАСНОДАР"].every(
-            branch => normalizedBranch.includes(branch)
-        );
-
-        formValue.branch = hasMultipleBranches
-            ? null
-            : managerBranch;
-    }
-);
-
-
-const contragentsForSorting = computed(() => {
-    if (!props?.contragents) {
-        return [];
-    }
-
-    return Object.keys(props.contragents)
-        .sort((a, b) => normalizeForSorting(a).localeCompare(
-            normalizeForSorting(b),
-            undefined,
-            { sensitivity: "base" }
-        ));
-});
-
-
-const contragentOptions = computed(() => {
-    if (!props.contragents) {
-        return [];
-    }
-
-    const query = formValue.contragent.trim().toLowerCase();
-
-    return contragentsForSorting.value
-        .filter(name => {
-            if (!query) {
-                return true;
-            }
-
-            return name.toLowerCase().includes(query);
-        })
-        .map(name => ({
-            label: name,
-            value: name,
-        }));
-});
-
 
 const searchRules: FormRules = {
     nomenclature: {
@@ -183,6 +78,97 @@ const passportRules: FormRules = {
     },
 };
 
+const branchOptions = [
+    {
+        label: "КРЫМ",
+        value: "КРЫМ",
+    },
+    {
+        label: "КРАСНОДАР",
+        value: "КРАСНОДАР",
+    },
+];
+
+const formRef = ref<FormInst | null>(null);
+const passportFormRef = ref<FormInst | null>(null);
+
+const formValue = reactive({
+    nomenclature: "",
+    contragent: "",
+    manager: null as string | null,
+    branch: null as string | null,
+    date: Date.now(),
+    znurType: "",
+    quantity: null as number | null,
+    dateOfDelivery: Date.now() as number | null,
+});
+
+watch(
+    () => formValue.manager,
+    (newManager) => {
+        if (!newManager || !props.managersBranches) {
+            formValue.branch = null;
+            return;
+        }
+        const managerBranch = props.managersBranches[newManager];
+
+        if (!managerBranch) {
+            formValue.branch = null;
+            return;
+        }
+
+        const normalizedBranch = managerBranch.toUpperCase().trim();
+
+        const hasMultipleBranches = [
+            "КРЫМ", 
+            "КРАСНОДАР",
+        ].every(branch => normalizedBranch.includes(branch));
+
+        formValue.branch = hasMultipleBranches ? null : managerBranch;
+    }
+);
+
+const managerOptions = computed(() =>
+    Object.keys(props.managersBranches ?? {}).map(manager => ({
+        label: manager,
+        value: manager,
+    }))
+);
+
+const contragentsForSorting = computed(() => {
+    if (!props.contragents) {
+        return [];
+    }
+
+    return Object.keys(props.contragents)
+        .sort((a, b) => normalizeForSorting(a).localeCompare(
+            normalizeForSorting(b),
+            undefined,
+            { sensitivity: "base" }
+        ));
+});
+
+const contragentOptions = computed(() => {
+    if (!props.contragents) {
+        return [];
+    }
+
+    const query = formValue.contragent.trim().toLowerCase();
+
+    return contragentsForSorting.value
+        .filter(name => {
+            if (!query) {
+                return true;
+            }
+
+            return name.toLowerCase().includes(query);
+        })
+        .map(name => ({
+            label: name,
+            value: name,
+        }));
+});
+
 const returnInputValues = async () => {
     try {
         // await formRef.value?.validate();
@@ -202,33 +188,31 @@ const returnInputValues = async () => {
     });
 };
 
-
 const save = async () => {
     try {
         await Promise.all([
             formRef.value?.validate(),
             passportFormRef.value?.validate(),
         ]);
-    } catch {
+    } catch (err){
+        console.error(err);
         return;
     }
-
 };
 </script>
-
 <template>
     <div class="search-wrapper">
-        <!-- Первая форма -->
         <n-form
             ref="formRef"
             class="search-form"
             :model="formValue"
             :rules="searchRules"
             :show-feedback="false"
-        >
+        > 
             <n-form-item
                 label="Номенклатура"
                 path="nomenclature"
+                class="nomenclature-field"
             >
                 <n-input
                     v-model:value="formValue.nomenclature"
@@ -240,15 +224,14 @@ const save = async () => {
             <n-form-item
                 label="Контрагент"
                 path="contragent"
+                class="contragent-field"
             >
                 <n-auto-complete
                     v-model:value="formValue.contragent"
                     :options="contragentOptions"
                     placeholder="Введите контрагента"
                     clearable
-                    :input-props="{
-                        autocomplete: 'off',
-                    }"
+                    :input-props="{ autocomplete: 'off' }"
                 />
             </n-form-item>
 
@@ -261,8 +244,8 @@ const save = async () => {
             </n-button>
         </n-form>
     </div>
+
     <div class="passport-wrapper">
-        <!-- Вторая форма -->
         <n-form
             ref="passportFormRef"
             class="passport-fields"
@@ -270,80 +253,82 @@ const save = async () => {
             :rules="passportRules"
             :show-feedback="false"
         >
-            <n-form-item
-                label="Менеджер"
-                path="manager"
-            >
-                <n-select
-                    v-model:value="formValue.manager"
-                    :options="managerOptions"
-                    placeholder="Менеджер"
-                    clearable
-                    class="full-width"
-                />
-            </n-form-item>
+            <div class="passport-grid">
+                <n-form-item
+                    label="Менеджер"
+                    path="manager"
+                    class="manager-field"
+                >
+                    <n-select
+                        v-model:value="formValue.manager"
+                        :options="managerOptions"
+                        placeholder="Менеджер"
+                        clearable
+                    />
+                </n-form-item>
 
-            <n-form-item
-                label="Филиал"
-                path="branch"
-            >
-                <n-select
-                    v-model:value="formValue.branch"
-                    :options="branchOptions"
-                    placeholder="Филиал"
-                    clearable
-                    class="full-width"
-                />
-            </n-form-item>
+                <n-form-item
+                    label="Филиал"
+                    path="branch"
+                    class="branch-field"
+                >
+                    <n-select
+                        v-model:value="formValue.branch"
+                        :options="branchOptions"
+                        placeholder="Филиал"
+                        clearable
+                    />
+                </n-form-item>
 
-            <n-form-item
-                label="Дата"
-                path="date"
-            >
-                <n-date-picker
-                    v-model:value="formValue.date"
-                    type="date"
-                    clearable
-                    class="full-width"
-                />
-            </n-form-item>
+                <n-form-item
+                    label="Дата"
+                    path="date"
+                    class="date-field"
+                >
+                    <n-date-picker
+                        v-model:value="formValue.date"
+                        type="date"
+                        clearable
+                    />
+                </n-form-item>
 
-            <n-form-item
-                label="Тип ЗНУР"
-                path="znurType"
-            >
-                <n-input
-                    v-model:value="formValue.znurType"
-                    placeholder="Тип ЗНУР"
-                    clearable
-                    class="full-width"
-                />
-            </n-form-item>
+                <n-form-item
+                    label="Тип ЗНУР"
+                    path="znurType"
+                    class="znurType-field"
+                >
+                    <n-input
+                        v-model:value="formValue.znurType"
+                        placeholder="Тип ЗНУР"
+                        clearable
+                    />
+                </n-form-item>
 
-            <n-form-item
-                label="Кол-во"
-                path="quantity"
-            >
-                <n-input-number
-                    v-model:value="formValue.quantity"
-                    :min="1"
-                    placeholder="Кол-во"
-                    class="full-width"
-                    clearable
-                />
-            </n-form-item>
+                <n-form-item
+                    label="Кол-во"
+                    path="quantity"
+                    class="quantity-field"
+                >
+                    <n-input-number
+                        v-model:value="formValue.quantity"
+                        :min="1"
+                        placeholder="Кол-во"
+                        clearable
+                    />
+                </n-form-item>
 
-            <n-form-item
-                label="Предполагаемая дата отгрузки"
-                path="dateOfDelivery"
-            >
-                <n-date-picker
-                    v-model:value="formValue.dateOfDelivery"
-                    type="date"
-                    clearable
-                    class="full-width"
-                />
-            </n-form-item>
+                <n-form-item
+                    label="Дата отгрузки"
+                    path="dateOfDelivery"
+                    class="dateOfDelivery-field"
+                >
+                    <n-date-picker
+                        v-model:value="formValue.dateOfDelivery"
+                        type="date"
+                        clearable
+                    />
+                </n-form-item>
+            </div>
 
             <n-button
                 class="save-button"
@@ -357,298 +342,174 @@ const save = async () => {
     </div>
 </template>
 <style lang="scss" scoped>
-$backgroundHeader: #f8f8f8;
+$color-bg: #f8f8f6;
+$color-surface: #fff;
+$color-border: #d9d9d5;
+$color-border-hover: #b8b8b3;
+$color-text: #292929;
+$color-text-secondary: #737373;
+$color-placeholder: #999;
+$color-muted: #858580;
+
+$radius: 6px;
+$control-height: 36px;
+$gap: 10px;
+$transition: 0.15s ease;
 
 .search-wrapper {
     position: sticky;
     top: 0;
     z-index: 100;
     padding: 12px 14px 0;
-    background: $backgroundHeader;
+    background: $color-bg;
     border-radius: 8px 8px 0 0;
 }
 
 .passport-wrapper {
     padding: 0 14px 12px;
-    background: $backgroundHeader;
+    background: $color-bg;
     border-radius: 0 0 8px 8px;
 }
 
-/* =========================================================
-   SEARCH FORM
-   ========================================================= */
-
 .search-form {
-    display: flex;
-    gap: 10px;
-    align-items: flex-end;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 96px;
+    gap: $gap;
+    align-items: end;
     width: 100%;
 }
-
-.search-form > :nth-child(1) {
-    flex: 1 1 0;
-    min-width: 200px;
-}
-
-.search-form > :nth-child(2) {
-    flex: 1 1 0;
-    min-width: 240px;
-}
-
-.search-form > :nth-child(3) {
-    flex: 0 0 96px;
-    width: 96px;
-    min-width: 96px;
-}
-
-/* =========================================================
-   PASSPORT FORM
-   ========================================================= */
 
 .passport-fields {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
     align-items: flex-end;
+    gap: $gap;
     width: 100%;
-    padding-top: 20px;
+    padding-top: 18px;
 }
 
-/*
- * Аналог исходного Grid:
- *
- * 1.1fr
- * 0.8fr
- * 0.8fr
- * 0.9fr
- * 0.55fr
- * 1.2fr
- * 36px
- */
-
-.passport-fields > :nth-child(1) {
-    flex: 1.1 1 0;
-    min-width: 140px;
+.passport-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: $gap;
+    flex: 1;
+    min-width: 0;
 }
 
-.passport-fields > :nth-child(2) {
-    flex: 0.8 1 0;
-    min-width: 120px;
+:deep(.n-form-item) {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
 }
-
-.passport-fields > :nth-child(3) {
-    flex: 0.8 1 0;
-    min-width: 120px;
-}
-
-.passport-fields > :nth-child(4) {
-    flex: 0.9 1 0;
-    min-width: 130px;
-}
-
-.passport-fields > :nth-child(5) {
-    flex: 0.55 1 0;
-    min-width: 90px;
-}
-
-.passport-fields > :nth-child(6) {
-    flex: 1.2 1 0;
-    min-width: 160px;
-}
-
-.passport-fields > :nth-child(7) {
-    flex: 0 0 36px;
-    width: 36px;
-    min-width: 36px;
-}
-
-/* =========================================================
-   FORM LABELS
-   ========================================================= */
 
 :deep(.n-form-item-label) {
     padding-bottom: 4px;
 }
 
 :deep(.n-form-item-label__text) {
-    color: #777;
-    font-size: 10px;
+    color: $color-text-secondary;
+    font-size: 9px;
     font-weight: 600;
-    line-height: 1.1;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
 }
-
-/* =========================================================
-   INPUTS
-   ========================================================= */
 
 :deep(.n-input),
 :deep(.n-input-number),
 :deep(.n-base-selection),
-:deep(.n-date-picker) {
-    --n-border: #d8d8d4;
-    --n-border-hover: #b8b8b3;
-    --n-border-focus: #555;
-    --n-box-shadow-focus: 0 0 0 2px rgba(40, 40, 40, 0.06);
-    --n-color: #fff;
-    --n-text-color: #292929;
-    --n-placeholder-color: #999;
-    --n-height: 36px;
-
-    min-height: 36px;
-    font-size: 12px;
-    border-radius: 6px;
-    transition:
-        border-color 0.15s ease,
-        box-shadow 0.15s ease;
-}
-
-:deep(.n-input) {
-    background: #fff;
-}
-
-:deep(.n-input:focus-within) {
-    box-shadow: 0 0 0 2px rgba(40, 40, 40, 0.055);
-}
-
-:deep(.n-input__input-el),
-:deep(.n-input__textarea-el),
-:deep(.n-input-number-input__input) {
-    color: #292929;
-    font-size: 12px;
-}
-
-:deep(input::placeholder) {
-    color: #a3a39e;
-}
-
-/* =========================================================
-   INPUT ICONS
-   ========================================================= */
-
-:deep(.n-input__suffix),
-:deep(.n-input__prefix),
-:deep(.n-base-selection__arrow) {
-    color: #888;
-}
-
-:deep(.n-input__clear),
-:deep(.n-base-selection__clear) {
-    color: #999;
-}
-
-:deep(.n-input__clear:hover),
-:deep(.n-base-selection__clear:hover) {
-    color: #333;
-}
-
-/* =========================================================
-   SELECT
-   ========================================================= */
-
-:deep(.n-base-selection) {
-    width: 100%;
-    background: #fff;
-}
-
-:deep(.n-base-selection-label) {
-    background: #fff;
-    border-radius: 6px;
-}
-
-:deep(.n-base-selection-input) {
-    background: transparent;
-}
-
-:deep(.n-base-selection-input__content) {
-    color: #292929;
-    font-size: 12px;
-}
-
-:deep(.n-base-selection--active) {
-    background: #fff;
-    box-shadow: 0 0 0 2px rgba(40, 40, 40, 0.055);
-}
-
-/* =========================================================
-   AUTO COMPLETE
-   ========================================================= */
-
+:deep(.n-date-picker),
 :deep(.n-auto-complete) {
-    width: 100%;
-}
-
-:deep(.n-auto-complete .n-input) {
-    width: 100%;
-    background: #fff;
-}
-
-/* =========================================================
-   INPUT NUMBER
-   ========================================================= */
-
-:deep(.n-input-number) {
-    width: 100%;
-    background: #fff;
-}
-
-:deep(.n-input-number-input) {
-    background: #fff;
-}
-
-:deep(.n-input-number__minus),
-:deep(.n-input-number__plus) {
-    color: #888;
-}
-
-:deep(.n-input-number__minus:hover),
-:deep(.n-input-number__plus:hover) {
-    color: #333;
-    background: #f2f2ef;
-}
-
-/* =========================================================
-   DATE PICKER
-   ========================================================= */
-
-:deep(.n-date-picker) {
-    width: 100%;
-    background: #fff;
-}
-
-:deep(.n-date-picker .n-input) {
-    width: 100%;
-    background: #fff;
-}
-
-/* =========================================================
-   FULL WIDTH
-   ========================================================= */
-
-/*
- * Важно:
- * здесь НЕ должно быть min-width: 200px,
- * иначе оно ломает responsive flex для
- * маленьких полей.
- */
-
-.full-width {
     width: 100%;
     min-width: 0;
 }
 
-/* =========================================================
-   DROPDOWN
-   ========================================================= */
+:deep(.n-input),
+:deep(.n-input-number),
+:deep(.n-base-selection),
+:deep(.n-date-picker .n-input) {
+    --n-border: #{$color-border};
+    --n-border-hover: #{$color-border-hover};
+    --n-border-focus: #555;
+    --n-box-shadow-focus: 0 0 0 2px rgb(40 40 40 / 6%);
+    --n-color: #{$color-surface};
+    --n-text-color: #{$color-text};
+    --n-placeholder-color: #{$color-placeholder};
+    --n-height: #{$control-height};
+
+    min-height: $control-height;
+    border-radius: $radius;
+    background: $color-surface;
+    font-size: 12px;
+    transition:
+        border-color $transition,
+        box-shadow $transition;
+}
+
+:deep(.n-input__input-el),
+:deep(.n-input-number-input__input),
+:deep(.n-base-selection-input__content) {
+    min-width: 0;
+    color: $color-text;
+    font-size: 12px;
+}
+
+:deep(input::placeholder) {
+    color: $color-placeholder;
+}
+
+:deep(.n-input__suffix),
+:deep(.n-input__prefix),
+:deep(.n-base-selection__arrow) {
+    color: $color-muted;
+}
+
+:deep(.n-input__clear),
+:deep(.n-base-selection__clear) {
+    color: $color-placeholder;
+
+    &:hover {
+        color: $color-text;
+    }
+}
+
+:deep(.n-input-number-input) {
+    min-width: 0;
+}
+
+:deep(.n-input-number__minus),
+:deep(.n-input-number__plus) {
+    color: $color-muted;
+
+    &:hover {
+        background: #f1f1ee;
+        color: $color-text;
+    }
+}
+
+:deep(.n-base-selection-label) {
+    min-width: 0;
+    background: $color-surface;
+    border-radius: $radius;
+}
+
+:deep(.n-base-selection-input) {
+    min-width: 0;
+    background: transparent;
+}
+
+:deep(.n-base-selection-input__content) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 :deep(.n-base-select-menu),
-:deep(.n-auto-complete-menu) {
+:deep(.n-auto-complete-menu),
+:deep(.n-date-panel) {
     overflow: hidden;
-    background: #fff;
     border: 1px solid #deded9;
     border-radius: 7px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    background: $color-surface;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
 }
 
 :deep(.n-base-select-option) {
@@ -658,9 +519,11 @@ $backgroundHeader: #f8f8f8;
 }
 
 :deep(.n-base-select-option__label) {
-    color: #333;
+    overflow: hidden;
+    color: $color-text;
     font-size: 11px;
-    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 :deep(.n-base-select-option:hover) {
@@ -673,194 +536,146 @@ $backgroundHeader: #f8f8f8;
     font-weight: 500;
 }
 
-/* =========================================================
-   DATE PANEL
-   ========================================================= */
-
-:deep(.n-date-panel) {
-    background: #fff;
-    border: 1px solid #deded9;
-    border-radius: 7px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-/* =========================================================
-   SEARCH BUTTON
-   ========================================================= */
-
 .search-button {
     width: 96px;
-    height: 36px;
+    height: $control-height;
+    padding: 0;
     border: 1px solid #333;
-    border-radius: 6px;
+    border-radius: $radius;
     background: #333;
     color: #fff;
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     box-shadow: none;
     transition:
-        background 0.15s ease,
-        border-color 0.15s ease;
-}
+        background $transition,
+        border-color $transition;
 
-.search-button:hover {
-    background: #222;
-    border-color: #222;
-}
+    &:hover {
+        border-color: #222;
+        background: #222;
+    }
 
-.search-button:active {
-    background: #111;
+    &:active {
+        border-color: #111;
+        background: #111;
+    }
 }
-
-/* =========================================================
-   SAVE BUTTON
-   ========================================================= */
 
 .save-button {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
+    flex: 0 0 $control-height;
+    width: $control-height;
+    min-width: $control-height;
+    height: $control-height;
     padding: 0;
-    border: 1px solid #d6d6d1;
-    border-radius: 6px;
-    background: #fff;
+    border: 1px solid $color-border;
+    border-radius: $radius;
+    background: $color-surface;
     color: #555;
     font-size: 14px;
     box-shadow: none;
     transition:
-        background 0.15s ease,
-        color 0.15s ease,
-        border-color 0.15s ease;
-}
+        background $transition,
+        border-color $transition,
+        color $transition;
 
-.save-button:hover {
-    background: #f1f1ee;
-    border-color: #c8c8c3;
-    color: #222;
-}
+    &:hover {
+        border-color: $color-border-hover;
+        background: #f1f1ee;
+        color: $color-text;
+    }
 
-/* =========================================================
-   FORM VALIDATION
-   ========================================================= */
+    &:active {
+        background: #e9e9e6;
+    }
+}
 
 :deep(.n-form-item-feedback-wrapper) {
+    min-height: 0;
     font-size: 10px;
 }
 
-:deep(.n-form-item--error .n-input),
-:deep(.n-form-item--error .n-base-selection),
-:deep(.n-form-item--error .n-input-number) {
-    --n-border: rgba(150, 45, 45, 0.45);
+:deep(.n-form-item--error) {
+    .n-input,
+    .n-base-selection,
+    .n-input-number {
+        --n-border: rgb(150 45 45 / 45%);
+    }
 }
 
 :deep(.n-form-item-feedback--error) {
     color: #9a4545;
 }
 
-/* =========================================================
-   <= 1250px
-   3 поля + кнопка
-   ========================================================= */
-
-@media (max-width: 1250px) {
-    .passport-fields {
-        gap: 10px;
-    }
-
-    .passport-fields > :nth-child(1),
-    .passport-fields > :nth-child(2),
-    .passport-fields > :nth-child(3),
-    .passport-fields > :nth-child(4),
-    .passport-fields > :nth-child(5),
-    .passport-fields > :nth-child(6) {
-        flex: 1 1 calc((100% - 50px) / 3);
-        min-width: 130px;
-    }
-
-    .passport-fields > :nth-child(7) {
-        flex: 0 0 36px;
-        width: 36px;
-        min-width: 36px;
+@media (max-width: 1200px) {
+    .passport-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
     }
 }
 
-/* =========================================================
-   <= 850px
-   2 поля в строке
-   ========================================================= */
+@media (max-width: 1000px) {
+    .passport-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
 
-@media (max-width: 850px) {
+@media (max-width: 800px) {
     .search-wrapper {
-        padding: 10px;
-        border-radius: 7px;
+        padding: 10px 12px 0;
+    }
+
+    .passport-wrapper {
+        padding: 0 12px 10px;
     }
 
     .search-form {
-        flex-direction: column;
-        gap: 8px;
-        align-items: stretch;
-    }
-
-    .search-form > :nth-child(1),
-    .search-form > :nth-child(2),
-    .search-form > :nth-child(3) {
-        flex: 1 1 auto;
-        width: 100%;
-        min-width: 0;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 
     .search-button {
         width: 100%;
-        min-width: 0;
+        grid-column: 1 / -1;
+    }
+
+    .passport-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
     }
 
     .passport-fields {
         gap: 8px;
-        margin-top: 8px;
-        padding-top: 8px;
+    }
+}
+
+@media (max-width: 600px) {
+    .search-form {
+        grid-template-columns: 1fr;
     }
 
-    .passport-fields > :nth-child(1),
-    .passport-fields > :nth-child(2),
-    .passport-fields > :nth-child(3),
-    .passport-fields > :nth-child(4),
-    .passport-fields > :nth-child(5),
-    .passport-fields > :nth-child(6),
-    .passport-fields > :nth-child(7) {
-        flex: 1 1 calc((100% - 8px) / 2);
-        width: auto;
-        min-width: 130px;
+    .search-button {
+        grid-column: auto;
+    }
+
+    .passport-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 420px) {
+    .passport-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .passport-fields {
+        align-items: stretch;
     }
 
     .save-button {
-        width: 100%;
+        align-self: end;
     }
 }
-
-/* =========================================================
-   <= 560px
-   1 поле в строке
-   ========================================================= */
-
-@media (max-width: 560px) {
-    .passport-fields > :nth-child(1),
-    .passport-fields > :nth-child(2),
-    .passport-fields > :nth-child(3),
-    .passport-fields > :nth-child(4),
-    .passport-fields > :nth-child(5),
-    .passport-fields > :nth-child(6),
-    .passport-fields > :nth-child(7) {
-        flex: 1 1 100%;
-        width: 100%;
-        min-width: 0;
-    }
-}
-
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
     .search-button,
@@ -873,4 +688,3 @@ $backgroundHeader: #f8f8f8;
     }
 }
 </style>
-

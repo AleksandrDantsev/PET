@@ -8,7 +8,8 @@ export const LocalStorage = {
 
         try {
             return JSON.parse(data) as T;
-        } catch {
+        } 
+        catch {
             return null;
         }
     },
