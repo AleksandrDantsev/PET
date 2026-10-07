@@ -1,5 +1,5 @@
 function normalize(
-    value: string, toLowerRegister = true
+    value: string | number, toLowerRegister = true
 ): string {
 
     if (value === undefined || value === null) return value;
@@ -12,6 +12,12 @@ function normalize(
         .trim()
 
     return toLowerRegister === false ? result : result.toLowerCase();
+}
+
+
+function capitalize(value: string | number) {
+    const stringValue = String(value);
+    return stringValue.charAt(0).toUpperCase() + stringValue.slice(1);
 }
 
 
@@ -164,6 +170,7 @@ function formatNumber(
 
 export {
     normalize,
+    capitalize,
     normalizeForSorting,
     toNumber,
     toTimestamp,
@@ -172,4 +179,4 @@ export {
     cutOverflowedText,
     setDaysText,
     formatNumber,
-}
+};
