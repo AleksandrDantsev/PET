@@ -1,13 +1,23 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import type { DataObject } from "@/types/TableSheetData";
 import { setColorText } from "@/utils/colorHelpers";
-import { computed } from "vue";
-
 
 const props = defineProps<{
-    clientsDemand: DataObject | undefined | null;
+    clientsDemand?: DataObject;
 }>();
 
+const subtitles = {
+    contragent: "Контрагент:",
+    branch: "Филиал:",
+    manager: "Менеджер клиента:",
+    typeOfProduct: "Тип товара:",
+    standard: "Стандарт:",
+    rangeOfGrams: "Диапазон граммажей:",
+    baseColor: "Основной цвет:",
+    interchangeableColors: "Взаимозаменяемые цвета:",
+    possibleColors: "Возможные цвета:",
+}
 
 const colorsData = computed(() => {
     if (!props.clientsDemand) {
@@ -26,11 +36,22 @@ const colorsData = computed(() => {
     }
 });
 
-const setComma = (length: number, index: number) =>
-    index < length - 1 ? ",\u00A0" : "";
+const colorGroups = computed(() => [
+    {
+        label: subtitles.baseColor,
+        values: colorsData.value?.mainColors,
+    },
+    {
+        label: subtitles.interchangeableColors,
+        values: colorsData.value?.interchangeableColors,
+    },
+    {
+        label: subtitles.possibleColors,
+        values: colorsData.value?.possibleColors,
+    },
+]);
 
 </script>
-
 <template>
     <div class="contragent-desc-container">
         <div 
@@ -48,81 +69,65 @@ const setComma = (length: number, index: number) =>
 
             <div class="contragent-desc-wrapper">
                 <div class="subtitle-client-container">
-                    <span class="subtitle">Контрагент:</span>
+                    <span class="subtitle">
+                        {{ subtitles.contragent }}
+                    </span>
                     {{ clientsDemand["Клиент"] }}
                 </div>
 
                 <div class="subtitle-client-container">
-                    <span class="subtitle">Филиал:</span>
+                    <span class="subtitle">
+                        {{ subtitles.branch }}
+                    </span>
                     {{ clientsDemand["Филиал"] }}
                 </div>
 
                 <div class="subtitle-client-container">
-                    <span class="subtitle">Менеджер клиента:</span>
+                    <span class="subtitle">
+                        {{ subtitles.manager }}
+                    </span>
                     {{ clientsDemand["Менеджер"] }}
                 </div>
 
                 <div class="subtitle-client-container">
-                    <span class="subtitle">Тип товара:</span>
+                    <span class="subtitle">
+                        {{ subtitles.typeOfProduct }}
+                    </span>
                     {{ clientsDemand["Тип"] }}
                 </div>
 
                 <div class="subtitle-client-container">
-                    <span class="subtitle">Стандарт:</span>
+                    <span class="subtitle">
+                        {{ subtitles.standard }}
+                    </span>
                     {{ clientsDemand["Стандарт"] }}
                 </div>
 
                 <div class="subtitle-client-container">
-                    <span class="subtitle">Диапазон граммажей:</span>
+                    <span class="subtitle">
+                        {{ subtitles.rangeOfGrams }}
+                    </span>
                     {{ clientsDemand['Граммаж "от"'] }} - {{ clientsDemand['Граммаж "до"'] }} 
                     {{ clientsDemand['Граммаж "от"'] && "гр." }}
                 </div>
 
-                <div 
-                    v-if="colorsData?.mainColors?.length"
+                <div
+                    v-for="(group, index) in colorGroups"
+                    v-show="group.values?.length"
+                    :key="group.label + index"
                     class="subtitle-client-container"
                 >
-                    <span class="subtitle">Основной цвет:</span>
-                    <span
-                        v-for="(value, index) in colorsData.mainColors"
-                        :key="value.colorName + value.color"
-                        :style="{ 
-                            color: value.color === '#ffffff' ? 'inherit' : value.color 
-                        }"
-                    >
-                        {{ value.colorName + setComma(colorsData.mainColors.length, index) }}
-                    </span>
-                </div>
+                    <span class="subtitle">{{ group.label }}</span>
 
-                <div 
-                    v-if="colorsData?.interchangeableColors?.length"
-                    class="subtitle-client-container"
-                >
-                    <span class="subtitle">Взаимозаменяемые цвета:</span>
                     <span
-                        v-for="(value, index) in colorsData.interchangeableColors"
-                        :key="value.colorName + value.color"
+                        v-for="value in group.values"
+                        :key="`${value.colorName}-${value.color}`"
+                        class="color-value"
                         :style="{ 
                             color: value.color === '#ffffff' ? 'inherit' : value.color 
                         }"
                     >
-                        {{ value.colorName + setComma(colorsData.interchangeableColors.length, index) }}
-                    </span>
-                </div>
-
-                <div 
-                    v-if="colorsData?.possibleColors?.length"
-                    class="subtitle-client-container"
-                >
-                    <span class="subtitle">Возможные цвета:</span>
-                    <span
-                        v-for="(value, index) in colorsData.possibleColors"
-                        :key="value.colorName + value.color"
-                        :style="{ 
-                            color: value.color === '#ffffff' ? 'inherit' : value.color 
-                        }"
-                    >
-                        {{ value.colorName + setComma(colorsData.possibleColors.length, index) }}
+                        {{ value.colorName }}
                     </span>
                 </div>
             </div>
@@ -131,7 +136,6 @@ const setComma = (length: number, index: number) =>
 </template>
 
 <style scoped lang="scss">
-
 .contragent-desc-container {
     width: 93%;
     margin: 25px auto;
@@ -152,18 +156,18 @@ const setComma = (length: number, index: number) =>
     display: flex;
     flex-direction: column;
     gap: 7px;
-    width: 100%;
-
-    > div {
-        display: flex;
-        align-items: baseline;
-        min-width: 0;
-        line-height: 1.45;
-    }
 }
 
 .subtitle-client-container {
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
     font-size: 12px;
+    line-height: 1.45;
+}
+
+.color-value:not(:last-child)::after {
+    content: ",\00a0";
 }
 
 .subtitle {
@@ -172,23 +176,6 @@ const setComma = (length: number, index: number) =>
     color: #8a8780;
     font-weight: 700;
     line-height: 1.4;
-}
-
-.value {
-    min-width: 0;
-    color: #3d3b36;
-    font-size: 13px;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-}
-
-.contragent-desc-wrapper > div:first-child {
-    margin-bottom: 2px;
-    .value {
-        color: #292824;
-        font-size: 14px;
-        font-weight: 600;
-    }
 }
 
 .interchangeable-unit-not-found {
@@ -220,12 +207,6 @@ const setComma = (length: number, index: number) =>
         margin: 0 0 2px;
         font-size: 9px;
     }
-
-    .value {
-        display: block;
-        font-size: 12px;
-    }
-
 }
 
 </style>
