@@ -12,11 +12,12 @@ const ACTUAL_DATA = ref<IGoogleTableData | null>(null);
 const INTERCHANGEABLE_DATA = ref<IGoogleTableData | null>(null);
 
 onMounted(async () => {
+    window.scrollTo(0, 0);
 
     const savedActualData = LocalStorage.get<IGoogleTableData>(
         "actualData"
     );
-    
+
     const savedInterchangeableData = LocalStorage.get<IGoogleTableData>(
         "interchangeableData"
     );
@@ -50,7 +51,7 @@ onMounted(async () => {
             }),
 
         api.google
-            .getSheetValuesById(778545787)
+            .getSheetValuesById(517769516)
             .catch(error => {
                 console.error("interchangeableData error:", error);
                 return null;
@@ -106,7 +107,6 @@ onMounted(async () => {
 }
 body {
     font-variant-numeric: tabular-nums;
-    overflow-y: scroll;
     scrollbar-gutter: stable;
 }
 ::selection {
