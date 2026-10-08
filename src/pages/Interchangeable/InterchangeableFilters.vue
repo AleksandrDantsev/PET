@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
+import type { DataObject } from "@/types/TableSheetData";
 import {
     NButton,
     NDatePicker,
@@ -13,12 +14,12 @@ import {
     NSwitch,
     NTag,
 } from "naive-ui";
-import { hasValue, normalizeForSorting, toNumber, toTimestamp } from "@/utils/normalize";
-
-type DataObject = Record<
-    string,
-    string | number | boolean | null
->;
+import { 
+    hasValue,
+    normalizeForSorting,
+    toNumber,
+    toTimestamp 
+} from "@/utils/normalize";
 
 interface SortField {
     field: string;
