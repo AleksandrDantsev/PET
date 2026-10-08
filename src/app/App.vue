@@ -110,7 +110,7 @@ body {
     scrollbar-gutter: stable;
 }
 ::selection {
-    background-color: rgb(83, 92, 82);
+    background-color: #456d3a6b;
     color: white;
 }
 </style>

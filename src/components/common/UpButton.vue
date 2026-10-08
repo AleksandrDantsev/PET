@@ -40,10 +40,10 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .scroll-top {
     position: fixed;
-    width: 50px;
-    height: 50px;
-    right: 50px;
-    bottom: 40px;
+    width: 40px;
+    height: 40px;
+    right: 10px;
+    bottom: 80px;
     z-index: 1000;
 
     background: #fff !important;
@@ -57,8 +57,8 @@ onUnmounted(() => {
     transform: translateY(10px);
 
     box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.12),
-        0 2px 4px rgba(0, 0, 0, 0.06);
+        0 4px 12px #0000000e,
+        0 2px 4px #00000009;
 
     transition:
         opacity 0.3s ease,
