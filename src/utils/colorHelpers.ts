@@ -126,13 +126,17 @@ export function getProductColor(
 export function setColorText(
     text: string | number | undefined
 ) {
-    if (text === undefined) {
+    const normalizedText = normalize(text);
+
+    if (
+        text == "" || 
+        ["любой", "нет"].includes(normalizedText)
+    ) {
         return [{
-            colorName: "",
-            color: "",
+            colorName: !normalizedText ? "-" : normalizedText,
+            color: "inherit",
         }];
     }
-    const normalizedText = normalize(text);
 
     const matchedColors = Object.entries(productColors)
         .filter(([name]) => normalizedText.includes(name))
