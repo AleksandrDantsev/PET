@@ -27,7 +27,7 @@ const ch = {
     },
 
     getConfigManagersBranchList(
-        data: IGoogleTableData
+        data: IGoogleTableData | null
     ): Record<string, string> | null {
         if (!data?.values) return null;
 
@@ -51,7 +51,9 @@ const ch = {
         return result;
     },
 
-    getConfigContragentsList(data: IGoogleTableData): Record<string, {
+    getConfigContragentsList(
+        data: IGoogleTableData | null): Record<string, 
+    {
         branch: string;
         manager: string;
     }> | null {
