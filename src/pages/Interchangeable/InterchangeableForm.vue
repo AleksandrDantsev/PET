@@ -185,6 +185,12 @@ const returnInputValues = async () => {
     });
 };
 
+const selectInputText = (event: FocusEvent) => {
+    const input = event.target as HTMLInputElement;
+
+    input.select();
+};
+
 const save = async () => {
     try {
         await Promise.all([
@@ -214,6 +220,7 @@ const save = async () => {
                     v-model:value="formValue.nomenclature"
                     placeholder="Введите номенклатуру"
                     clearable
+                    @focus="selectInputText"
                 />
             </n-form-item>
 
@@ -228,6 +235,7 @@ const save = async () => {
                     placeholder="Введите контрагента"
                     clearable
                     :input-props="{ autocomplete: 'off' }"
+                    @focus="selectInputText"
                 />
             </n-form-item>
 
@@ -445,7 +453,7 @@ $transition: 0.15s ease;
 :deep(.n-base-selection-input__content) {
     min-width: 0;
     color: $color-text;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 :deep(input::placeholder) {
@@ -514,10 +522,11 @@ $transition: 0.15s ease;
     border-radius: 4px;
 }
 
-:deep(.n-base-select-option__label) {
+:deep(.n-base-select-option__label),
+:deep(.n-auto-complete-option__label) {
     overflow: hidden;
     color: $color-text;
-    font-size: 11px;
+    font-size: 10px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -531,14 +540,11 @@ $transition: 0.15s ease;
     color: #111;
     font-weight: 500;
 }
-
+$effectSearchButtonColor: #40af5c;
 .search-button {
     width: 96px;
     height: $control-height;
     padding: 0;
-    border: 1px solid #333;
-    border-radius: $radius;
-    background: #333;
     color: #fff;
     font-size: 10px;
     font-weight: 600;
@@ -550,13 +556,13 @@ $transition: 0.15s ease;
         border-color $transition;
 
     &:hover {
-        border-color: #222;
-        background: #222;
+        border-color: $effectSearchButtonColor;
+        background: $effectSearchButtonColor;
     }
 
     &:active {
-        border-color: #111;
-        background: #111;
+        border-color: $effectSearchButtonColor;
+        background: $effectSearchButtonColor;
     }
 }
 
