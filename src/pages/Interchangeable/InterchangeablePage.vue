@@ -1,22 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from "vue";
+import { ref, computed, onMounted } from "vue";
 import type { DataObject, IGoogleTableData } from "../../types/TableSheetData.ts";
 import { dataToObjects } from "@/helpers/dataHandlers.ts";
 import InterchangeableForm from "./InterchangeableForm.vue";
 import InterchangeableResult from "./InterchangeableResult.vue";
 import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
-const InterchangeableFilters = defineAsyncComponent({
-    loader: () => import("./InterchangeableFilters.vue"),
-    delay: 200,
-    timeout: 10000,
-});
 import { check } from "@/helpers/checkInterchangeablePositions.ts";
 import { ih } from "@/helpers/interchangeableFilters.ts";
 
 import {
-    NButton,
-    NDrawer,
-    NDrawerContent,
     NEmpty
 } from "naive-ui";
 
@@ -25,16 +17,12 @@ const props = defineProps<{
     interchangeableData: IGoogleTableData | null;
 }>();
 
-const filtersOpen = ref(false);
-
-const searchResultObjs = ref<DataObject[]>([]);
 const filteredActualResultObjs = ref<DataObject[]>([]);
 const clientsDemand = ref<DataObject>({});
 const isSearched = ref<boolean>(false);
 
 onMounted(() => {
     if (props.actualData) {
-        searchResultObjs.value = dataToObjects(props.actualData);
         filteredActualResultObjs.value = dataToObjects(props.actualData);
     }
 });
@@ -63,19 +51,10 @@ const search = (fields: Record<string, string>) => {
         !actualDataObjs.value.length ||
         !interchangeableDataObjs.value.length
     ) {
-        searchResultObjs.value = [];
         filteredActualResultObjs.value = [];
         clientsDemand.value = {};
         return;
     }
-
-    // const contragent =
-    //     "Ахтемов Сулейман ИП (Аджимбетов Эмиль Рустемович ИП)" ||
-    //     fields?.contragent;
-
-    // const descriptionProduct = ih.getDescriptionProduct(
-    //     "21,0 гр. 1810 белая (2100) АТФ" || fields.nomenclature
-    // );
 
     const contragent = fields.contragent;
     const descriptionProduct = ih.getDescriptionProduct(fields.nomenclature);
@@ -119,7 +98,6 @@ const search = (fields: Record<string, string>) => {
     });
 
     if (!clientDemand) {
-        searchResultObjs.value = [];
         filteredActualResultObjs.value = [];
         clientsDemand.value = {};
         return;
@@ -177,25 +155,9 @@ const search = (fields: Record<string, string>) => {
         );
     });
 
-    searchResultObjs.value = result;
     filteredActualResultObjs.value = result;
 };
 
-const applyFilters = (result: DataObject[]) => {
-    filteredActualResultObjs.value = Array.isArray(result)
-        ? result
-        : [];
-};
-
-const applySorting = (result: DataObject[]) => {
-    filteredActualResultObjs.value = Array.isArray(result)
-        ? result
-        : [];
-};
-
-const resetFilters = () => {
-    filteredActualResultObjs.value = [...searchResultObjs.value];
-};
 </script>
 
 <template>
@@ -203,17 +165,6 @@ const resetFilters = () => {
         <InterchangeableForm
             :search="search"
         />
-
-        <div class="filters-button">
-            <NButton
-                type="primary"
-                :disabled="filteredActualResultObjs.length === 0"
-                @click="filtersOpen = true"
-            >
-                Фильтры
-            </NButton>
-        </div>
-
         <InterchangeableResult
             v-if="filteredActualResultObjs.length"
             
@@ -228,25 +179,6 @@ const resetFilters = () => {
                     : 'Попробуйте найти что-нибудь'
             "
         />
-
-        <NDrawer
-            v-model:show="filtersOpen"
-            placement="right"
-            :width="420"
-        >
-            <NDrawerContent
-                title="Фильтры"
-                closable
-            >
-                <InterchangeableFilters
-                    :result="searchResultObjs"
-                    :current-result="filteredActualResultObjs"
-                    @filter="applyFilters"
-                    @sort="applySorting"
-                    @reset="resetFilters"
-                />
-            </NDrawerContent>
-        </NDrawer>
     </div>
 </template>
 
@@ -254,11 +186,5 @@ const resetFilters = () => {
 .search-wrapper {
     position: relative;
     border-radius: 7px;
-}
-
-.filters-button {
-    display: flex;
-    justify-content: flex-end;
-    margin: 12px 14px;
 }
 </style>
