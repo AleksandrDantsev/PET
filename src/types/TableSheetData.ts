@@ -1,7 +1,7 @@
 export interface IGoogleTableData {
     range?: string | null,
     majorDimension?: string | null | undefined,
-    values?: (string | number | boolean)[][] | null,
+    values?: (string | number)[][] | null,
   }
 
 export type TContragentsConst = {
