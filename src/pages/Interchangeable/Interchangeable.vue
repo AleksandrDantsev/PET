@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineAsyncComponent } from "vue";
-import type { DataObject, IGoogleTableData, TContragentsConst } from "../../types/TableSheetData.ts";
+import type { DataObject, IGoogleTableData } from "../../types/TableSheetData.ts";
 import { dataToObjects } from "@/helpers/dataHandlers.ts";
 import InterchangeableForm from "./InterchangeableForm.vue";
 import InterchangeableResult from "./InterchangeableResult.vue";
+import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
 const InterchangeableFilters = defineAsyncComponent({
     loader: () => import("./InterchangeableFilters.vue"),
     delay: 200,
@@ -17,14 +18,12 @@ import {
     NDrawer,
     NDrawerContent,
     NEmpty,
+    NImage,
 } from "naive-ui";
 
 const props = defineProps<{
     actualData?: IGoogleTableData | null;
     interchangeableData: IGoogleTableData | null;
-    constTitles?: Record<string, string> | null;
-    contragents: TContragentsConst | null;
-    managersBranches: Record<string, string> | null;
 }>();
 
 const filtersOpen = ref(false);
@@ -58,6 +57,8 @@ const interchangeableDataObjs = computed(() => {
 });
 
 const search = (fields: Record<string, string>) => {
+    isSearched.value = true;
+
     if (
         !fields ||
         !actualDataObjs.value.length ||
@@ -69,36 +70,39 @@ const search = (fields: Record<string, string>) => {
         return;
     }
 
-    const contragent =
-        "Ахтемов Сулейман ИП (Аджимбетов Эмиль Рустемович ИП)" ||
-        fields?.contragent;
+    // const contragent =
+    //     "Ахтемов Сулейман ИП (Аджимбетов Эмиль Рустемович ИП)" ||
+    //     fields?.contragent;
 
-    const descriptionProduct = ih.getDescriptionProduct(
-        "21,0 гр. 1810 белая (2100) АТФ" || fields.nomenclature
-    );
+    // const descriptionProduct = ih.getDescriptionProduct(
+    //     "21,0 гр. 1810 белая (2100) АТФ" || fields.nomenclature
+    // );
+
+    const contragent = fields.contragent;
+    const descriptionProduct = ih.getDescriptionProduct(fields.nomenclature);
 
     const productTypeInput = descriptionProduct?.type;
 
     const clientDemand = interchangeableDataObjs.value.find(item => {
         return (
             check.checkType(
-                String(item["Тип"]),
+                String(item[CONST_TITLES.TYPE_OF_PRODUCT]),
                 productTypeInput
             ) &&
             check.checkStandart(
-                String(item["Стандарт"]),
+                String(item[CONST_TITLES.STANDARD]),
                 descriptionProduct?.standart
             ) &&
             check.checkContragent(
-                String(item["Клиент"]),
+                String(item[CONST_TITLES.CONTRAGENT]),
                 contragent
             ) &&
             (
                 productTypeInput === "преформа"
                     ? check.checkGrams(
                         {
-                            from: String(item['Граммаж "от"'] ?? ""),
-                            to: String(item['Граммаж "до"'] ?? ""),
+                            from: String(item[CONST_TITLES.WEIGHT_FROM] ?? ""),
+                            to: String(item[CONST_TITLES.WEIGHT_TO] ?? ""),
                         },
                         descriptionProduct?.grams
                     )
@@ -107,9 +111,9 @@ const search = (fields: Record<string, string>) => {
             check.checkIncludeColors(
                 descriptionProduct?.color,
                 [
-                    String(item["Основной цвет"] ?? ""),
-                    String(item["Взаимозаменяемые цвета"] ?? ""),
-                    String(item["Возможные цвета"] ?? ""),
+                    String(item[CONST_TITLES.PRIMARY_COLOR] ?? ""),
+                    String(item[CONST_TITLES.INTERCHANGEABLE_COLORS] ?? ""),
+                    String(item[CONST_TITLES.POSSIBLE_COLORS] ?? ""),
                 ]
             )
         );
@@ -121,30 +125,27 @@ const search = (fields: Record<string, string>) => {
         clientsDemand.value = {};
         return;
     }
-
     clientsDemand.value = clientDemand;
 
     const result = actualDataObjs.value.filter(item => {
-        const nomenclature = item["Номенклатура 1С"];
+        const nomenclature = item[CONST_TITLES.ONE_C_NOMENCLATURE];
 
         if (!nomenclature) {
             return false;
         }
 
-        const actualProductDescription =
-            ih.getDescriptionProduct(String(nomenclature));
-
+        const actualProductDescription = ih.getDescriptionProduct(String(nomenclature));
+  
         if (!actualProductDescription) {
             return false;
         }
-
         return (
             check.checkType(
                 actualProductDescription.type,
-                String(clientDemand["Тип"])
+                String(clientDemand[CONST_TITLES.TYPE_OF_PRODUCT])
             ) &&
             check.checkStandart(
-                String(clientDemand["Стандарт"] ?? ""),
+                String(clientDemand[CONST_TITLES.STANDARD] ?? ""),
                 actualProductDescription.standart
             ) &&
             (
@@ -152,10 +153,10 @@ const search = (fields: Record<string, string>) => {
                     ? check.checkGrams(
                         {
                             from: String(
-                                clientDemand['Граммаж "от"'] ?? ""
+                                clientDemand[CONST_TITLES.WEIGHT_FROM] ?? ""
                             ),
                             to: String(
-                                clientDemand['Граммаж "до"'] ?? ""
+                                clientDemand[CONST_TITLES.WEIGHT_TO] ?? ""
                             ),
                         },
                         actualProductDescription.grams
@@ -163,15 +164,15 @@ const search = (fields: Record<string, string>) => {
                     : true
             ) &&
             check.isNormalizedTextEqual(
-                String(item["Филиал"] ?? ""),
-                String(clientDemand["Филиал"] ?? "")
+                String(item[CONST_TITLES.BRANCH] ?? ""),
+                String(clientDemand[CONST_TITLES.BRANCH_DELIVERY] ?? "")
             ) &&
             check.checkIncludeColors(
                 actualProductDescription.color,
                 [
-                    String(clientDemand["Основной цвет"] ?? ""),
-                    String(clientDemand["Взаимозаменяемые цвета"] ?? ""),
-                    String(clientDemand["Возможные цвета"] ?? ""),
+                    String(clientDemand[CONST_TITLES.PRIMARY_COLOR] ?? ""),
+                    String(clientDemand[CONST_TITLES.INTERCHANGEABLE_COLORS] ?? ""),
+                    String(clientDemand[CONST_TITLES.POSSIBLE_COLORS] ?? ""),
                 ]
             )
         );
@@ -179,9 +180,6 @@ const search = (fields: Record<string, string>) => {
 
     searchResultObjs.value = result;
     filteredActualResultObjs.value = result;
-    isSearched.value = true;
-
-    console.log(result);
 };
 
 const applyFilters = (result: DataObject[]) => {
@@ -204,9 +202,6 @@ const resetFilters = () => {
 <template>
     <div class="search-wrapper">
         <InterchangeableForm
-            :const-titles="constTitles"
-            :contragents="contragents"
-            :managers-branches="managersBranches"
             :search="search"
         />
 
@@ -221,22 +216,19 @@ const resetFilters = () => {
         </div>
 
         <InterchangeableResult
-            v-if="Object.keys(clientsDemand)?.length || filteredActualResultObjs?.length || searchResultObjs?.length"
+            v-if="filteredActualResultObjs.length"
+            
             :clients-demand="clientsDemand"
             :filtered-actual-result-objs="filteredActualResultObjs"
         />
         <NEmpty
             v-else
-            :description="isSearched ? 'Ничего не найдено' : 'Попробуйте найти что-что'"
-        >
-            <template #icon>
-                <NImage
-                    width="48"
-                    preview-disabled
-                    src=""
-                />
-            </template>
-        </NEmpty>
+            :description="
+                isSearched
+                    ? 'Ничего не найдено'
+                    : 'Попробуйте найти что-нибудь'
+            "
+        />
 
         <NDrawer
             v-model:show="filtersOpen"
