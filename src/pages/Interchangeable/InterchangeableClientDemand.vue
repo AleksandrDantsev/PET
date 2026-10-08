@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import type { DataObject } from "@/types/TableSheetData";
 import { setColorText } from "@/utils/colorHelpers";
+import { CONST_TITLES } from "@/configs/CONFIG_CONST";
 
 const props = defineProps<{
     clientsDemand?: DataObject;
@@ -25,13 +26,13 @@ const colorsData = computed(() => {
     }
     return {
         mainColors: setColorText(
-            props.clientsDemand["Основной цвет"]
+            props.clientsDemand[CONST_TITLES.PRIMARY_COLOR]
         ),
         interchangeableColors: setColorText(
-            props.clientsDemand["Взаимозаменяемые цвета"]
+            props.clientsDemand[CONST_TITLES.INTERCHANGEABLE_COLORS]
         ),
         possibleColors: setColorText(
-            props.clientsDemand["Возможные цвета"]
+            props.clientsDemand[CONST_TITLES.POSSIBLE_COLORS]
         )
     }
 });
@@ -54,84 +55,86 @@ const colorGroups = computed(() => [
 </script>
 <template>
     <div class="contragent-desc-container">
-        <div 
-            v-if="!clientsDemand" 
-            class="interchangeable-unit-not-found"
-        >
-            Не найдено подходящих данных о контрагенте в листе
-            "Взаимозаменяемое", учитывая позицию
-        </div>
-
-        <template v-else>
-            <div class="contragent-desc-title">
-                Потребности клиента по данному типу товара:
+        <Transition name="fade-slide">
+            <div 
+                v-if="!clientsDemand"
+                key="not-found" 
+                class="interchangeable-unit-not-found"
+            >
+                Не найдено подходящих данных о контрагенте в листе
+                "Взаимозаменяемое", учитывая позицию
             </div>
 
-            <div class="contragent-desc-wrapper">
-                <div class="subtitle-client-container">
-                    <span class="subtitle">
-                        {{ subtitles.contragent }}
-                    </span>
-                    {{ clientsDemand["Клиент"] }}
+            <div v-else key="content">
+                <div class="contragent-desc-title">
+                    Потребности клиента по данному типу товара:
                 </div>
 
-                <div class="subtitle-client-container">
-                    <span class="subtitle">
-                        {{ subtitles.branch }}
-                    </span>
-                    {{ clientsDemand["Филиал"] }}
-                </div>
+                <div class="contragent-desc-wrapper">
+                    <div class="subtitle-client-container">
+                        <span class="subtitle">
+                            {{ subtitles.contragent }}
+                        </span>
+                        {{ clientsDemand[CONST_TITLES.CONTRAGENT] }}
+                    </div>
 
-                <div class="subtitle-client-container">
-                    <span class="subtitle">
-                        {{ subtitles.manager }}
-                    </span>
-                    {{ clientsDemand["Менеджер"] }}
-                </div>
+                    <div class="subtitle-client-container">
+                        <span class="subtitle">
+                            {{ subtitles.branch }}
+                        </span>
+                        {{ clientsDemand[CONST_TITLES.BRANCH_DELIVERY] }}
+                    </div>
 
-                <div class="subtitle-client-container">
-                    <span class="subtitle">
-                        {{ subtitles.typeOfProduct }}
-                    </span>
-                    {{ clientsDemand["Тип"] }}
-                </div>
+                    <div class="subtitle-client-container">
+                        <span class="subtitle">
+                            {{ subtitles.manager }}
+                        </span>
+                        {{ clientsDemand[CONST_TITLES.MANAGER] }}
+                    </div>
 
-                <div class="subtitle-client-container">
-                    <span class="subtitle">
-                        {{ subtitles.standard }}
-                    </span>
-                    {{ clientsDemand["Стандарт"] }}
-                </div>
+                    <div class="subtitle-client-container">
+                        <span class="subtitle">
+                            {{ subtitles.typeOfProduct }}
+                        </span>
+                        {{ clientsDemand[CONST_TITLES.TYPE_OF_PRODUCT] }}
+                    </div>
 
-                <div class="subtitle-client-container">
-                    <span class="subtitle">
-                        {{ subtitles.rangeOfGrams }}
-                    </span>
-                    {{ clientsDemand['Граммаж "от"'] }} - {{ clientsDemand['Граммаж "до"'] }} 
-                    {{ clientsDemand['Граммаж "от"'] && "гр." }}
-                </div>
+                    <div class="subtitle-client-container">
+                        <span class="subtitle">
+                            {{ subtitles.standard }}
+                        </span>
+                        {{ clientsDemand[CONST_TITLES.STANDARD] }}
+                    </div>
 
-                <div
-                    v-for="(group, index) in colorGroups"
-                    v-show="group.values?.length"
-                    :key="group.label + index"
-                    class="subtitle-client-container"
-                >
-                    <span class="subtitle">{{ group.label }}</span>
+                    <div class="subtitle-client-container">
+                        <span class="subtitle">
+                            {{ subtitles.rangeOfGrams }}
+                        </span>
+                        {{ clientsDemand[CONST_TITLES.WEIGHT_FROM] }} - {{ clientsDemand[CONST_TITLES.WEIGHT_TO] }} 
+                        {{ clientsDemand[CONST_TITLES.WEIGHT_FROM] && "гр." }}
+                    </div>
 
-                    <span
-                        v-for="value in group.values"
-                        :key="`${value.colorName}-${value.color}`"
-                        class="color-value"
-                        :style="{ 
-                            color: value.color === '#ffffff' ? 'inherit' : value.color 
-                        }"
+                    <div
+                        v-for="(group, index) in colorGroups"
+                        :key="group.label + index"
+                        class="subtitle-client-container"
                     >
-                        {{ value.colorName }}
-                    </span>
+                        <span class="subtitle">{{ group.label }}</span>
+
+                        <span
+                            v-for="value in group.values"
+                            :key="`${value.colorName}-${value.color}`"
+                            class="color-value"
+                            :style="{ 
+                                color: value.color === '#ffffff' ? 'inherit' : value.color 
+                            }"
+                        >
+                            {{ value.colorName || "-"  }}
+                        </span>
+                    </div>
                 </div>
             </div>
-        </template>
+        </Transition>
     </div>
 </template>
 
@@ -207,6 +210,26 @@ const colorGroups = computed(() => [
         margin: 0 0 2px;
         font-size: 9px;
     }
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        filter 0.35s ease;
+}
+
+.fade-slide-enter-from {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.98);
+    filter: blur(2px);
+}
+
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-2px) scaleY(0.99);
+    filter: blur(1px);
 }
 
 </style>
