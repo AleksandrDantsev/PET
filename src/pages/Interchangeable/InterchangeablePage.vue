@@ -17,8 +17,7 @@ import {
     NButton,
     NDrawer,
     NDrawerContent,
-    NEmpty,
-    NImage,
+    NEmpty
 } from "naive-ui";
 
 const props = defineProps<{
