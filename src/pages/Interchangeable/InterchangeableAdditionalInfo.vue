@@ -47,10 +47,6 @@ const formatValue = (value: unknown, key: string = "") => {
 
 <template>
     <div class="additional-fields">
-        <div class="additional-title">
-            Дополнительная информация
-        </div>
-
         <div
             v-for="field in fields"
             :key="field.key"
@@ -69,45 +65,36 @@ const formatValue = (value: unknown, key: string = "") => {
 
 <style scoped lang="scss">
 .additional-fields {
-    width: min(900px, 100%);
-    padding: 8px 12px 10px 48px;
-}
-
-.additional-title {
-    margin-bottom: 6px;
-    color: #6f6d67;
-    font-size: 9px;
-    font-weight: 600;
-    line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    width: 100%;
+    padding: 12px 24px 12px 48px;
+    border-left: 3px solid #0066cc;
+    background: #fff;
 }
 
 .additional-field {
     display: grid;
     grid-template-columns: 220px minmax(0, 1fr);
-    min-height: 26px;
-    align-items: center;
-    border-top: 1px solid #f1f1ef;
-}
-
-.additional-field:last-child {
-    border-bottom: 1px solid #f1f1ef;
+    align-items: stretch;
+    min-height: 28px;
+    border-bottom: 1px solid #ededed;
 }
 
 .additional-label {
-    padding: 5px 16px 5px 0;
-    color: #77756f;
-    font-size: 10px;
-    font-weight: 500;
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    color: #444649;
+    font-size: 11px;
+    font-weight: 600;
     line-height: 1.3;
+    border-right: 1px solid #ededed;
 }
 
 .additional-value {
     min-width: 0;
-    padding: 5px 0;
-    color: #353532;
-    font-size: 10px;
+    padding: 6px 12px;
+    color: #151515;
+    font-size: 11px;
     font-weight: 400;
     line-height: 1.3;
     white-space: pre-line;
@@ -117,8 +104,7 @@ const formatValue = (value: unknown, key: string = "") => {
 
 @media (max-width: 900px) {
     .additional-fields {
-        width: 100%;
-        padding-left: 24px;
+        padding-left: 32px;
     }
 
     .additional-field {
@@ -128,23 +114,20 @@ const formatValue = (value: unknown, key: string = "") => {
 
 @media (max-width: 600px) {
     .additional-fields {
-        padding: 8px 10px;
+        padding: 0 10px 0 24px;
     }
 
     .additional-field {
         grid-template-columns: 1fr;
-        gap: 2px;
-        padding: 5px 0;
     }
 
     .additional-label {
-        padding: 0;
-        font-size: 9px;
+        padding: 5px 8px 2px;
+        border-right: 0;
     }
 
     .additional-value {
-        padding: 0;
-        font-size: 10px;
+        padding: 2px 8px 6px;
     }
 }
 </style>
