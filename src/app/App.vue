@@ -2,7 +2,7 @@
 import { api } from "@/api/api";
 import { ref, onMounted } from "vue"
 import type { IGoogleTableData } from "../types/TableSheetData";
-import Interchangeable from "@/pages/Interchangeable/Interchangeable.vue";
+import InterchangeablePage from "@/pages/Interchangeable/InterchangeablePage.vue";
 import { LocalStorage } from "@/utils/localStorage";
 import { NConfigProvider, NGlobalStyle, ruRU } from "naive-ui";
 import { themeOverrides } from "@/theme/naiveTheme";
@@ -86,7 +86,7 @@ onMounted(async () => {
     >
         <n-global-style />
         <div>
-            <Interchangeable
+            <InterchangeablePage
                 v-if="ACTUAL_DATA && INTERCHANGEABLE_DATA"
                 :actual-data="ACTUAL_DATA" 
                 :interchangeable-data="INTERCHANGEABLE_DATA"
