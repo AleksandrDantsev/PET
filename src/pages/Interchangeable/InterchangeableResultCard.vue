@@ -231,7 +231,7 @@ defineExpose({
                     <span 
                         class="field-value field-value-client" 
                     >
-                        {{ cutOverflowedText(result[CONST_TITLES.CURRENT_CLIENT]) || "-"}}
+                        {{ cutOverflowedText(result[CONST_TITLES.CURRENT_CLIENT]) || "-" }}
                     </span>
                 </div>
 
