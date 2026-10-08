@@ -1,8 +1,8 @@
 function normalize(
-    value: string | number, toLowerRegister = true
+    value: string | number | undefined, toLowerRegister = true
 ): string {
 
-    if (value === undefined || value === null) return value;
+    if (value === undefined || value === null) return String(value);
 
     const result = String(value ?? "")
         .replace(/\u00A0/g, " ")
