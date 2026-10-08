@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, h, ref } from "vue";
+import { computed, h, ref } from "vue";
 import {
     NButton,
     NDataTable,
@@ -20,33 +20,26 @@ import {
     toTimestamp,
 } from "@/utils/normalize";
 import { debounce } from "@/utils/debounce";
+import InterchangeableClientDemand from "./InterchangeableClientDemand.vue"
 import InterchangeableAdditionalInfo from "./InterchangeableAdditionalInfo.vue";
 import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
-
-const InterchangeableClientDemand = defineAsyncComponent({
-    loader: () => import("./InterchangeableClientDemand.vue"),
-    delay: 200,
-    timeout: 10000,
-});
 
 const props = defineProps<{
     clientsDemand: DataObject | null;
     filteredActualResultObjs: DataObject[];
 }>();
 
-const tableData = computed(() => props.filteredActualResultObjs);
 
+const tableData = computed(() => props.filteredActualResultObjs);
 const searchQuery = defineModel<string>("searchQuery", {
     default: "",
 });
 
 const debouncedSearchQuery = ref(searchQuery.value);
 
-
 const updateSearchQuery = debounce((value: string) => {
     debouncedSearchQuery.value = value;
-}, 300);
-
+}, 500);
 
 const tableRef = ref<DataTableInst | null>(null);
 
@@ -77,11 +70,10 @@ const getUniqueValues = (key: string) => {
         ...new Set(
             tableData.value
                 .map(row => row[key])
-                .filter(
-                    value =>
-                        value !== null &&
-                        value !== undefined &&
-                        value !== ""
+                .filter(value =>
+                    value !== null &&
+                    value !== undefined &&
+                    value !== ""
                 )
                 .map(value => String(value))
         ),
@@ -122,7 +114,7 @@ const searchedData = computed(() => {
     if (!query) {
         return tableData.value;
     }
-
+    
     return tableData.value.filter(row =>
         searchableFields.some(key =>
             normalize(row[key]).includes(query)
@@ -134,7 +126,7 @@ const rowKey = (row: DataObject) => JSON.stringify(row);
 
 const columns = computed<DataTableColumns<DataObject>>(() => [
     {
-        title: "#",
+        title: "№п/п",
         key: "index",
         width: 20,
         align: "center",
@@ -144,7 +136,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         title: "Номенклатура",
         key: CONST_TITLES.ONE_C_NOMENCLATURE,
-        width: 110,
+        width: 130,
         sorter: "default",
         filter: createFilter(
             CONST_TITLES.ONE_C_NOMENCLATURE
@@ -351,6 +343,14 @@ const clearFilters = () => {
     tableRef.value?.clearFilters();
     tableRef.value?.clearSorter();
 };
+
+const handlePageChange = () => {
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+    });
+};
+
 </script>
 
 <template>
@@ -396,10 +396,12 @@ const clearFilters = () => {
                         </span>
 
                         <NButton
+                            dashed
                             size="small"
+                            class="clear-button"
                             @click="clearFilters"
                         >
-                            Сбросить
+                            Сбросить фильтры
                         </NButton>
                     </NSpace>
                 </NSpace>
@@ -407,6 +409,7 @@ const clearFilters = () => {
 
             <NDataTable
                 ref="tableRef"
+                class="result-table"
                 :columns="columns"
                 :data="searchedData"
                 :bordered="false"
@@ -421,6 +424,7 @@ const clearFilters = () => {
                     showSizePicker: false,
                     showQuickJumper: false,
                 }"
+                @update:page="handlePageChange"
             />
         </div>
     </div>
@@ -429,6 +433,7 @@ const clearFilters = () => {
 <style scoped lang="scss">
 .result-container {
     width: 98%;
+    min-height: 40vh;
     margin: 20px auto;
 }
 
@@ -448,7 +453,7 @@ const clearFilters = () => {
 
 .result-count {
     color: #85827b;
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1;
     margin-right: 10px;
 }
@@ -459,6 +464,10 @@ const clearFilters = () => {
     gap: 3px;
     white-space: nowrap;
     font-size: 11px;
+}
+
+.clear-button {
+    font-size: 12px;
 }
 
 .hardness-value {
@@ -479,6 +488,10 @@ const clearFilters = () => {
 .client-demand-enter-from,
 .client-demand-leave-to {
     opacity: 0;
+}
+
+:deep(.result-table) {
+    min-height: calc(100vh - 220px);
 }
 
 :deep(.n-data-table .n-data-table-td),
@@ -503,8 +516,9 @@ const clearFilters = () => {
     bottom: 0;
     z-index: 10;
     padding: 13px 0;
+    margin-top: 20px;
     background: #fff;
-    box-shadow: 0px -3px 10px #cacaca4d;
+    box-shadow: 0 -5px 10px #cacaca33;
 }
 :deep(.product-color) {
     display: block;
