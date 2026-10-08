@@ -143,7 +143,7 @@ const colorGroups = computed(() => [
 
 <style scoped lang="scss">
 .contragent-desc-container {
-    width: 93%;
+    width: 97%;
     margin: 25px auto;
     color: #292824;
 }
@@ -161,7 +161,7 @@ const colorGroups = computed(() => [
 .contragent-desc-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 4px;
 }
 
 .subtitle-client-container {
