@@ -43,9 +43,8 @@ const updateSearchQuery = debounce((value: string) => {
 
 const tableRef = ref<DataTableInst | null>(null);
 
-const includedFields = [
-    CONST_TITLES.DELIVERY_DATE,
-    CONST_TITLES.DAYS_SINCE_DELIVERY,
+const includedFieldsInAdditionalSector = [
+    CONST_TITLES.NUMBER_TASK_BITRIX,
     CONST_TITLES.UNDERSOLDED_PRODUCT_QUANTITY,
     CONST_TITLES.ORDERING_MANAGER,
     CONST_TITLES.UNDERSOLDED_CLIENT,
@@ -63,6 +62,7 @@ const searchableFields = [
     CONST_TITLES.UNDERSOLDED_COST,
     CONST_TITLES.HARDNESS,
     CONST_TITLES.REMAINDER_BOXES_1C,
+    CONST_TITLES.NUMBER_TASK_BITRIX,
 ];
 
 const getUniqueValues = (key: string) => {
@@ -92,7 +92,7 @@ const createFilter = (key: string) => {
 };
 
 const getAdditionalFields = (row: DataObject) => {
-    return includedFields
+    return includedFieldsInAdditionalSector
         .filter(key => {
             const value = row[key];
 
@@ -132,7 +132,6 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         align: "center",
         render: (_row, index) => index + 1,
     },
-
     {
         title: "Номенклатура",
         key: CONST_TITLES.ONE_C_NOMENCLATURE,
@@ -248,9 +247,19 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     },
 
     {
+        title: "Дата привоза",
+        key: CONST_TITLES.DELIVERY_DATE,
+        width: 50,
+        sorter: (rowA, rowB) =>
+            (toTimestamp(rowA?.[CONST_TITLES.DELIVERY_DATE]) ?? 0) -
+            (toTimestamp(rowB?.[CONST_TITLES.DELIVERY_DATE]) ?? 0),
+        render: (row) => row[CONST_TITLES.DELIVERY_DATE] || "-"
+    },
+
+    {
         title: "Жёсткость",
         key: CONST_TITLES.HARDNESS,
-        width: 50,
+        width: 60,
         resizable: true,
         filterMultiple: true,
         filter: createFilter(
@@ -303,7 +312,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         title: "Остатки",
         key: CONST_TITLES.REMAINDER_BOXES_1C,
-        width: 40,
+        width: 35,
         resizable: true,
 
         sorter: (rowA, rowB) => {
@@ -325,7 +334,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
 
     {
         type: "expand",
-        width: 38,
+        width: 20,
         expandable: row =>
             getAdditionalFields(row).length > 0,
 
@@ -488,6 +497,10 @@ const handlePageChange = () => {
 .client-demand-enter-from,
 .client-demand-leave-to {
     opacity: 0;
+}
+
+:deep(.n-pagination-item) {
+    font-size: 13px;
 }
 
 :deep(.result-table) {
