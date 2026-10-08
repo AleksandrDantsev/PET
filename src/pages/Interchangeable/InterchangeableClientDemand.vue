@@ -65,7 +65,10 @@ const colorGroups = computed(() => [
                 "Взаимозаменяемое", учитывая позицию
             </div>
 
-            <div v-else key="content">
+            <div 
+                v-else 
+                key="content"
+            >
                 <div class="contragent-desc-title">
                     Потребности клиента по данному типу товара:
                 </div>
@@ -129,7 +132,7 @@ const colorGroups = computed(() => [
                                 color: value.color === '#ffffff' ? 'inherit' : value.color 
                             }"
                         >
-                            {{ value.colorName || "-"  }}
+                            {{ value.colorName || "-" }}
                         </span>
                     </div>
                 </div>
