@@ -71,15 +71,28 @@ function toTimestamp<T>(value: T): number | null {
         return value;
     }
 
-    const timestamp = new Date(
-        String(value)
-    ).getTime();
+    const stringValue = String(value);
+
+    const dateParts = stringValue.match(
+        /^(\d{2})\.(\d{2})\.(\d{4})$/
+    );
+
+    if (dateParts) {
+        const [, day, month, year] = dateParts;
+
+        return new Date(
+            Number(year),
+            Number(month) - 1,
+            Number(day)
+        ).getTime();
+    }
+
+    const timestamp = new Date(stringValue).getTime();
 
     return Number.isNaN(timestamp)
         ? null
         : timestamp;
-};
-
+}
 
 function hasValue<T>(value: T): boolean {
     return (
@@ -151,20 +164,35 @@ function setDaysText(
 function formatNumber(
     value: string | number | undefined
 ): string {
-    
-    if (!value) {
+    if (value === undefined || value === null || value === "") {
         return "";
     }
 
-    const number = Number(String(value).replace(',', '.'));
+    const normalizedValue = String(value)
+        .replace(/\s/g, "")
+        .replace(",", ".");
 
-    if (isNaN(number)) {
+    const number = Number(normalizedValue);
+
+    if (!Number.isFinite(number)) {
         return "";
     }
 
-    return new Intl.NumberFormat('ru-RU', {
+    return new Intl.NumberFormat("ru-RU", {
         maximumFractionDigits: 0,
     }).format(number);
+}
+
+
+function handleFormatNumber(value: string | number | undefined): number {
+    return Number(
+        String(
+            value ?? 0
+        )
+            .replace(/\s/g, "")
+            .replace(",", ".")
+            .replace(/[^\d.-]/g, "")
+    )
 }
 
 
@@ -179,4 +207,5 @@ export {
     cutOverflowedText,
     setDaysText,
     formatNumber,
+    handleFormatNumber,
 };
