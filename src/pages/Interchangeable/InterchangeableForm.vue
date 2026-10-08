@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from "vue";
 import { normalizeForSorting } from "@/utils/normalize";
-import type { TContragentsConst } from "../../types/TableSheetData";
-// import type { IGoogleTableData, TContragentsConst } from "../../types/TableSheetData";
+import { MANAGERS_BRANCHES, CONTRAGENTS } from "@/configs/CONFIG_CONST";
+// import type { IGoogleTableData } from "../../types/TableSheetData";
 import type { FormInst, FormRules } from "naive-ui";
 import {
     NAutoComplete,
@@ -17,9 +17,6 @@ import {
 
 const props = defineProps<{
     // actualData?: IGoogleTableData | null;
-    // constTitles?: Record<string, string> | null;
-    contragents: TContragentsConst | null;
-    managersBranches: Record<string, string> | null;
     search: (value: Record<string, string>) => void;
 }>();
 
@@ -106,11 +103,11 @@ const formValue = reactive({
 watch(
     () => formValue.manager,
     (newManager) => {
-        if (!newManager || !props.managersBranches) {
+        if (!newManager || !MANAGERS_BRANCHES) {
             formValue.branch = null;
             return;
         }
-        const managerBranch = props.managersBranches[newManager];
+        const managerBranch = MANAGERS_BRANCHES[newManager];
 
         if (!managerBranch) {
             formValue.branch = null;
@@ -129,18 +126,18 @@ watch(
 );
 
 const managerOptions = computed(() =>
-    Object.keys(props.managersBranches ?? {}).map(manager => ({
+    Object.keys(MANAGERS_BRANCHES ?? {}).map(manager => ({
         label: manager,
         value: manager,
     }))
 );
 
 const contragentsForSorting = computed(() => {
-    if (!props.contragents) {
+    if (!CONTRAGENTS) {
         return [];
     }
 
-    return Object.keys(props.contragents)
+    return Object.keys(CONTRAGENTS)
         .sort((a, b) => normalizeForSorting(a).localeCompare(
             normalizeForSorting(b),
             undefined,
@@ -149,7 +146,7 @@ const contragentsForSorting = computed(() => {
 });
 
 const contragentOptions = computed(() => {
-    if (!props.contragents) {
+    if (!CONTRAGENTS) {
         return [];
     }
 
@@ -171,7 +168,7 @@ const contragentOptions = computed(() => {
 
 const returnInputValues = async () => {
     try {
-        // await formRef.value?.validate();
+        await formRef.value?.validate();
     } catch {
         return;
     }
@@ -196,7 +193,6 @@ const save = async () => {
         ]);
     } catch (err){
         console.error(err);
-        return;
     }
 };
 </script>
@@ -359,7 +355,7 @@ $transition: 0.15s ease;
 .search-wrapper {
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 10;
     padding: 12px 14px 0;
     background: $color-bg;
     border-radius: 8px 8px 0 0;
@@ -377,6 +373,7 @@ $transition: 0.15s ease;
     gap: $gap;
     align-items: end;
     width: 100%;
+    padding-bottom: 20px;
 }
 
 .passport-fields {
@@ -384,7 +381,6 @@ $transition: 0.15s ease;
     align-items: flex-end;
     gap: $gap;
     width: 100%;
-    padding-top: 18px;
 }
 
 .passport-grid {
