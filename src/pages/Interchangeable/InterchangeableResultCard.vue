@@ -4,6 +4,7 @@ import OpenCardArrow from "../../components/icons/OpenCardArrow.vue";
 import { getHardnessColor, getProductColor } from "@/utils/colorHelpers.ts";
 import { cutOverflowedText, formatNumber, setDaysText, trimTrailingZeros } from "@/utils/normalize";
 import type { DataObject } from "@/types/TableSheetData.ts";
+import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
 
 const props = defineProps<{
     result: DataObject;
@@ -29,32 +30,32 @@ const dropdownDirection = ref<"up" | "down">("down");
 
 const cardData = computed(() => ({
     hardnessDaysForm: setDaysText(
-        props.result["Кол-во дней с даты привоза"]
+        props.result[CONST_TITLES.DAYS_SINCE_DELIVERY]
     ),
 
     hardnessColor: getHardnessColor(
-        props.result["Кол-во дней с даты привоза"]
+        props.result[CONST_TITLES.DAYS_SINCE_DELIVERY]
     ),
 
     productColor: getProductColor(
-        props.result["Номенклатура 1С"] as string | undefined
+        props.result[CONST_TITLES.ONE_C_NOMENCLATURE] as string | undefined
     ),
 
     cost: formatNumber(
-        props.result["Стоимость недопроданного товара"]
+        props.result[CONST_TITLES.UNDERSOLDED_COST]
     ),
 }));
 
 const includedFields = [
-    "Дата привоза",
-    "Кол-во дней с даты привоза",
-    "Кол-во недопрод. товара",
-    "Кто заказал",
-    "Кому недопродано",
-    "Все остатки из 1С",
-    "Недопродал потому что",
-    "Ближайшее действие",
-    "Все клиенты, которым отгр. ном. + менеджер",
+    CONST_TITLES.DELIVERY_DATE,
+    CONST_TITLES.DAYS_SINCE_DELIVERY,
+    CONST_TITLES.UNDERSOLDED_PRODUCT_QUANTITY,
+    CONST_TITLES.ORDERING_MANAGER,
+    CONST_TITLES.UNDERSOLDED_CLIENT,
+    CONST_TITLES.REMAINDER_1C,
+    CONST_TITLES.UNDERSALE_REASON,
+    CONST_TITLES.NEXT_ACTION,
+    CONST_TITLES.ALL_CUSTOMERS_SHIPPED_ITEM_MANAGER,
 ];
 
 const additionalFields = computed(() => {
@@ -200,7 +201,7 @@ defineExpose({
         <div class="interchangeable-unit-container">
             <div class="interchangeable-unit-header">
                 <div class="interchangeable-unit-nomenclature">
-                    {{ result["Номенклатура 1С"] || "-" }}
+                    {{ result[CONST_TITLES.ONE_C_NOMENCLATURE] || "-" }}
                 </div>
                 <div
                     v-if="additionalFields.length"
@@ -216,22 +217,21 @@ defineExpose({
                 <div class="subtitle-container">
                     <span class="subtitle">Филиал:</span>
                     <span class="field-value">
-                        {{ result["Филиал"] || "-" }}
+                        {{ result[CONST_TITLES.BRANCH] || "-" }}
                     </span>
                 </div>
                 <div class="subtitle-container">
                     <span class="subtitle">Менеджер:</span>
                     <span class="field-value">
-                        {{ result["Ответственный за продажу"] || "-" }}
+                        {{ result[CONST_TITLES.RESPONSIBLE_MANAGER] || "-" }}
                     </span>
                 </div>
                 <div class="subtitle-container">
                     <span class="subtitle">Клиент:</span>
                     <span 
-                        class="field-value" 
-                        :class="'field-value-client'"
+                        class="field-value field-value-client" 
                     >
-                        {{ cutOverflowedText(result["Какому клиенту планируется продажа"]) || "-"}}
+                        {{ cutOverflowedText(result[CONST_TITLES.CURRENT_CLIENT]) || "-"}}
                     </span>
                 </div>
 
@@ -248,9 +248,9 @@ defineExpose({
                         class="field-value hardness"
                         :style="{ color: cardData.hardnessColor }"
                     >
-                        {{ result["Жесткость"] || "-" }}
+                        {{ result[CONST_TITLES.HARDNESS] || "-" }}
                         <span class="hardness-days">
-                            ({{ result["Кол-во дней с даты привоза"] || 0 }}
+                            ({{ result[CONST_TITLES.DAYS_SINCE_DELIVERY] || 0 }}
                             {{ cardData.hardnessDaysForm }})
                         </span>
                     </span>
@@ -259,7 +259,7 @@ defineExpose({
                 <div class="subtitle-container">
                     <span class="subtitle">Остатки:</span>
                     <span class="field-value">
-                        {{ trimTrailingZeros(result["Кол-во кор. на остатках из 1С"]) || "-" }}
+                        {{ trimTrailingZeros(result[CONST_TITLES.REMAINDER_BOXES_1C]) || "-" }}
                     </span>
                 </div>
             </div>
@@ -466,7 +466,7 @@ defineExpose({
 
 .additional-wrapper {
     position: absolute;
-    z-index: 99999999;
+    z-index: 9999999;
 
     left: -1px;
     right: -1px;
@@ -563,7 +563,7 @@ defineExpose({
 .dropdown-enter-active,
 .dropdown-leave-active {
     transition:
-        opacity 0.18s ease;
+        opacity 0.1s ease-out;
 }
 
 .dropdown-enter-from,
