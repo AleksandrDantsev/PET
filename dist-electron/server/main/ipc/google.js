@@ -1,6 +1,6 @@
 // ipc
 import { ipcMain } from "electron";
-import { getSheet, getSheetValuesById, getSheetsGID, } from "../services/googleSheets.js";
+import { getSheet, getSheetValuesById, getSheetsGID, appendToGoogleSheet, } from "../services/googleSheets.js";
 // после добавления сюда нужно перезапускать electron
 ipcMain.handle("google:getSheet", async (_, range) => {
     return getSheet(range);
@@ -9,3 +9,4 @@ ipcMain.handle("google:getSheetValuesById", async (_, id) => {
     return getSheetValuesById(id);
 });
 ipcMain.handle("google:getSheetsGID", async () => getSheetsGID());
+ipcMain.handle("google:appendToGoogleSheet", async (_, sheetId, data, requiredColumn, spreadsheetId) => appendToGoogleSheet(sheetId, data, requiredColumn, spreadsheetId));
