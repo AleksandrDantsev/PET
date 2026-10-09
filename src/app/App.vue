@@ -4,8 +4,8 @@ import { ref, onMounted } from "vue"
 import type { IGoogleTableData } from "../types/TableSheetData";
 import InterchangeablePage from "@/pages/Interchangeable/InterchangeablePage.vue";
 import { LocalStorage } from "@/utils/localStorage";
-import { NConfigProvider, NGlobalStyle, ruRU } from "naive-ui";
-import { themeOverrides } from "@/theme/naiveTheme";
+import { NConfigProvider, NMessageProvider, NGlobalStyle, ruRU } from "naive-ui";
+import { themeOverrides,  } from "@/theme/naiveTheme";
 import UpButton from "@/components/common/UpButton.vue";
 
 const ACTUAL_DATA = ref<IGoogleTableData | null>(null);
@@ -84,15 +84,17 @@ onMounted(async () => {
         :theme-overrides="themeOverrides" 
         :locale="ruRU"
     >
-        <n-global-style />
-        <div>
-            <InterchangeablePage
-                v-if="ACTUAL_DATA && INTERCHANGEABLE_DATA"
-                :actual-data="ACTUAL_DATA" 
-                :interchangeable-data="INTERCHANGEABLE_DATA"
-            />
-        </div>
-        <UpButton />
+        <n-message-provider>
+            <n-global-style />
+            <div>
+                <InterchangeablePage
+                    v-if="ACTUAL_DATA && INTERCHANGEABLE_DATA"
+                    :actual-data="ACTUAL_DATA" 
+                    :interchangeable-data="INTERCHANGEABLE_DATA"
+                />
+            </div>
+            <UpButton />
+        </n-message-provider>
     </n-config-provider>
 </template>
 
