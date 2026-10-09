@@ -4,6 +4,8 @@ import {
     NButton,
     NDataTable,
     NInput,
+    NRadioButton,
+    NRadioGroup,
     NSpace,
     type DataTableColumns,
     type DataTableInst,
@@ -36,6 +38,7 @@ const searchQuery = defineModel<string>("searchQuery", {
 });
 
 const debouncedSearchQuery = ref(searchQuery.value);
+const sortingByPriorityField = ref("");
 
 const updateSearchQuery = debounce((value: string) => {
     debouncedSearchQuery.value = value;
@@ -63,6 +66,21 @@ const searchableFields = [
     CONST_TITLES.HARDNESS,
     CONST_TITLES.REMAINDER_BOXES_1C,
     CONST_TITLES.NUMBER_TASK_BITRIX,
+];
+
+const sortingFields = [
+    {
+        label: "Этот менеджер / клиент",
+        value: "sameManagerSameClient",
+    },
+    {
+        label: "Этот менеджер / другой клиент",
+        value: "sameManagerAnotherClient",
+    },
+    {
+        label: "Другой менеджер / другой клиент",
+        value: "anotherManagerAnotherClient",
+    },
 ];
 
 const getUniqueValues = (key: string) => {
@@ -120,6 +138,54 @@ const searchedData = computed(() => {
             normalize(row[key]).includes(query)
         )
     );
+});
+
+const filteredData = computed(() => {
+    const data = searchedData.value;
+    const demand = props.clientsDemand;
+    const mode = sortingByPriorityField.value;
+
+    if (!demand || !mode) {
+        return data;
+    }
+
+    const demandManager = normalize(
+        demand[CONST_TITLES.MANAGER]
+    );
+
+    const demandClient = normalize(
+        demand[CONST_TITLES.CONTRAGENT]
+    );
+
+    return data.filter(row => {
+        const rowManager = normalize(
+            row[CONST_TITLES.RESPONSIBLE_MANAGER]
+        );
+
+        const rowClient = normalize(
+            row[CONST_TITLES.CURRENT_CLIENT]
+        );
+
+        const sameManager = Boolean(demandManager && rowManager)
+            && demandManager === rowManager;
+
+        const sameClient = Boolean(demandClient && rowClient)
+            && demandClient === rowClient;
+
+        switch (mode) {
+        case "sameManagerSameClient":
+            return sameManager && sameClient;
+
+        case "sameManagerAnotherClient":
+            return sameManager && !sameClient;
+
+        case "anotherManagerAnotherClient":
+            return !sameManager && !sameClient;
+
+        default:
+            return true;
+        }
+    });
 });
 
 const rowKey = (row: DataObject) => JSON.stringify(row);
@@ -351,6 +417,7 @@ const clearFilters = () => {
 
     tableRef.value?.clearFilters();
     tableRef.value?.clearSorter();
+    sortingByPriorityField.value = "";
 };
 
 const handlePageChange = () => {
@@ -359,7 +426,6 @@ const handlePageChange = () => {
         behavior: "smooth",
     });
 };
-
 </script>
 
 <template>
@@ -395,13 +461,28 @@ const handlePageChange = () => {
                             updateSearchQuery(value);
                         }"
                     />
-
+                    <NSpace 
+                        v-if="clientsDemand &&
+                            Object.keys(clientsDemand).length">
+                        <NRadioGroup 
+                            v-model:value="sortingByPriorityField" 
+                            name="radiobuttongroup1"
+                        >
+                            <NRadioButton
+                                v-for="field in sortingFields"
+                                :key="field.value"
+                                :value="field.value"
+                                :label="field.label"
+                                size="small"
+                            />
+                        </NRadioGroup>
+                    </NSpace>
                     <NSpace
                         align="center"
                         :size="6"
                     >
                         <span class="result-count">
-                            Найдено: {{ searchedData.length }}
+                            Найдено: {{ filteredData.length }}
                         </span>
 
                         <NButton
@@ -420,7 +501,7 @@ const handlePageChange = () => {
                 ref="tableRef"
                 class="result-table"
                 :columns="columns"
-                :data="searchedData"
+                :data="filteredData"
                 :bordered="false"
                 :single-line="false"
                 :single-column="false"
@@ -461,9 +542,11 @@ const handlePageChange = () => {
 }
 
 .result-count {
+    display: block;
     color: #85827b;
     font-size: 11px;
     line-height: 1;
+    min-width: 72px;
     margin-right: 10px;
 }
 
@@ -558,6 +641,16 @@ const handlePageChange = () => {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 11px;
+}
+
+:deep(.n-radio-button) {
+    height: 22px;
+    font-size: 11px;
+}
+
+:deep(.n-radio-button__label) {
+    padding: 0 8px;
+    line-height: 22px;
 }
 
 @media (max-width: 900px) {
