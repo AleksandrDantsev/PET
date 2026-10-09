@@ -162,29 +162,41 @@ const search = (fields: Record<string, string>) => {
 
 <template>
     <div class="search-wrapper">
-        <InterchangeableForm
-            :search="search"
-        />
-        <InterchangeableResult
-            v-if="filteredActualResultObjs.length"
-            
-            :clients-demand="clientsDemand"
-            :filtered-actual-result-objs="filteredActualResultObjs"
-        />
-        <NEmpty
-            v-else
-            :description="
-                isSearched
-                    ? 'Ничего не найдено'
-                    : 'Попробуйте найти что-нибудь'
-            "
-        />
+        <InterchangeableForm :search="search" />
+
+        <div class="results-wrapper">
+            <InterchangeableResult
+                v-if="filteredActualResultObjs.length"
+                :clients-demand="clientsDemand"
+                :filtered-actual-result-objs="filteredActualResultObjs"
+            />
+
+            <NEmpty
+                v-else
+                :description="
+                    isSearched
+                        ? 'Ничего не найдено'
+                        : 'Попробуйте найти что-нибудь'
+                "
+            />
+        </div>
     </div>
 </template>
 
 <style scoped lang="scss">
 .search-wrapper {
-    position: relative;
     border-radius: 7px;
+}
+
+.results-wrapper {
+    position: relative;
+    min-height: 300px;
+}
+
+:deep(.n-empty) {
+    position: absolute;
+    top: 70%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 </style>
