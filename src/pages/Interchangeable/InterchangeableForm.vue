@@ -105,11 +105,11 @@ const formValue = reactive({
     contragent: "",
     manager: "",
     branch: "",
-    date: Date.now(),
+    date: Date.now() as number | null,
     znurType: "",
     contract: "",
-    quantity: "" as number,
-    dateOfDelivery: Date.now(),
+    quantity: null as number | null,
+    dateOfDelivery: Date.now() as number | null,
 });
 
 watch(
@@ -190,11 +190,11 @@ const returnInputValues = async () => {
         contragent: formValue.contragent,
         manager: formValue.manager,
         branch: formValue.branch,
-        date: formValue.date?.toString(),
+        date: formValue.date?.toString() ?? "",
         znurType: formValue.znurType,
         contract: formValue.contract,
-        quantity: formValue.quantity?.toString(),
-        dateOfDelivery: formValue.dateOfDelivery?.toString(),
+        quantity: formValue.quantity?.toString() ?? "",
+        dateOfDelivery: formValue.dateOfDelivery?.toString() ?? "",
     });
     window.scrollTo(0, 0);
 };
@@ -208,7 +208,7 @@ const resetForm = () => {
         date: Date.now(),
         znurType: "",
         contract: "",
-        quantity: "" as number,
+        quantity: null,
         dateOfDelivery: Date.now(),
     });
 
@@ -250,7 +250,7 @@ const save = async () => {
                 [CONST_TITLES.APPROVAL_DATE]: formatDate(formValue.date),
                 [CONST_TITLES.TYPE_OF_ZNUR]: formValue.znurType,
                 [CONST_TITLES.CONTRACT]: formValue.contract,
-                [CONST_TITLES.QUANTITY]: formValue.quantity,
+                [CONST_TITLES.QUANTITY]: formValue.quantity ?? "",
                 [CONST_TITLES.PLANNED_SHIPMENT_DATE]: formatDate(
                     formValue.dateOfDelivery,
                 ),
