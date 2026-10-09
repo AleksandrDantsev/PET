@@ -94,6 +94,16 @@ function toTimestamp<T>(value: T): number | null {
         : timestamp;
 }
 
+
+function formatDate(timestamp: number | null | undefined): string {
+    if (timestamp == null || !Number.isFinite(timestamp)) {
+        return "";
+    }
+
+    return new Date(timestamp).toLocaleDateString("ru-RU");
+}
+
+
 function hasValue<T>(value: T): boolean {
     return (
         value !== null &&
@@ -208,4 +218,5 @@ export {
     setDaysText,
     formatNumber,
     handleFormatNumber,
+    formatDate,
 };
