@@ -4,6 +4,7 @@ import {
     getSheet,
     getSheetValuesById,
     getSheetsGID,
+    appendToGoogleSheet,
 } from "../services/googleSheets.js";
 
 // после добавления сюда нужно перезапускать electron
@@ -22,4 +23,14 @@ ipcMain.handle("google:getSheetValuesById",
 
 ipcMain.handle("google:getSheetsGID",
     async () => getSheetsGID()
+);
+
+ipcMain.handle("google:appendToGoogleSheet",
+    async (
+        _,
+        sheetId,
+        data,
+        requiredColumn,
+        spreadsheetId
+    ) => appendToGoogleSheet(sheetId, data, requiredColumn, spreadsheetId)
 );

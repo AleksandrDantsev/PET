@@ -16,6 +16,13 @@ declare global {
             ): Promise<IGoogleTableData>;
 
             getSheetsGID(): Promise<IGoogleTableData>;
+
+            appendToGoogleSheet(
+                sheetId: number | string,
+                data: Record<string, string | number>,
+                requiredColumn: string,
+                spreadsheetId?: string
+            ): Promise<IGoogleTableData>;
         };
     }
 }

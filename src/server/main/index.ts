@@ -15,8 +15,7 @@ function createWindow() {
         webPreferences: {
             preload: path.join(
                 __dirname,
-                "preload",
-                "index.js"
+                "../../preload/index.js"
             ),
             contextIsolation: true,
             nodeIntegration: false,
