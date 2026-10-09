@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from "vue";
-import { normalizeForSorting } from "@/utils/normalize";
-import { MANAGERS_BRANCHES, CONTRAGENTS } from "@/configs/CONFIG_CONST";
-// import type { IGoogleTableData } from "../../types/TableSheetData";
+import { normalizeForSorting, formatDate } from "@/utils/normalize";
+import { useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
+import SaveIcon from "@/components/icons/SaveIcon.vue";
+import { MANAGERS_BRANCHES, CONTRAGENTS, CONST_TITLES } from "@/configs/CONFIG_CONST";
+import { api } from "@/api/api";
+// import type { IGoogleTableData } from "../../types/TableSheetData";
 import {
     NAutoComplete,
     NButton,
@@ -13,6 +16,7 @@ import {
     NInput,
     NInputNumber,
     NSelect,
+    NIcon,
 } from "naive-ui";
 
 const props = defineProps<{
@@ -60,6 +64,12 @@ const passportRules: FormRules = {
         trigger: ["blur", "input"],
     },
 
+    contract: {
+        required: true,
+        message: "Введите договор",
+        trigger: ["blur", "input"],
+    },
+
     quantity: {
         required: true,
         message: "Введите количество",
@@ -88,29 +98,31 @@ const branchOptions = [
 
 const formRef = ref<FormInst | null>(null);
 const passportFormRef = ref<FormInst | null>(null);
+const message = useMessage();
 
 const formValue = reactive({
     nomenclature: "",
     contragent: "",
-    manager: null as string | null,
-    branch: null as string | null,
+    manager: "",
+    branch: "",
     date: Date.now(),
     znurType: "",
-    quantity: null as number | null,
-    dateOfDelivery: Date.now() as number | null,
+    contract: "",
+    quantity: "" as number,
+    dateOfDelivery: Date.now(),
 });
 
 watch(
     () => formValue.manager,
     (newManager) => {
         if (!newManager || !MANAGERS_BRANCHES) {
-            formValue.branch = null;
+            formValue.branch = "";
             return;
         }
         const managerBranch = MANAGERS_BRANCHES[newManager];
 
         if (!managerBranch) {
-            formValue.branch = null;
+            formValue.branch = "";
             return;
         }
 
@@ -121,7 +133,7 @@ watch(
             "КРАСНОДАР",
         ].every(branch => normalizedBranch.includes(branch));
 
-        formValue.branch = hasMultipleBranches ? null : managerBranch;
+        formValue.branch = hasMultipleBranches ? "" : managerBranch;
     }
 );
 
@@ -176,13 +188,32 @@ const returnInputValues = async () => {
     props.search({
         nomenclature: formValue.nomenclature,
         contragent: formValue.contragent,
-        manager: formValue.manager ?? "",
-        branch: formValue.branch ?? "",
-        date: formValue.date?.toString() ?? "",
+        manager: formValue.manager,
+        branch: formValue.branch,
+        date: formValue.date?.toString(),
         znurType: formValue.znurType,
-        quantity: formValue.quantity?.toString() ?? "",
-        dateOfDelivery: formValue.dateOfDelivery?.toString() ?? "",
+        contract: formValue.contract,
+        quantity: formValue.quantity?.toString(),
+        dateOfDelivery: formValue.dateOfDelivery?.toString(),
     });
+    window.scrollTo(0, 0);
+};
+
+const resetForm = () => {
+    Object.assign(formValue, {
+        nomenclature: "",
+        contragent: "",
+        manager: "",
+        branch: "",
+        date: Date.now(),
+        znurType: "",
+        contract: "",
+        quantity: "" as number,
+        dateOfDelivery: Date.now(),
+    });
+
+    formRef.value?.restoreValidation();
+    passportFormRef.value?.restoreValidation();
 };
 
 const selectInputText = (event: FocusEvent) => {
@@ -191,14 +222,51 @@ const selectInputText = (event: FocusEvent) => {
     input.select();
 };
 
+const isSavedMessage = ref(false);
+
 const save = async () => {
+    if (isSavedMessage.value) return;
+
     try {
         await Promise.all([
             formRef.value?.validate(),
             passportFormRef.value?.validate(),
         ]);
-    } catch (err){
-        console.error(err);
+    } catch (error) {
+        console.error(error);
+        return;
+    }
+
+    isSavedMessage.value = true;
+
+    try {
+        await api.google.appendToGoogleSheet(
+            1671143802,
+            {
+                [CONST_TITLES.NOMENCLATURE]: formValue.nomenclature,
+                [CONST_TITLES.CLIENT]: formValue.contragent,
+                [CONST_TITLES.MANAGER]: formValue.manager,
+                [CONST_TITLES.BRANCH]: formValue.branch,
+                [CONST_TITLES.APPROVAL_DATE]: formatDate(formValue.date),
+                [CONST_TITLES.TYPE_OF_ZNUR]: formValue.znurType,
+                [CONST_TITLES.CONTRACT]: formValue.contract,
+                [CONST_TITLES.QUANTITY]: formValue.quantity,
+                [CONST_TITLES.PLANNED_SHIPMENT_DATE]: formatDate(
+                    formValue.dateOfDelivery,
+                ),
+            },
+            CONST_TITLES.NOMENCLATURE
+        );
+
+        message.success("Данные успешно добавлены");
+        resetForm();
+
+    } catch (error) {
+        message.error("Не удалось добавить данные");
+        console.error(error);
+
+    } finally {
+        isSavedMessage.value = false;
     }
 };
 </script>
@@ -309,6 +377,18 @@ const save = async () => {
                 </n-form-item>
 
                 <n-form-item
+                    label="Договор"
+                    path="contract"
+                    class="contract-field"
+                >
+                    <n-input
+                        v-model:value="formValue.contract"
+                        placeholder="Договор"
+                        clearable
+                    />
+                </n-form-item>
+
+                <n-form-item
                     label="Кол-во"
                     path="quantity"
                     class="quantity-field"
@@ -337,10 +417,14 @@ const save = async () => {
             <n-button
                 class="save-button"
                 type="primary"
+                :loading="isSavedMessage"
+                :disabled="isSavedMessage"
                 secondary
+                title="Сохранить паспорт сделки"
+                aria-label="Сохранить паспорт сделки"
                 @click="save"
             >
-                💾
+                <n-icon :component="SaveIcon" />
             </n-button>
         </n-form>
     </div>
@@ -393,7 +477,7 @@ $transition: 0.15s ease;
 
 .passport-grid {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: $gap;
     flex: 1;
     min-width: 0;
@@ -567,31 +651,23 @@ $effectSearchButtonColor: #40af5c;
 }
 
 .save-button {
-    flex: 0 0 $control-height;
-    width: $control-height;
-    min-width: $control-height;
+    font-size: 18px;
+    width: 70px;
     height: $control-height;
-    padding: 0;
-    border: 1px solid $color-border;
-    border-radius: $radius;
-    background: $color-surface;
-    color: #555;
-    font-size: 14px;
-    box-shadow: none;
-    transition:
-        background $transition,
-        border-color $transition,
-        color $transition;
 
-    &:hover {
-        border-color: $color-border-hover;
-        background: #f1f1ee;
-        color: $color-text;
+    :deep(.n-button__content) {
+        justify-content: center;
+        width: 100%;
     }
 
-    &:active {
-        background: #e9e9e6;
+    :deep(.n-button__icon) {
+        margin: 0;
+        margin-right: 10px;
     }
+}
+
+.wrapper-save-icon {
+    transition: 1s ease;
 }
 
 :deep(.n-form-item-feedback-wrapper) {
