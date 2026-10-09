@@ -185,6 +185,15 @@ const returnInputValues = async () => {
         return;
     }
 
+    if (isSearched.value) {
+        return;
+    }
+    isSearched.value = true;
+
+    setTimeout(() => {
+        isSearched.value = false;
+    }, 1000);
+
     props.search({
         nomenclature: formValue.nomenclature,
         contragent: formValue.contragent,
@@ -223,6 +232,7 @@ const selectInputText = (event: FocusEvent) => {
 };
 
 const isSavedMessage = ref(false);
+const isSearched = ref(false);
 
 const save = async () => {
     if (isSavedMessage.value) return;
@@ -310,6 +320,7 @@ const save = async () => {
             <n-button
                 class="search-button"
                 type="primary"
+                :loading="isSearched"
                 @click="returnInputValues"
             >
                 Найти
