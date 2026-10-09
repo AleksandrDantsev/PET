@@ -48,7 +48,6 @@ const tableRef = ref<DataTableInst | null>(null);
 
 const includedFieldsInAdditionalSector = [
     CONST_TITLES.NUMBER_TASK_BITRIX,
-    CONST_TITLES.UNDERSOLDED_PRODUCT_QUANTITY,
     CONST_TITLES.ORDERING_MANAGER,
     CONST_TITLES.UNDERSOLDED_CLIENT,
     CONST_TITLES.REMAINDER_1C,
@@ -390,6 +389,29 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         render: row => {
             const remainder = trimTrailingZeros(
                 row[CONST_TITLES.REMAINDER_BOXES_1C]
+            );
+
+            return remainder
+                ? `${remainder} кор.`
+                : "-";
+        },
+    },
+
+    {
+        title: "Недопродано",
+        key: CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW,
+        width: 35,
+        resizable: true,
+
+        sorter: (rowA, rowB) => {
+            return (
+                handleFormatNumber(rowA[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW]) -
+                handleFormatNumber(rowB[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW])
+            )  
+        },
+        render: row => {
+            const remainder = trimTrailingZeros(
+                row[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW]
             );
 
             return remainder
