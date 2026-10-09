@@ -275,7 +275,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         title: "Клиент",
         key: CONST_TITLES.CURRENT_CLIENT,
-        width: 140,
+        width: 135,
         search: true,
         sorter: "default",
         filter: createFilter(
@@ -377,7 +377,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         title: "Остатки",
         key: CONST_TITLES.REMAINDER_BOXES_1C,
-        width: 35,
+        width: 40,
         resizable: true,
 
         sorter: (rowA, rowB) => {
@@ -398,9 +398,9 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     },
 
     {
-        title: "Недопродано",
+        title: "Недопрод.",
         key: CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW,
-        width: 35,
+        width: 40,
         resizable: true,
 
         sorter: (rowA, rowB) => {
