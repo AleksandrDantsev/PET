@@ -178,6 +178,7 @@ const search = (fields: Record<string, string>) => {
                         ? 'Ничего не найдено'
                         : 'Попробуйте найти что-нибудь'
                 "
+                size="medium"
             />
         </div>
     </div>
