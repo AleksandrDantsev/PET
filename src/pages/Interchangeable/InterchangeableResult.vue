@@ -32,20 +32,26 @@ const props = defineProps<{
     filteredActualResultObjs: DataObject[];
 }>();
 
-const { copy } = useCopyToClipboard();
 const tableData = computed(() => props.filteredActualResultObjs);
+
 const searchQuery = defineModel<string>("searchQuery", {
     default: "",
 });
 
+const activeFilters = ref<
+    Record<string, (string | number)[] | string | number | null>
+>({});
+
+const tableRef = ref<DataTableInst | null>(null);
 const debouncedSearchQuery = ref(searchQuery.value);
 const sortingByPriorityField = ref("");
+
+const { copy } = useCopyToClipboard();
 
 const updateSearchQuery = debounce((value: string) => {
     debouncedSearchQuery.value = value;
 }, 500);
 
-const tableRef = ref<DataTableInst | null>(null);
 
 const includedFieldsInAdditionalSector = [
     CONST_TITLES.NUMBER_TASK_BITRIX,
@@ -140,7 +146,7 @@ const searchedData = computed(() => {
     );
 });
 
-const filteredData = computed(() => {
+const displayedData = computed(() => {
     const data = searchedData.value;
     const demand = props.clientsDemand;
     const mode = sortingByPriorityField.value;
@@ -220,26 +226,24 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                 nomenclature as string | undefined
             );
 
-            return h("div", { class: "nomenclature-cell" }, [
-                h(
-                    "span",
-                    {
-                        class: "product-color",
-                        style: {
-                            backgroundColor: color,
+            return h("div", { class: "nomenclature-cell" }, 
+                [
+                    h("span", 
+                        {
+                            class: "product-color",
+                            style: { backgroundColor: color },
+                        }
+                    ),
+                    h("span",
+                        {
+                            class: "nomenclature-value",
+                            title: "Нажмите, чтобы скопировать",
+                            onClick: () => copy(nomenclature, "Номенклатура скопирована"),
                         },
-                    }
-                ),
-                h(
-                    "span",
-                    {
-                        class: "nomenclature-value",
-                        title: "Нажмите, чтобы скопировать",
-                        onClick: () => copy(nomenclature, "Номенклатура скопирована"),
-                    },
-                    nomenclature || "-"
-                ),
-            ]);
+                        nomenclature || `-`,
+                    ),
+                ]
+            );
         },
     },
     {
@@ -255,6 +259,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
             CONST_TITLES.RESPONSIBLE_MANAGER
         ),
         resizable: true,
+
         render: (row) => row[CONST_TITLES.RESPONSIBLE_MANAGER] || "-"
     },
 
@@ -272,14 +277,10 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         ),
         resizable: true,
     },
-
-
-
     {
         title: "Клиент",
         key: CONST_TITLES.CURRENT_CLIENT,
         width: 120,
-        search: true,
         sorter: "default",
         filter: createFilter(
             CONST_TITLES.CURRENT_CLIENT
@@ -289,9 +290,9 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
             CONST_TITLES.CURRENT_CLIENT
         ),
         resizable: true,
+
         render: row => {
             const client = row[CONST_TITLES.CURRENT_CLIENT];
-
             return client ? h(
                 "span",
                 {
@@ -300,10 +301,9 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                     onClick: () => copy(client, "Клиент скопирован"),
                 },
                 cutOverflowedText(client, 30)
-            ) : "-";
+            ) : h("span", {style: {marginLeft: "10px"}}, `-`);
         },
     },
-
     {
         title: "Стоимость",
         key: CONST_TITLES.UNDERSOLDED_COST,
@@ -311,40 +311,41 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         resizable: true,
 
         sorter: (rowA, rowB) => {
-            const costA = handleFormatNumber(rowA[CONST_TITLES.UNDERSOLDED_COST])
-            const costB = handleFormatNumber(rowB[CONST_TITLES.UNDERSOLDED_COST])
-
-            return costA - costB;
+            return (
+                handleFormatNumber(rowA[CONST_TITLES.UNDERSOLDED_COST]) - 
+                handleFormatNumber(rowB[CONST_TITLES.UNDERSOLDED_COST])
+            )
         },
 
         render: row => {
             const cost = formatNumber(
                 row[CONST_TITLES.UNDERSOLDED_COST]
             );
-
             return cost ? `${cost} р.` : "-";
         },
     },
-
     {
         title: "Дата привоза",
         key: CONST_TITLES.DELIVERY_DATE,
         width: 50,
+
         sorter: (rowA, rowB) =>
             (toTimestamp(rowA?.[CONST_TITLES.DELIVERY_DATE]) ?? 0) -
             (toTimestamp(rowB?.[CONST_TITLES.DELIVERY_DATE]) ?? 0),
+
         render: (row) => row[CONST_TITLES.DELIVERY_DATE] || "-"
     },
-
     {
         title: "Жёсткость",
         key: CONST_TITLES.HARDNESS,
         width: 60,
         resizable: true,
         filterMultiple: true,
+
         filter: createFilter(
             CONST_TITLES.HARDNESS
         ),
+
         filterOptions: getUniqueValues(
             CONST_TITLES.HARDNESS
         ),
@@ -360,35 +361,23 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
             const hardness =
                 row[CONST_TITLES.HARDNESS];
 
-            return h(
-                "div",
-                {
-                    class: "hardness-cell",
-                },
-                [
-                    h(
-                        "span",
+            return h("div",
+                { class: "hardness-cell" },
+                [ 
+                    h("span",
                         {
                             class: "hardness-value",
-                            style: {
-                                color: getHardnessColor(days),
-                            },
-                        },
-                        hardness || "-"
-                    ),
+                            style: {color: getHardnessColor(days)},
+                        }, hardness || "-"),
                     h("br"),
-                    h(
-                        "span",
-                        {
-                            class: "hardness-days",
-                        },
+                    h("span",
+                        {class: "hardness-days"},
                         `(${days ?? 0} ${setDaysText(days)})`
                     ),
                 ]
             );
         },
     },
-
     {
         title: "Остатки",
         key: CONST_TITLES.REMAINDER_BOXES_1C,
@@ -401,14 +390,12 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                 handleFormatNumber(rowB[CONST_TITLES.REMAINDER_BOXES_1C])
             )  
         },
+
         render: row => {
             const remainder = trimTrailingZeros(
                 row[CONST_TITLES.REMAINDER_BOXES_1C]
             );
-
-            return remainder
-                ? `${remainder} кор.`
-                : "-";
+            return remainder ? `${remainder} кор.` : "-";
         },
     },
 
@@ -424,14 +411,12 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                 handleFormatNumber(rowB[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW])
             )  
         },
+
         render: row => {
             const remainder = trimTrailingZeros(
                 row[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW]
             );
-
-            return remainder
-                ? `${remainder} кор.`
-                : "-";
+            return remainder ? `${remainder} кор.` : "-";
         },
     },
 
@@ -448,16 +433,53 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     },
 ]);
 
+const handleUpdateFilters = (
+    filters: Record<string, (string | number)[] | string | number | null>
+) => {
+    activeFilters.value = filters;
+};
+
+const filterableKeys = [
+    CONST_TITLES.ONE_C_NOMENCLATURE,
+    CONST_TITLES.RESPONSIBLE_MANAGER,
+    CONST_TITLES.BRANCH,
+    CONST_TITLES.CURRENT_CLIENT,
+    CONST_TITLES.HARDNESS,
+];
+
+const displayedCount = computed(() => {
+    return displayedData.value.filter(row => {
+        return filterableKeys.every(key => {
+            const selectedValues = activeFilters.value[key];
+
+            if (
+                selectedValues == null ||
+                (Array.isArray(selectedValues) &&
+                    selectedValues.length === 0)
+            ) {
+                return true;
+            }
+            const values = Array.isArray(selectedValues)
+                ? selectedValues
+                : [selectedValues];
+
+            return values.some(value => createFilter(key)(value, row));
+        });
+    }).length;
+});
+
 const clearFilters = () => {
     searchQuery.value = "";
     debouncedSearchQuery.value = "";
 
     tableRef.value?.clearFilters();
     tableRef.value?.clearSorter();
+
+    activeFilters.value = {};
     sortingByPriorityField.value = "";
 };
 
-const handlePageChange = () => {
+const scrollPageToTop = () => {
     window.scrollTo({
         top: 0,
         behavior: "smooth",
@@ -519,7 +541,7 @@ const handlePageChange = () => {
                         :size="6"
                     >
                         <span class="result-count">
-                            Найдено: {{ filteredData.length }}
+                            Найдено: {{ displayedCount  }}
                         </span>
 
                         <NButton
@@ -538,7 +560,7 @@ const handlePageChange = () => {
                 ref="tableRef"
                 class="result-table"
                 :columns="columns"
-                :data="filteredData"
+                :data="displayedData"
                 :bordered="false"
                 :single-line="false"
                 :single-column="false"
@@ -551,7 +573,8 @@ const handlePageChange = () => {
                     showSizePicker: false,
                     showQuickJumper: false,
                 }"
-                @update:page="handlePageChange"
+                @update:page="scrollPageToTop"
+                @update:filters="handleUpdateFilters"
             />
         </div>
     </div>
