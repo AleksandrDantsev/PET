@@ -12,7 +12,10 @@ export const useCopyToClipboard = () => {
 
         try {
             await navigator.clipboard.writeText(text);
-            message.success(messageText);
+            message.success(messageText, {
+                duration: 1300,
+                closable: true,
+            });
             return true;
         } catch (error) {
             console.error("Не удалось скопировать значение", error);
