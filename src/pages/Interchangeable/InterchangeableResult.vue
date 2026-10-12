@@ -6,11 +6,12 @@ import {
     NInput,
     NRadioButton,
     NRadioGroup,
-    NSpace,
+    NSpace, 
     type DataTableColumns,
     type DataTableInst,
 } from "naive-ui";
 import type { DataObject } from "@/types/TableSheetData.ts";
+import { useCopyToClipboard } from "@/composables/useCopyToClipboard";
 import { getHardnessColor, getProductColor } from "@/utils/colorHelpers.ts";
 import {
     cutOverflowedText,
@@ -31,7 +32,7 @@ const props = defineProps<{
     filteredActualResultObjs: DataObject[];
 }>();
 
-
+const { copy } = useCopyToClipboard();
 const tableData = computed(() => props.filteredActualResultObjs);
 const searchQuery = defineModel<string>("searchQuery", {
     default: "",
@@ -233,6 +234,8 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                     "span",
                     {
                         class: "nomenclature-value",
+                        title: "Нажмите, чтобы скопировать",
+                        onClick: () => copy(nomenclature, "Номенклатура скопирована"),
                     },
                     nomenclature || "-"
                 ),
@@ -275,7 +278,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         title: "Клиент",
         key: CONST_TITLES.CURRENT_CLIENT,
-        width: 135,
+        width: 120,
         search: true,
         sorter: "default",
         filter: createFilter(
@@ -286,7 +289,19 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
             CONST_TITLES.CURRENT_CLIENT
         ),
         resizable: true,
-        render: (row) => cutOverflowedText(row[CONST_TITLES.CURRENT_CLIENT], 40) || "-",
+        render: row => {
+            const client = row[CONST_TITLES.CURRENT_CLIENT];
+
+            return client ? h(
+                "span",
+                {
+                    class: "client-copyable-text",
+                    title: "Нажмите, чтобы скопировать",
+                    onClick: () => copy(client, "Клиент скопирован"),
+                },
+                cutOverflowedText(client, 30)
+            ) : "-";
+        },
     },
 
     {
@@ -657,12 +672,30 @@ const handlePageChange = () => {
     gap: 6px;
 }
 
+@mixin copyable-text {
+    padding: 4px 10px;
+    background-color: #fafafa;
+    border-radius: 7px;
+    box-shadow: 1px 3px 5px #cfcfcf7c;
+    transition: 500ms ease;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover {
+       box-shadow: 1px 5px 8px #cfcfcf9f; 
+    }
+}
+
 :deep(.nomenclature-value) {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 11px;
+    @include copyable-text;
+}
+
+:deep(.client-copyable-text) {
+    @include copyable-text;
 }
 
 :deep(.n-radio-button) {
