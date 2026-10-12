@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { computed, h, ref } from "vue";
+import { computed, h, ref, onMounted, watch } from "vue";
 import {
     NButton,
     NDataTable,
     NInput,
-    NRadioButton,
-    NRadioGroup,
-    NSpace, 
+    NSpace,
     type DataTableColumns,
     type DataTableInst,
 } from "naive-ui";
 import type { DataObject } from "@/types/TableSheetData.ts";
 import { useCopyToClipboard } from "@/composables/useCopyToClipboard";
 import { getHardnessColor, getProductColor } from "@/utils/colorHelpers.ts";
+import HideEyeIcon from "@/components/icons/HideEyeIcon.vue";
 import {
     cutOverflowedText,
     formatNumber,
@@ -38,19 +37,31 @@ const searchQuery = defineModel<string>("searchQuery", {
     default: "",
 });
 
+type HiddenRowsMode = "all" | "visible" | "hidden";
+
 const activeFilters = ref<
-    Record<string, (string | number)[] | string | number | null>
->({});
+    Record<string, (string | number)[] | string | number | null>>({});
 
 const tableRef = ref<DataTableInst | null>(null);
 const debouncedSearchQuery = ref(searchQuery.value);
 const sortingByPriorityField = ref("");
+const hiddenRowsMode = ref<HiddenRowsMode>("visible");
+
+const hiddenRowsOptions: {
+    label: string;
+    value: HiddenRowsMode;
+}[] = [
+    { label: "Все", value: "all" },
+    { label: "Без скрытых", value: "visible" },
+    { label: "Только скрытые", value: "hidden" },
+];
 
 const { copy } = useCopyToClipboard();
 
 const updateSearchQuery = debounce((value: string) => {
     debouncedSearchQuery.value = value;
 }, 500);
+
 
 
 const includedFieldsInAdditionalSector = [
@@ -88,6 +99,29 @@ const sortingFields = [
         value: "anotherManagerAnotherClient",
     },
 ];
+
+const HIDDEN_ROWS_STORAGE_KEY = "interchangeable-hidden-rows";
+
+const hiddenRows = ref<Set<string>>(new Set());
+
+onMounted(() => {
+    try {
+        const saved = localStorage.getItem(HIDDEN_ROWS_STORAGE_KEY);
+
+        if (saved) {
+            hiddenRows.value = new Set(JSON.parse(saved));
+        }
+    } catch {
+        hiddenRows.value = new Set();
+    }
+});
+
+watch(hiddenRows, rows => {
+    localStorage.setItem(
+        HIDDEN_ROWS_STORAGE_KEY,
+        JSON.stringify([...rows]),
+    );
+});
 
 const getUniqueValues = (key: string) => {
     return [
@@ -196,6 +230,19 @@ const displayedData = computed(() => {
 
 const rowKey = (row: DataObject) => JSON.stringify(row);
 
+const toggleHidden = (row: DataObject) => {
+    const key = rowKey(row);
+    const next = new Set(hiddenRows.value);
+
+    if (next.has(key)) {
+        next.delete(key);
+    } else {
+        next.add(key);
+    }
+
+    hiddenRows.value = next;
+};
+
 const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         title: "№п/п",
@@ -228,6 +275,18 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
 
             return h("div", { class: "nomenclature-cell" }, 
                 [
+                    h("button", 
+                        {
+                            class: [
+                                "hide-line",
+                                hiddenRows.value.has(rowKey(row)) && "hide-line--active",
+                            ],
+                            title: hiddenRows.value.has(rowKey(row))
+                                ? "Убрать из скрытого"
+                                : "Скрыть",
+                            onClick: () => toggleHidden(row),
+                        }, h(HideEyeIcon)
+                    ),
                     h("span", 
                         {
                             class: "product-color",
@@ -448,7 +507,7 @@ const filterableKeys = [
 ];
 
 const displayedCount = computed(() => {
-    return displayedData.value.filter(row => {
+    return visibleData.value.filter(row => {
         return filterableKeys.every(key => {
             const selectedValues = activeFilters.value[key];
 
@@ -466,6 +525,23 @@ const displayedCount = computed(() => {
             return values.some(value => createFilter(key)(value, row));
         });
     }).length;
+});
+
+const visibleData = computed(() => {
+    return displayedData.value.filter(row => {
+        const isHidden = hiddenRows.value.has(rowKey(row));
+
+        switch (hiddenRowsMode.value) {
+        case "all":
+            return true;
+
+        case "visible":
+            return !isHidden;
+
+        case "hidden":
+            return isHidden;
+        }
+    });
 });
 
 const clearFilters = () => {
@@ -509,39 +585,55 @@ const scrollPageToTop = () => {
                     justify="space-between"
                     :wrap="true"
                 >
-                    <NInput
-                        :value="searchQuery"
-                        class="table-search"
-                        clearable
-                        size="small"
-                        placeholder="Поиск по таблице"
-                        @update:value="value => {
-                            searchQuery = value;
-                            updateSearchQuery(value);
-                        }"
-                    />
-                    <NSpace 
-                        v-if="clientsDemand &&
-                            Object.keys(clientsDemand).length">
-                        <NRadioGroup 
-                            v-model:value="sortingByPriorityField" 
-                            name="radiobuttongroup1"
-                        >
-                            <NRadioButton
+                    <NSpace
+                        align="center"
+                        :size="10"
+                    >
+                        <NInput
+                            :value="searchQuery"
+                            class="table-search"
+                            clearable
+                            size="small"
+                            placeholder="Поиск по таблице"
+                            @update:value="value => {
+                                searchQuery = value;
+                                updateSearchQuery(value);
+                            }"
+                        />
+                        <div class="triple-toggle">
+                            <button
+                                v-for="(option, index) in hiddenRowsOptions"
+                                :key="option.value"
+                                :class="{ active: hiddenRowsMode === option.value }"
+                                @click="hiddenRowsMode = option.value"
+                            >
+                                {{ option.label }}
+                            </button>
+                        </div>
+                    </NSpace>
+
+                    <NSpace
+                        v-if="clientsDemand && Object.keys(clientsDemand).length"
+                        align="center"
+                    >
+                        <div class="triple-toggle priority-toggle">
+                            <button
                                 v-for="field in sortingFields"
                                 :key="field.value"
-                                :value="field.value"
-                                :label="field.label"
-                                size="small"
-                            />
-                        </NRadioGroup>
+                                :class="{ active: sortingByPriorityField === field.value }"
+                                @click="sortingByPriorityField = field.value"
+                            >
+                                {{ field.label }}
+                            </button>
+                        </div>
                     </NSpace>
+
                     <NSpace
                         align="center"
                         :size="6"
                     >
                         <span class="result-count">
-                            Найдено: {{ displayedCount  }}
+                            Найдено: {{ displayedCount }}
                         </span>
 
                         <NButton
@@ -555,12 +647,11 @@ const scrollPageToTop = () => {
                     </NSpace>
                 </NSpace>
             </div>
-
             <NDataTable
                 ref="tableRef"
                 class="result-table"
                 :columns="columns"
-                :data="displayedData"
+                :data="visibleData"
                 :bordered="false"
                 :single-line="false"
                 :single-column="false"
@@ -597,7 +688,7 @@ const scrollPageToTop = () => {
 
 .table-search {
     min-width: 200px;
-    width: 400px;
+    width: 200px;
     font-size: 12px;
 }
 
@@ -642,6 +733,71 @@ const scrollPageToTop = () => {
     opacity: 0;
 }
 
+.triple-toggle {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border-radius: 20px;
+    background: #f0f0f0;
+
+    button {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 16px;
+        background: transparent;
+        color: #777;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &.active {
+            background: #fff;
+            color: #18a058;
+            box-shadow: 0 1px 3px #0000001a;
+        }
+    }
+
+    &.priority-toggle {
+        background: #edf2f8;
+
+        button {
+            &.active {
+                color: #3569a8;
+                background: #fff;
+                box-shadow: 0 1px 3px #3569a81a;
+            }
+
+            &:hover:not(.active) {
+                color: #3569a8;
+            }
+        }
+    }
+}
+
+:deep(.hide-line) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 2px;
+    border: none;
+    background-color: transparent;
+    color: #a0a0a0;
+    cursor: pointer;
+    transition: color 0.2s ease;
+
+    &:hover {
+        color: #e09b32;
+    }
+}
+
+:deep(.hide-line--active) {
+    color: #e05252;
+
+    &:hover {
+        color: #2e9d65;
+    }
+}
 :deep(.n-pagination-item) {
     font-size: 13px;
 }
@@ -729,6 +885,13 @@ const scrollPageToTop = () => {
 :deep(.n-radio-button__label) {
     padding: 0 8px;
     line-height: 22px;
+}
+
+.priority-toggle {
+    button {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
 }
 
 @media (max-width: 900px) {
