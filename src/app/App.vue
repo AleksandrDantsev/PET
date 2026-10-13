@@ -111,6 +111,23 @@ body {
     font-variant-numeric: tabular-nums;
     scrollbar-gutter: stable;
 }
+
+.n-popconfirm .n-popconfirm__content {
+    font-size: 11px;
+}
+
+.n-popconfirm .n-popconfirm__action {
+    margin-top: 6px;
+    gap: 4px;
+}
+
+.n-popconfirm .n-button {
+    height: 22px;
+    min-height: 22px;
+    padding: 0 7px;
+    font-size: 12px;
+}
+
 ::selection {
     background-color: #456d3a6b;
     color: white;

@@ -5,6 +5,7 @@ import {
     NDataTable,
     NInput,
     NSpace,
+    NPopconfirm,
     type DataTableColumns,
     type DataTableInst,
 } from "naive-ui";
@@ -38,6 +39,16 @@ const searchQuery = defineModel<string>("searchQuery", {
 });
 
 type HiddenRowsMode = "all" | "visible" | "hidden";
+
+type HiddenRow = {
+    nomenclature: string;
+    comment: string;
+};
+
+type HiddenRows = Record<string, HiddenRow[]>;
+const COMMENTS_STORAGE_KEY = "interchangeable-row-comments";
+const rowComments = ref<HiddenRows>({});
+
 
 const activeFilters = ref<
     Record<string, (string | number)[] | string | number | null>>({});
@@ -104,6 +115,21 @@ const HIDDEN_ROWS_STORAGE_KEY = "interchangeable-hidden-rows";
 
 const hiddenRows = ref<Set<string>>(new Set());
 
+const getRowClassName = (row: DataObject) => {
+    const hasClientDemand = Boolean(
+        props.clientsDemand &&
+        Object.keys(props.clientsDemand).length
+    );
+
+    if (!hasClientDemand) {
+        return "";
+    }
+
+    return hiddenRows.value.has(getHiddenKey(row))
+        ? "hidden-row"
+        : "";
+};
+
 onMounted(() => {
     try {
         const saved = localStorage.getItem(HIDDEN_ROWS_STORAGE_KEY);
@@ -114,6 +140,16 @@ onMounted(() => {
     } catch {
         hiddenRows.value = new Set();
     }
+
+    try {
+        const savedComments = localStorage.getItem(COMMENTS_STORAGE_KEY);
+
+        if (savedComments) {
+            rowComments.value = JSON.parse(savedComments);
+        }
+    } catch {
+        rowComments.value = {};
+    }
 });
 
 watch(hiddenRows, rows => {
@@ -122,6 +158,95 @@ watch(hiddenRows, rows => {
         JSON.stringify([...rows]),
     );
 });
+
+const getClientKey = (row: DataObject): string => {
+    return String(row[CONST_TITLES.CURRENT_CLIENT] || "allHidden");
+};
+
+const getNomenclature = (row: DataObject): string => {
+    return String(row[CONST_TITLES.ONE_C_NOMENCLATURE] || "");
+};
+
+const getCommentKey = (row: DataObject): string => {
+    return JSON.stringify([
+        getClientKey(row),
+        getNomenclature(row),
+    ]);
+};
+
+const getHiddenKey = (row: DataObject): string => {
+    return JSON.stringify([
+        getClientKey(row),
+        getNomenclature(row),
+    ]);
+};
+
+const getComment = (row: DataObject): string => {
+    const clientKey = getClientKey(row);
+    const nomenclature = getNomenclature(row);
+
+    return rowComments.value[clientKey]?.find(
+        item => item.nomenclature === nomenclature
+    )?.comment ?? "";
+};
+
+const draftComments = ref<Record<string, string>>({});
+
+const getDraftComment = (row: DataObject): string => {
+    const key = getCommentKey(row);
+
+    return draftComments.value[key] ?? getComment(row);
+};
+
+const updateDraftComment = (row: DataObject, comment: string) => {
+    draftComments.value = {
+        ...draftComments.value,
+        [getCommentKey(row)]: comment,
+    };
+};
+
+const saveComment = (row: DataObject) => {
+    const clientKey = getClientKey(row);
+    const nomenclature = getNomenclature(row);
+    const key = getCommentKey(row);
+    const comment = draftComments.value[key] ?? getComment(row);
+
+    if (!nomenclature) return;
+
+    const clientRows = [...(rowComments.value[clientKey] ?? [])];
+    const index = clientRows.findIndex(
+        item => item.nomenclature === nomenclature
+    );
+
+    if (index === -1) {
+        if (comment) {
+            clientRows.push({ nomenclature, comment });
+        }
+    } else if (comment) {
+        clientRows[index] = { nomenclature, comment };
+    } else {
+        clientRows.splice(index, 1);
+    }
+
+    const nextComments = { ...rowComments.value };
+
+    if (clientRows.length) {
+        nextComments[clientKey] = clientRows;
+    } else {
+        delete nextComments[clientKey];
+    }
+
+    localStorage.setItem(
+        COMMENTS_STORAGE_KEY,
+        JSON.stringify(nextComments)
+    );
+
+    rowComments.value = nextComments;
+
+    const nextDrafts = { ...draftComments.value };
+    delete nextDrafts[key];
+    draftComments.value = nextDrafts;
+};
 
 const getUniqueValues = (key: string) => {
     return [
@@ -231,7 +356,7 @@ const displayedData = computed(() => {
 const rowKey = (row: DataObject) => JSON.stringify(row);
 
 const toggleHidden = (row: DataObject) => {
-    const key = rowKey(row);
+    const key = getHiddenKey(row);
     const next = new Set(hiddenRows.value);
 
     if (next.has(key)) {
@@ -275,18 +400,36 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
 
             return h("div", { class: "nomenclature-cell" }, 
                 [
-                    h("button", 
-                        {
-                            class: [
-                                "hide-line",
-                                hiddenRows.value.has(rowKey(row)) && "hide-line--active",
-                            ],
-                            title: hiddenRows.value.has(rowKey(row))
-                                ? "Убрать из скрытого"
-                                : "Скрыть",
-                            onClick: () => toggleHidden(row),
-                        }, h(HideEyeIcon)
-                    ),
+                    props.clientsDemand && Object.keys(props.clientsDemand).length
+                        ? h(
+                            NPopconfirm,
+                            {
+                                positiveText: hiddenRows.value.has(getHiddenKey(row))
+                                    ? "Показать"
+                                    : "Скрыть",
+                                negativeText: "Отмена",
+                                placement: "top",
+                                showIcon: false,
+                                onPositiveClick: () => toggleHidden(row),
+                            },
+                            {
+                                trigger: () => h("button", {
+                                    class: [
+                                        "hide-line",
+                                        hiddenRows.value.has(getHiddenKey(row)) &&
+                                            "hide-line--active",
+                                    ],
+                                    title: hiddenRows.value.has(getHiddenKey(row))
+                                        ? "Убрать из скрытого"
+                                        : "Скрыть",
+                                    onClick: (event: MouseEvent) => event.stopPropagation(),
+                                }, h(HideEyeIcon)),
+                                default: () => hiddenRows.value.has(getHiddenKey(row))
+                                    ? "Убрать номенклатуру из скрытых?"
+                                    : "Скрыть номенклатуру для этого клиента?",
+                            },
+                        )
+                        : null,
                     h("span", 
                         {
                             class: "product-color",
@@ -482,13 +625,39 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         type: "expand",
         width: 20,
-        expandable: row =>
-            getAdditionalFields(row).length > 0,
+        expandable: () => true,
 
         renderExpand: row =>
-            h(InterchangeableAdditionalInfo, {
-                fields: getAdditionalFields(row),
-            }),
+            h("div", { class: "expanded-row-content" }, [
+                h("div", { class: "row-comment" }, [
+                    h("div", { class: "row-comment-control" }, [
+                        h(NInput, {
+                            value: getDraftComment(row),
+                            size: "small",
+                            placeholder: "Добавить комментарий...",
+                            type: "textarea",
+                            autosize: { minRows: 1, maxRows: 4 },
+                            class: "row-comment-input",
+                            onUpdateValue: (value: string) => {
+                                updateDraftComment(row, value);
+                            },
+                        }),
+
+                        h(NButton, {
+                            size: "small",
+                            type: "primary",
+                            class: "row-comment-save",
+                            disabled: getDraftComment(row) === getComment(row),
+                            onClick: () => saveComment(row),
+                        }, {
+                            default: () => "Сохранить",
+                        }),
+                    ]),
+                    h(InterchangeableAdditionalInfo, {
+                        fields: getAdditionalFields(row),
+                    }),
+                ]),
+            ]),
     },
 ]);
 
@@ -528,16 +697,25 @@ const displayedCount = computed(() => {
 });
 
 const visibleData = computed(() => {
-    return displayedData.value.filter(row => {
-        const isHidden = hiddenRows.value.has(rowKey(row));
+    const hasClientDemand = Boolean(
+        props.clientsDemand &&
+        Object.keys(props.clientsDemand).length
+    );
 
+    return displayedData.value.filter(row => {
+        const isHidden = hiddenRows.value.has(getHiddenKey(row));
+
+        // Без активного подбора не применяем сохранённые исключения
+        if (!hasClientDemand) {
+            return true;
+        }
+
+        // При подборе учитываем выбранный режим отображения
         switch (hiddenRowsMode.value) {
         case "all":
             return true;
-
         case "visible":
             return !isHidden;
-
         case "hidden":
             return isHidden;
         }
@@ -600,7 +778,10 @@ const scrollPageToTop = () => {
                                 updateSearchQuery(value);
                             }"
                         />
-                        <div class="triple-toggle">
+                        <div 
+                            v-if="clientsDemand && Object.keys(clientsDemand).length"
+                            class="triple-toggle"
+                        >
                             <button
                                 v-for="(option, index) in hiddenRowsOptions"
                                 :key="option.value"
@@ -621,7 +802,8 @@ const scrollPageToTop = () => {
                                 v-for="field in sortingFields"
                                 :key="field.value"
                                 :class="{ active: sortingByPriorityField === field.value }"
-                                @click="sortingByPriorityField = field.value"
+                                @click="sortingByPriorityField =
+                                    sortingByPriorityField === field.value ? '' : field.value"
                             >
                                 {{ field.label }}
                             </button>
@@ -659,6 +841,7 @@ const scrollPageToTop = () => {
                 :scroll-x="1016"
                 :row-key="rowKey"
                 table-layout="fixed"
+                :row-class-name="getRowClassName"
                 :pagination="{
                     pageSize: 35,
                     showSizePicker: false,
@@ -731,6 +914,77 @@ const scrollPageToTop = () => {
 .client-demand-enter-from,
 .client-demand-leave-to {
     opacity: 0;
+}
+
+.expanded-row-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 0;
+}
+
+:deep(.row-comment) {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 5px;
+}
+
+.row-comment-label {
+    color: #77756f;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+:deep(.row-comment-control) {
+    display: flex;
+    width: 100%;
+    overflow: hidden;
+    outline: 1px solid #ecece7;
+    margin-bottom: 10px;
+    border-radius: 2px;
+    background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus-within {
+        outline-color: #5df5a4b6;
+    }
+}
+
+:deep(.row-comment-input) {
+    flex: 1;
+    width: 90%;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    min-width: 0;
+    font-size: 12px;
+}
+
+.row-comment-control :deep(.n-input__border),
+.row-comment-control :deep(.n-input__state-border) {
+    display: none;
+}
+
+.row-comment-control :deep(.n-input-wrapper) {
+    padding: 5px 9px;
+}
+
+.row-comment-control :deep(textarea) {
+    font-size: 12px;
+    line-height: 1.5;
+}
+:deep(.row-comment-save) {
+    border-radius: none;
+    height: auto;
+    font-size: 12px;
+}
+.row-comment-save:disabled {
+    opacity: 0.55;
+}
+:deep(.hidden-row td) {
+    opacity: 0.5;
 }
 
 .triple-toggle {
