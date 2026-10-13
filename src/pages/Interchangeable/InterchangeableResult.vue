@@ -21,6 +21,7 @@ import {
     trimTrailingZeros,
     handleFormatNumber,
     toTimestamp,
+    capitalize,
 } from "@/utils/normalize";
 import { debounce } from "@/utils/debounce";
 import InterchangeableClientDemand from "./InterchangeableClientDemand.vue"
@@ -40,18 +41,28 @@ const searchQuery = defineModel<string>("searchQuery", {
 
 type HiddenRowsMode = "all" | "visible" | "hidden";
 
-type HiddenRow = {
+type RowComment = {
     nomenclature: string;
-    comment: string;
+    comment?: string;
+    additionalComment?: string;
 };
 
-type HiddenRows = Record<string, HiddenRow[]>;
+type RowComments = Record<string, RowComment[]>;
+
+type CommentField = "comment" | "additionalComment";
+
 const COMMENTS_STORAGE_KEY = "interchangeable-row-comments";
-const rowComments = ref<HiddenRows>({});
+const ADDITIONAL_COMMENTS_STORAGE_KEY =
+    "interchangeable-row-additional-comments";
+
+const rowComments = ref<RowComments>({});
+const draftComments = ref<Record<string, string>>({});
+
+
 
 
 const activeFilters = ref<
-    Record<string, (string | number)[] | string | number | null>>({});
+    Record<string, (string | number)[] | string | number | undefined | null>>({});
 
 const tableRef = ref<DataTableInst | null>(null);
 const debouncedSearchQuery = ref(searchQuery.value);
@@ -130,24 +141,63 @@ const getRowClassName = (row: DataObject) => {
         : "";
 };
 
+const saveToLocalStorage = (key: string, value: unknown) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        console.error(
+            `Не удалось сохранить данные в localStorage (${key}):`,
+            error,
+        );
+    }
+};
+
 onMounted(() => {
     try {
-        const saved = localStorage.getItem(HIDDEN_ROWS_STORAGE_KEY);
-
-        if (saved) {
-            hiddenRows.value = new Set(JSON.parse(saved));
-        }
-    } catch {
-        hiddenRows.value = new Set();
-    }
-
-    try {
         const savedComments = localStorage.getItem(COMMENTS_STORAGE_KEY);
+        const savedAdditionalComments = localStorage.getItem(
+            ADDITIONAL_COMMENTS_STORAGE_KEY,
+        );
 
-        if (savedComments) {
-            rowComments.value = JSON.parse(savedComments);
+        const comments: RowComments = savedComments
+            ? JSON.parse(savedComments)
+            : {};
+
+        if (savedAdditionalComments) {
+            const additionalComments: RowComments = JSON.parse(
+                savedAdditionalComments,
+            );
+
+            Object.entries(additionalComments).forEach(
+                ([clientKey, rows]) => {
+                    const clientRows = comments[clientKey] ?? [];
+
+                    rows.forEach(({ nomenclature, comment }) => {
+                        const existingRow = clientRows.find(
+                            item => item.nomenclature === nomenclature,
+                        );
+
+                        if (existingRow) {
+                            existingRow.additionalComment = comment;
+                        } else {
+                            clientRows.push({
+                                nomenclature,
+                                additionalComment: comment,
+                            });
+                        }
+                    });
+
+                    comments[clientKey] = clientRows;
+                },
+            );
+
+            saveToLocalStorage(COMMENTS_STORAGE_KEY, comments);
+            localStorage.removeItem(ADDITIONAL_COMMENTS_STORAGE_KEY);
         }
-    } catch {
+
+        rowComments.value = comments;
+    } catch (error) {
+        console.error("Не удалось загрузить комментарии:", error);
         rowComments.value = {};
     }
 });
@@ -181,51 +231,77 @@ const getHiddenKey = (row: DataObject): string => {
     ]);
 };
 
-const getComment = (row: DataObject): string => {
+const getStoredComment = (
+    row: DataObject,
+    field: CommentField,
+): string => {
     const clientKey = getClientKey(row);
     const nomenclature = getNomenclature(row);
 
     return rowComments.value[clientKey]?.find(
-        item => item.nomenclature === nomenclature
-    )?.comment ?? "";
+        item => item.nomenclature === nomenclature,
+    )?.[field] ?? "";
 };
 
-const draftComments = ref<Record<string, string>>({});
+const getDraftComment = (
+    row: DataObject,
+    field: CommentField,
+): string => {
+    const key = JSON.stringify([getCommentKey(row), field]);
 
-const getDraftComment = (row: DataObject): string => {
-    const key = getCommentKey(row);
-
-    return draftComments.value[key] ?? getComment(row);
+    return draftComments.value[key] ?? getStoredComment(row, field);
 };
 
-const updateDraftComment = (row: DataObject, comment: string) => {
-    draftComments.value = {
-        ...draftComments.value,
-        [getCommentKey(row)]: comment,
-    };
+const updateDraftComment = (
+    row: DataObject,
+    field: CommentField,
+    value: string,
+) => {
+    const key = JSON.stringify([getCommentKey(row), field]);
+
+    draftComments.value[key] = value;
 };
 
-const saveComment = (row: DataObject) => {
+const saveComment = (
+    row: DataObject,
+    field: CommentField,
+) => {
     const clientKey = getClientKey(row);
     const nomenclature = getNomenclature(row);
-    const key = getCommentKey(row);
-    const comment = draftComments.value[key] ?? getComment(row);
+    const draftKey = JSON.stringify([getCommentKey(row), field]);
+    const comment = capitalize(getDraftComment(row, field)).trim();
 
     if (!nomenclature) return;
 
-    const clientRows = [...(rowComments.value[clientKey] ?? [])];
+    const clientRows = [
+        ...(rowComments.value[clientKey] ?? []),
+    ];
+
     const index = clientRows.findIndex(
-        item => item.nomenclature === nomenclature
+        item => item.nomenclature === nomenclature,
     );
 
     if (index === -1) {
         if (comment) {
-            clientRows.push({ nomenclature, comment });
+            clientRows.push({
+                nomenclature,
+                [field]: comment,
+            });
         }
-    } else if (comment) {
-        clientRows[index] = { nomenclature, comment };
     } else {
-        clientRows.splice(index, 1);
+        const updatedRow = { ...clientRows[index] };
+
+        if (comment) {
+            updatedRow[field] = comment;
+        } else {
+            delete updatedRow[field];
+        }
+
+        if (updatedRow.comment || updatedRow.additionalComment) {
+            clientRows[index] = updatedRow;
+        } else {
+            clientRows.splice(index, 1);
+        }
     }
 
     const nextComments = { ...rowComments.value };
@@ -236,17 +312,14 @@ const saveComment = (row: DataObject) => {
         delete nextComments[clientKey];
     }
 
-    localStorage.setItem(
-        COMMENTS_STORAGE_KEY,
-        JSON.stringify(nextComments)
-    );
-
+    saveToLocalStorage(COMMENTS_STORAGE_KEY, nextComments);
     rowComments.value = nextComments;
 
     const nextDrafts = { ...draftComments.value };
-    delete nextDrafts[key];
+    delete nextDrafts[draftKey];
     draftComments.value = nextDrafts;
 };
+
 
 const getUniqueValues = (key: string) => {
     return [
@@ -629,32 +702,57 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
 
         renderExpand: row =>
             h("div", { class: "expanded-row-content" }, [
-                h("div", { class: "row-comment" }, [
-                    h("div", { class: "row-comment-control" }, [
-                        h(NInput, {
-                            value: getDraftComment(row),
-                            size: "small",
-                            placeholder: "Добавить комментарий...",
-                            type: "textarea",
-                            autosize: { minRows: 1, maxRows: 4 },
-                            class: "row-comment-input",
-                            onUpdateValue: (value: string) => {
-                                updateDraftComment(row, value);
-                            },
-                        }),
+                h("div", { class: "row-comment-control" }, [
+                    h(NInput, {
+                        value: getDraftComment(row, "additionalComment"),
+                        size: "small",
+                        placeholder: "Причины почему позиция не подходит",
+                        type: "textarea",
+                        autosize: { minRows: 1, maxRows: 4 },
+                        class: "row-comment-input",
+                        onUpdateValue: (value: string) => {
+                            updateDraftComment(row, "additionalComment", value);
+                        },
+                    }),
+                    h(NButton, {
+                        size: "small",
+                        type: "primary",
+                        class: "row-comment-save button-unsuitable",
+                        disabled:
+                            getDraftComment(row, "additionalComment") ===
+                            getStoredComment(row, "additionalComment"),
+                        onClick: () => saveComment(row, "additionalComment"),
+                    }, {
+                        default: () => "Сохранить",
+                    }),
+                ]),
 
-                        h(NButton, {
-                            size: "small",
-                            type: "primary",
-                            class: "row-comment-save",
-                            disabled: getDraftComment(row) === getComment(row),
-                            onClick: () => saveComment(row),
-                        }, {
-                            default: () => "Сохранить",
-                        }),
-                    ]),
-                    h(InterchangeableAdditionalInfo, {
-                        fields: getAdditionalFields(row),
+                h(InterchangeableAdditionalInfo, {
+                    fields: getAdditionalFields(row),
+                }),
+
+                h("div", { class: "row-comment-control row-comment-control-bottom" }, [
+                    h(NInput, {
+                        value: getDraftComment(row, "comment"),
+                        size: "small",
+                        placeholder: "Добавить комментарий...",
+                        type: "textarea",
+                        autosize: { minRows: 1, maxRows: 4 },
+                        class: "row-comment-input",
+                        onUpdateValue: (value: string) => {
+                            updateDraftComment(row, "comment", value);
+                        },
+                    }),
+                    h(NButton, {
+                        size: "small",
+                        type: "primary",
+                        class: "row-comment-save",
+                        disabled:
+                            getDraftComment(row, "comment") ===
+                            getStoredComment(row, "comment"),
+                        onClick: () => saveComment(row, "comment"),
+                    }, {
+                        default: () => "Сохранить",
                     }),
                 ]),
             ]),
@@ -662,7 +760,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
 ]);
 
 const handleUpdateFilters = (
-    filters: Record<string, (string | number)[] | string | number | null>
+    filters: Record<string, (string | number)[] | string | number | undefined | null>
 ) => {
     activeFilters.value = filters;
 };
@@ -705,12 +803,10 @@ const visibleData = computed(() => {
     return displayedData.value.filter(row => {
         const isHidden = hiddenRows.value.has(getHiddenKey(row));
 
-        // Без активного подбора не применяем сохранённые исключения
         if (!hasClientDemand) {
             return true;
         }
 
-        // При подборе учитываем выбранный режим отображения
         switch (hiddenRowsMode.value) {
         case "all":
             return true;
@@ -784,7 +880,7 @@ const scrollPageToTop = () => {
                         >
                             <button
                                 v-for="(option, index) in hiddenRowsOptions"
-                                :key="option.value"
+                                :key="option.value + index"
                                 :class="{ active: hiddenRowsMode === option.value }"
                                 @click="hiddenRowsMode = option.value"
                             >
@@ -947,6 +1043,18 @@ const scrollPageToTop = () => {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:focus-within {
+        outline-color: #0159dfb6;
+    }
+}
+
+:deep(.button-unsuitable) {
+    background-color: #003c97b6 !important;
+}
+
+:deep(.row-comment-control-bottom) {
+    margin-top: 10px;
+
+    &:focus-within {
         outline-color: #5df5a4b6;
     }
 }
@@ -979,6 +1087,9 @@ const scrollPageToTop = () => {
     border-radius: none;
     height: auto;
     font-size: 12px;
+    border: none;
+    outline: none;
+    border-radius: 0;
 }
 .row-comment-save:disabled {
     opacity: 0.55;
