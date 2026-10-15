@@ -32,6 +32,8 @@ const ih: IPET = {
 
         const text = this.normalize(nomenclature);
 
+        if (text.includes("пробка")) return "крышка";
+
         const type: ProductType | undefined = [
             "крышка",
             "колпачок",
@@ -57,7 +59,7 @@ const ih: IPET = {
         }
 
         if (productType === "крышка") {
-            standarts = ["d=45", "5 л", "КВ-38", "КВ-5", ...base];
+            standarts = ["d=45", "5 л", "КВ-38", "КВ-50", ...base];
         }
 
         if (productType === "ручка") {
@@ -68,57 +70,56 @@ const ih: IPET = {
             standarts = ["1881", "28 mm"];
         }
 
-        return standarts.filter((item) =>
-            text.includes(item.toLowerCase())
-        );
+        const found = standarts.filter((item) => {
+            const standard = item.toLowerCase();
+
+            if (/^\d+$/.test(standard)) {
+                return new RegExp(
+                    `(?<!\\d)${standard}(?!\\d)`
+                ).test(text);
+            }
+
+            return text.includes(standard);
+        });
+
+        if (found.some((item) => item.includes("50")) && !found.includes("48")) {
+            found.push("48");
+        }
+
+        return [...new Set(found)];
     },
 
     getGrams: function (
         nomenclature: string | null | undefined
     ): number | null {
-        if (!nomenclature) return null;
+        if (!nomenclature?.trim()) return null;
 
-        const text = String(nomenclature);
-
-        const gramsMatch = text.match(
-            /(\d+(?:[,.]\d+)?)\s*гр\b/i
+        const gramsMatch = nomenclature.match(
+            /(?<![\d.,])(\d+(?:[,.]\d+)?)\s*гр\.?(?!\p{L})/iu
         );
 
-        if (gramsMatch) {
-            return Number(
-                gramsMatch[1].replace(",", ".")
-            );
-        }
+        if (!gramsMatch) return null;
 
-        const matches = text.match(
-            /(?<!\d)\d{2}(?!\d)/g
+        const grams = Number(
+            gramsMatch[1].replace(",", ".")
         );
 
-        if (!matches) {
-            return null;
-        }
-
-        const validMatches = matches.filter(
-            (match) => !["38", "48"].includes(match)
-        );
-
-        return Number(
-            validMatches.length
-                ? validMatches[0]
-                : matches[0]
-        );
+        return Number.isFinite(grams) ? grams : null;
     },
+
 
     toNumGr: function (
         text: string | number | null | undefined
     ): number {
         if (text == null || text === "") return NaN;
 
-        const value = Number(
-            String(text)
-                .trim()
-                .replace(",", ".")
-        );
+        const normalized = String(text)
+            .trim()
+            .replace(",", ".");
+
+        if (!normalized) return NaN;
+
+        const value = Number(normalized);
 
         return Number.isFinite(value) ? value : NaN;
     },
@@ -137,6 +138,7 @@ const ih: IPET = {
             "желт",
             "зелен",
             "коричнев",
+            "золот",
             "красн",
             "оранжев",
             "розов",
@@ -152,9 +154,17 @@ const ih: IPET = {
             .toLowerCase()
             .replaceAll("ё", "е");
 
-        return colors.filter((color) =>
+        const found = colors.filter((color) =>
             text.includes(color)
         );
+
+        if (found.includes("бело-желт")) {
+            return found.filter(
+                (color) => color !== "бел" && color !== "желт"
+            );
+        }
+
+        return found;
     },
 
     getAttachment: function (
@@ -197,7 +207,7 @@ const ih: IPET = {
             const value = supplier.toLowerCase();
 
             return new RegExp(
-                `(?:^|[^а-яёa-z])${value}(?=$|[^а-яёa-z])`,
+                `(?:^|[^а-яёa-z0-9])${value}(?=$|[^а-яёa-z0-9])`,
                 "i"
             ).test(text);
         }) ?? null;
