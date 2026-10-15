@@ -6,6 +6,7 @@ import {
     NInput,
     NSpace,
     NPopconfirm,
+    NEmpty,
     type DataTableColumns,
     type DataTableInst,
 } from "naive-ui";
@@ -51,6 +52,7 @@ type RowComments = Record<string, RowComment[]>;
 
 type CommentField = "comment" | "additionalComment";
 
+const PAGINATION_LENGTH = 30;
 const COMMENTS_STORAGE_KEY = "interchangeable-row-comments";
 const ADDITIONAL_COMMENTS_STORAGE_KEY =
     "interchangeable-row-additional-comments";
@@ -512,7 +514,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                     h("span",
                         {
                             class: "nomenclature-value",
-                            title: "Нажмите, чтобы скопировать",
+                            title: nomenclature,
                             onClick: () => copy(nomenclature, "Номенклатура скопирована"),
                         },
                         nomenclature || `-`,
@@ -572,7 +574,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                 "span",
                 {
                     class: "client-copyable-text",
-                    title: "Нажмите, чтобы скопировать",
+                    title: client,
                     onClick: () => copy(client, "Клиент скопирован"),
                 },
                 cutOverflowedText(client, 30)
@@ -663,14 +665,14 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
             return (
                 handleFormatNumber(rowA[CONST_TITLES.REMAINDER_BOXES_1C]) -
                 handleFormatNumber(rowB[CONST_TITLES.REMAINDER_BOXES_1C])
-            )  
+            )
         },
 
         render: row => {
             const remainder = trimTrailingZeros(
                 row[CONST_TITLES.REMAINDER_BOXES_1C]
             );
-            return remainder ? `${remainder} кор.` : "-";
+            return  Number(remainder) !== 0 ? `${remainder} кор.` : "-";
         },
     },
 
@@ -691,7 +693,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
             const remainder = trimTrailingZeros(
                 row[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW]
             );
-            return remainder ? `${remainder} кор.` : "-";
+            return Number(remainder) !== 0 ? `${remainder} кор.` : "-";
         },
     },
 
@@ -938,14 +940,23 @@ const scrollPageToTop = () => {
                 :row-key="rowKey"
                 table-layout="fixed"
                 :row-class-name="getRowClassName"
-                :pagination="{
-                    pageSize: 35,
+                :pagination="visibleData.length > PAGINATION_LENGTH ? {
+                    pageSize: PAGINATION_LENGTH,
                     showSizePicker: false,
                     showQuickJumper: false,
-                }"
+                } : false"
                 @update:page="scrollPageToTop"
                 @update:filters="handleUpdateFilters"
-            />
+            >   
+                <template #empty>
+                    <div style="min-height: 10px;">
+                        <NEmpty
+                            :description="'Не найдены взаимозаменяемые позиции из недопроданных'"
+                            size="medium"
+                        />
+                    </div>
+                </template>
+            </NDataTable>
         </div>
     </div>
 </template>
@@ -1220,6 +1231,7 @@ const scrollPageToTop = () => {
     padding: 4px 10px;
     background-color: #fafafa;
     border-radius: 7px;
+    user-select: none;
     box-shadow: 1px 3px 5px #cfcfcf7c;
     transition: 500ms ease;
     cursor: pointer;
