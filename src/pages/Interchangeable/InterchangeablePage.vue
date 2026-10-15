@@ -97,6 +97,29 @@ const search = (fields: Record<string, string>) => {
         );
     });
 
+    // Для отладки
+    //     console.table(
+    //     interchangeableDataObjs.value.map((item) => ({
+    //         typeInTable: item[CONST_TITLES.TYPE_OF_PRODUCT],
+    //         typeMatch: check.checkType(
+    //             String(item[CONST_TITLES.TYPE_OF_PRODUCT] ?? ""),
+    //             productTypeInput
+    //         ),
+
+    //         standardInTable: item[CONST_TITLES.STANDARD],
+    //         standardMatch: check.checkStandart(
+    //             String(item[CONST_TITLES.STANDARD] ?? ""),
+    //             descriptionProduct?.standart
+    //         ),
+
+    //         contragentInTable: item[CONST_TITLES.CONTRAGENT],
+    //         contragentMatch: check.checkContragent(
+    //             String(item[CONST_TITLES.CONTRAGENT] ?? ""),
+    //             fields.contragent
+    //         ),
+    //     }))
+    // );
+
     if (!clientDemand) {
         filteredActualResultObjs.value = [];
         clientsDemand.value = {};
@@ -166,18 +189,14 @@ const search = (fields: Record<string, string>) => {
 
         <div class="results-wrapper">
             <InterchangeableResult
-                v-if="filteredActualResultObjs.length"
+                v-if="Object.keys(filteredActualResultObjs).length"
                 :clients-demand="clientsDemand"
                 :filtered-actual-result-objs="filteredActualResultObjs"
             />
 
             <NEmpty
                 v-else
-                :description="
-                    isSearched
-                        ? 'Ничего не найдено'
-                        : 'Попробуйте найти что-нибудь'
-                "
+                :description="'Не найдены потребности клиента по данному типу товара'"
                 size="medium"
             />
         </div>
