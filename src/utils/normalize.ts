@@ -114,16 +114,17 @@ function hasValue<T>(value: T): boolean {
 
 
 function trimTrailingZeros(
-    value: string | number | null | undefined | ""
+    value: string | number | null | undefined
 ) {
-    if (value === null || value === undefined || value === '') {
+    if (value === null || value === undefined || value === "") {
         return value;
     }
 
     return String(value)
-        .replace(/(,\d*?[1-9])0+$/, '$1')
-        .replace(/,0+$/, '');
-};
+        .replace(/(,\d*?[1-9])0+$/, "$1")
+        .replace(/,0+$/, "")
+        .replace(",", ".");
+}
 
 
 function cutOverflowedText(
