@@ -17,6 +17,10 @@ const productColors = {
         colorName: "коричневый",
         color: "#795548",
     },
+    "золот": {
+        colorName: "золотой",
+        color: "#eedb30",
+    },
     "оранжев": {
         colorName: "оранжевый",
         color: "#fb8c00",
@@ -43,7 +47,7 @@ const productColors = {
     },
     "желт": {
         colorName: "желтый",
-        color: "#fdd835",
+        color: "#faf60c",
     },
     "зелен": {
         colorName: "зеленый",
