@@ -63,7 +63,7 @@ const check: ICheckConditionsFuncs = {
                 .toLowerCase()
                 .replace(/ё/g, "е")
                 .replace(/[()[\]{},.;:"'«»]/g, " ")
-                .replace(/\b(ип|ооо|ао|зао|пао|оао)\b/g, " ")
+                .replace(/(^|[^а-яёa-z])(ип|ооо|ао|зао|пао|оао)(?=$|[^а-яёa-z])/g, "$1 ")
                 .replace(/\s+/g, " ")
                 .trim();
 
@@ -235,67 +235,120 @@ const check: ICheckConditionsFuncs = {
             return false;
         }
 
-        const standards = Array.isArray(inputStandartArr)
-            ? inputStandartArr
-            : [inputStandartArr];
-
-        const normalizedList =
-            ih.normalize(listStandart);
+        const normalizedList = ih.normalize(listStandart);
 
         if (!normalizedList) {
             return false;
         }
 
+        const standards = Array.isArray(inputStandartArr)
+            ? inputStandartArr
+            : [inputStandartArr];
+
+        const matches = (
+            standard: string,
+            text: string
+        ): boolean => {
+            const normalizedStandard = ih.normalize(standard);
+
+            if (!normalizedStandard) {
+                return false;
+            }
+
+            const escaped = normalizedStandard.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+            );
+
+            const isNumeric = /^\d+$/.test(normalizedStandard);
+
+            const pattern = isNumeric
+                ? `(?<!\\d)${escaped}(?!\\d)`
+                : `(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`;
+
+            return new RegExp(pattern, "u").test(text);
+        };
+
         return standards.some((elem) => {
-            const normalizedElem =
-                ih.normalize(elem);
+            const normalizedElem = ih.normalize(elem);
+
+            if (!normalizedElem) {
+                return false;
+            }
 
             return (
-                normalizedElem &&
-                normalizedList.includes(normalizedElem)
+                matches(normalizedElem, normalizedList) ||
+                matches(normalizedList, normalizedElem)
             );
         });
     },
 
     checkIncludeColors: function (
-        arrColors:
-            | string
-            | string[]
-            | null
-            | undefined,
-        arrInputColors:
-            Array<string | null | undefined>
+        arrColors: string | string[] | null | undefined,
+        arrInputColors: Array<string | null | undefined>
     ): boolean {
-        if (!arrInputColors) {
+        if (!Array.isArray(arrInputColors) || !arrColors) {
             return false;
         }
 
         const colors = (
-            Array.isArray(arrColors)
-                ? arrColors
-                : [arrColors]
-        ).filter(Boolean) as string[];
+            Array.isArray(arrColors) ? arrColors : [arrColors]
+        )
+            .filter((color) => Boolean(color?.trim()))
+            .map((color) => ih.normalize(color));
 
-        const inputColors =
-            arrInputColors.filter(Boolean) as string[];
+        const inputs = arrInputColors
+            .filter((input) => Boolean(input?.trim()))
+            .map((input) => ih.normalize(input));
 
-        return inputColors.some((inputColor) => {
-            const normalizedInput =
-                ih.normalize(inputColor);
+        if (!colors.length || !inputs.length) {
+            return false;
+        }
 
-            if (!normalizedInput) {
-                return false;
-            }
+        const interchangeableColors: Record<string, string> = {
+            син: "голуб",
+            голуб: "син",
+        };
+
+        const compositePattern = /бело[-\s]+желт/g;
+
+        return inputs.some((input) => {
+            const composites = input.match(compositePattern) ?? [];
+            const inputWithoutComposite = input.replace(
+                compositePattern,
+                " "
+            );
+
+            const inputColors = ih.getColor(inputWithoutComposite);
+
+            const normalizedInputColors = [
+                ...inputColors,
+                ...composites.map(() => "бело-желт"),
+            ];
 
             return colors.some((color) => {
-                const normalizedColor =
-                    ih.normalize(color);
+                if (!color) {
+                    return false;
+                }
 
-                return (
-                    normalizedColor &&
-                    normalizedInput.includes(
-                        normalizedColor
-                    )
+                if (color === "бел-желт") {
+                    return normalizedInputColors.includes("бело-желт");
+                }
+
+                if (color === "бел" || color === "желт") {
+                    if (normalizedInputColors.includes("бело-желт")) {
+                        return normalizedInputColors.some(
+                            (inputColor) =>
+                                inputColor !== "бело-желт" &&
+                                inputColor === color
+                        );
+                    }
+                }
+
+                return normalizedInputColors.some(
+                    (inputColor) =>
+                        inputColor === color ||
+                        interchangeableColors[color] === inputColor
                 );
             });
         });
@@ -312,6 +365,7 @@ const check: ICheckConditionsFuncs = {
             | null
             | undefined
     ): boolean {
+
         if (
             objRangeGrams?.from == null ||
             objRangeGrams?.to == null ||
