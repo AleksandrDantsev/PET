@@ -441,7 +441,7 @@ const save = async () => {
     </div>
 </template>
 <style lang="scss" scoped>
-$color-bg: #f8f8f6;
+$color-bg: #fafafa;
 $color-surface: #fff;
 $color-border: #d9d9d5;
 $color-border-hover: #b8b8b3;
@@ -450,7 +450,7 @@ $color-text-secondary: #737373;
 $color-placeholder: #999;
 $color-muted: #858580;
 
-$radius: 6px;
+$radius: 3px;
 $control-height: 36px;
 $gap: 10px;
 $transition: 0.15s ease;
@@ -468,6 +468,7 @@ $transition: 0.15s ease;
     padding: 0 14px 12px;
     background: $color-bg;
     border-radius: 0 0 8px 8px;
+    box-shadow: 0px 3px 5px #dbdbdb34
 }
 
 .search-form {
@@ -606,7 +607,7 @@ $transition: 0.15s ease;
 :deep(.n-date-panel) {
     overflow: hidden;
     border: 1px solid #deded9;
-    border-radius: 7px;
+    border-radius: 3px;
     background: $color-surface;
     box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
 }
