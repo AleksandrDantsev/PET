@@ -14,6 +14,7 @@ const subtitles = {
     manager: "Менеджер клиента:",
     typeOfProduct: "Тип товара:",
     standard: "Стандарт:",
+    litrazh: "Литраж:",
     rangeOfGrams: "Диапазон граммажей:",
     baseColor: "Основной цвет:",
     interchangeableColors: "Взаимозаменяемые цвета:",
@@ -111,6 +112,16 @@ const colorGroups = computed(() => [
 
                     <div class="subtitle-client-container">
                         <span class="subtitle">
+                            {{ subtitles.litrazh }}
+                        </span>
+                        {{ 
+                            clientsDemand[CONST_TITLES.LITRAZH] ? 
+                                clientsDemand[CONST_TITLES.LITRAZH] + " л." : "-" 
+                        }}
+                    </div>
+
+                    <div class="subtitle-client-container">
+                        <span class="subtitle">
                             {{ subtitles.rangeOfGrams }}
                         </span>
                         {{ clientsDemand[CONST_TITLES.WEIGHT_FROM] }} - {{ clientsDemand[CONST_TITLES.WEIGHT_TO] }} 
@@ -161,7 +172,7 @@ const colorGroups = computed(() => [
 .contragent-desc-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2.5px;
 }
 
 .subtitle-client-container {
