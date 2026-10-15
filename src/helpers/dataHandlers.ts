@@ -1,22 +1,41 @@
 import type { IGoogleTableData } from "@/types/TableSheetData";
 
 const dh = {
-    dataToObjects: function (data: IGoogleTableData, positionHeaderRow: number = 0)  // [ {Артикул: a1, Цена: а2}, {Артикул: a3, Цена: а4} ]
-        : Record<string, string | number>[] | [] {
+    dataToObjects: function (
+        data: IGoogleTableData,
+        positionHeaderRow: number = 0
+    ): Record<string, string | number>[] {
         if (!data?.values) return [];
 
         const headers = data.values[positionHeaderRow];
 
-        if (!headers) {
-            return [];
-        }
+        if (!headers) return [];
+
+        const headerIndexes = new Map<string, number>();
+
+        headers.forEach((header, index) => {
+            const key = String(header).trim();
+
+            if (key === "") return;
+
+            if (headerIndexes.has(key)) {
+                console.warn(
+                    `[dataToObjects] Повторяющийся заголовок "${key}". ` +
+                    `Первый столбец: ${headerIndexes.get(key)}, ` +
+                    `повторный столбец: ${index}. Используется первый.`
+                );
+                return;
+            }
+
+            headerIndexes.set(key, index);
+        });
 
         const rows = data.values.slice(positionHeaderRow + 1);
 
         return rows.map(row =>
             Object.fromEntries(
-                headers.map((header, index) => [
-                    String(header).trim(),
+                Array.from(headerIndexes, ([header, index]) => [
+                    header,
                     row[index] ?? "",
                 ])
             )
