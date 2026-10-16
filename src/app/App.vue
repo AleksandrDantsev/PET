@@ -112,7 +112,7 @@ onMounted(async () => {
     </n-config-provider>
 </template>
 
-<style>
+<style lang="scss">
 * {
     font-family:  Inter,
     "Segoe UI",
@@ -124,6 +124,18 @@ onMounted(async () => {
 body {
     font-variant-numeric: tabular-nums;
     scrollbar-gutter: stable;
+}
+
+$minWidthTooltip: 500px;
+
+.n-tooltip {
+    max-width: min($minWidthTooltip, calc(100vw - 24px)) !important;
+    box-sizing: border-box;
+    font-size: 12px !important;
+    white-space: pre-line !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word;
+    line-height: 1.4;
 }
 
 .n-popconfirm .n-popconfirm__content {
