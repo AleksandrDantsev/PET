@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { computed, h, ref, onMounted, watch } from "vue";
 import {
@@ -7,6 +8,8 @@ import {
     NSpace,
     NPopconfirm,
     NEmpty,
+    NBadge,
+    NTooltip,
     type DataTableColumns,
     type DataTableInst,
 } from "naive-ui";
@@ -14,6 +17,7 @@ import type { DataObject } from "@/types/TableSheetData.ts";
 import { useCopyToClipboard } from "@/composables/useCopyToClipboard";
 import { getHardnessColor, getProductColor } from "@/utils/colorHelpers.ts";
 import HideEyeIcon from "@/components/icons/HideEyeIcon.vue";
+import CommentIcon from "@/components/icons/CommentIcon.vue";
 import {
     cutOverflowedText,
     formatNumber,
@@ -25,7 +29,7 @@ import {
     capitalize,
 } from "@/utils/normalize";
 import { debounce } from "@/utils/debounce";
-import InterchangeableClientDemand from "./InterchangeableClientDemand.vue"
+import InterchangeableClientDemand from "./InterchangeableClientDemand.vue";
 import InterchangeableAdditionalInfo from "./InterchangeableAdditionalInfo.vue";
 import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
 
@@ -41,30 +45,25 @@ const searchQuery = defineModel<string>("searchQuery", {
 });
 
 type HiddenRowsMode = "all" | "visible" | "hidden";
-
-type RowComment = {
-    nomenclature: string;
-    comment?: string;
-    additionalComment?: string;
-};
-
-type RowComments = Record<string, RowComment[]>;
-
 type CommentField = "comment" | "additionalComment";
+
+type GeneralComments = Record<string, string>;
+type ClientComments = Record<string, string>;
 
 const PAGINATION_LENGTH = 30;
 const COMMENTS_STORAGE_KEY = "interchangeable-row-comments";
 const ADDITIONAL_COMMENTS_STORAGE_KEY =
     "interchangeable-row-additional-comments";
+const HIDDEN_ROWS_STORAGE_KEY = "interchangeable-hidden-rows";
 
-const rowComments = ref<RowComments>({});
+const rowComments = ref<GeneralComments>({});
+const additionalComments = ref<ClientComments>({});
 const draftComments = ref<Record<string, string>>({});
-
-
-
+const hiddenRows = ref<Set<string>>(new Set());
 
 const activeFilters = ref<
-    Record<string, (string | number)[] | string | number | undefined | null>>({});
+    Record<string, (string | number)[] | string | number | undefined | null>
+>({});
 
 const tableRef = ref<DataTableInst | null>(null);
 const debouncedSearchQuery = ref(searchQuery.value);
@@ -85,8 +84,6 @@ const { copy } = useCopyToClipboard();
 const updateSearchQuery = debounce((value: string) => {
     debouncedSearchQuery.value = value;
 }, 500);
-
-
 
 const includedFieldsInAdditionalSector = [
     CONST_TITLES.NUMBER_TASK_BITRIX,
@@ -124,25 +121,6 @@ const sortingFields = [
     },
 ];
 
-const HIDDEN_ROWS_STORAGE_KEY = "interchangeable-hidden-rows";
-
-const hiddenRows = ref<Set<string>>(new Set());
-
-const getRowClassName = (row: DataObject) => {
-    const hasClientDemand = Boolean(
-        props.clientsDemand &&
-        Object.keys(props.clientsDemand).length
-    );
-
-    if (!hasClientDemand) {
-        return "";
-    }
-
-    return hiddenRows.value.has(getHiddenKey(row))
-        ? "hidden-row"
-        : "";
-};
-
 const saveToLocalStorage = (key: string, value: unknown) => {
     try {
         localStorage.setItem(key, JSON.stringify(value));
@@ -154,82 +132,33 @@ const saveToLocalStorage = (key: string, value: unknown) => {
     }
 };
 
-onMounted(() => {
-    try {
-        const savedComments = localStorage.getItem(COMMENTS_STORAGE_KEY);
-        const savedAdditionalComments = localStorage.getItem(
-            ADDITIONAL_COMMENTS_STORAGE_KEY,
-        );
-
-        const comments: RowComments = savedComments
-            ? JSON.parse(savedComments)
-            : {};
-
-        if (savedAdditionalComments) {
-            const additionalComments: RowComments = JSON.parse(
-                savedAdditionalComments,
-            );
-
-            Object.entries(additionalComments).forEach(
-                ([clientKey, rows]) => {
-                    const clientRows = comments[clientKey] ?? [];
-
-                    rows.forEach(({ nomenclature, comment }) => {
-                        const existingRow = clientRows.find(
-                            item => item.nomenclature === nomenclature,
-                        );
-
-                        if (existingRow) {
-                            existingRow.additionalComment = comment;
-                        } else {
-                            clientRows.push({
-                                nomenclature,
-                                additionalComment: comment,
-                            });
-                        }
-                    });
-
-                    comments[clientKey] = clientRows;
-                },
-            );
-
-            saveToLocalStorage(COMMENTS_STORAGE_KEY, comments);
-            localStorage.removeItem(ADDITIONAL_COMMENTS_STORAGE_KEY);
-        }
-
-        rowComments.value = comments;
-    } catch (error) {
-        console.error("Не удалось загрузить комментарии:", error);
-        rowComments.value = {};
-    }
-});
-
-watch(hiddenRows, rows => {
-    localStorage.setItem(
-        HIDDEN_ROWS_STORAGE_KEY,
-        JSON.stringify([...rows]),
-    );
-});
-
-const getClientKey = (row: DataObject): string => {
-    return String(row[CONST_TITLES.CURRENT_CLIENT] || "allHidden");
-};
-
 const getNomenclature = (row: DataObject): string => {
     return String(row[CONST_TITLES.ONE_C_NOMENCLATURE] || "");
 };
 
-const getCommentKey = (row: DataObject): string => {
+const getGeneralCommentKey = (row: DataObject): string => {
+    return normalize(getNomenclature(row));
+};
+
+const getClientCommentKey = (row: DataObject): string => {
+    const client = normalize(
+        props.clientsDemand?.[CONST_TITLES.CONTRAGENT],
+    );
+
     return JSON.stringify([
-        getClientKey(row),
-        getNomenclature(row),
+        client,
+        normalize(getNomenclature(row)),
     ]);
 };
 
 const getHiddenKey = (row: DataObject): string => {
+    const client = normalize(
+        props.clientsDemand?.[CONST_TITLES.CONTRAGENT],
+    );
+
     return JSON.stringify([
-        getClientKey(row),
-        getNomenclature(row),
+        client,
+        normalize(getNomenclature(row)),
     ]);
 };
 
@@ -237,19 +166,29 @@ const getStoredComment = (
     row: DataObject,
     field: CommentField,
 ): string => {
-    const clientKey = getClientKey(row);
-    const nomenclature = getNomenclature(row);
+    if (field === "comment") {
+        return rowComments.value[getGeneralCommentKey(row)] ?? "";
+    }
 
-    return rowComments.value[clientKey]?.find(
-        item => item.nomenclature === nomenclature,
-    )?.[field] ?? "";
+    return additionalComments.value[getClientCommentKey(row)] ?? "";
+};
+
+const getDraftKey = (
+    row: DataObject,
+    field: CommentField,
+): string => {
+    const commentKey = field === "comment"
+        ? getGeneralCommentKey(row)
+        : getClientCommentKey(row);
+
+    return JSON.stringify([commentKey, field]);
 };
 
 const getDraftComment = (
     row: DataObject,
     field: CommentField,
 ): string => {
-    const key = JSON.stringify([getCommentKey(row), field]);
+    const key = getDraftKey(row, field);
 
     return draftComments.value[key] ?? getStoredComment(row, field);
 };
@@ -259,7 +198,7 @@ const updateDraftComment = (
     field: CommentField,
     value: string,
 ) => {
-    const key = JSON.stringify([getCommentKey(row), field]);
+    const key = getDraftKey(row, field);
 
     draftComments.value[key] = value;
 };
@@ -268,60 +207,179 @@ const saveComment = (
     row: DataObject,
     field: CommentField,
 ) => {
-    const clientKey = getClientKey(row);
     const nomenclature = getNomenclature(row);
-    const draftKey = JSON.stringify([getCommentKey(row), field]);
-    const comment = capitalize(getDraftComment(row, field)).trim();
 
     if (!nomenclature) return;
 
-    const clientRows = [
-        ...(rowComments.value[clientKey] ?? []),
-    ];
+    const key = field === "comment"
+        ? getGeneralCommentKey(row)
+        : getClientCommentKey(row);
 
-    const index = clientRows.findIndex(
-        item => item.nomenclature === nomenclature,
-    );
+    const draftKey = getDraftKey(row, field);
+    const comment = capitalize(getDraftComment(row, field)).trim();
 
-    if (index === -1) {
-        if (comment) {
-            clientRows.push({
-                nomenclature,
-                [field]: comment,
-            });
-        }
-    } else {
-        const updatedRow = { ...clientRows[index] };
+    if (field === "comment") {
+        const nextComments = { ...rowComments.value };
 
         if (comment) {
-            updatedRow[field] = comment;
+            nextComments[key] = comment;
         } else {
-            delete updatedRow[field];
+            delete nextComments[key];
         }
 
-        if (updatedRow.comment || updatedRow.additionalComment) {
-            clientRows[index] = updatedRow;
-        } else {
-            clientRows.splice(index, 1);
-        }
-    }
-
-    const nextComments = { ...rowComments.value };
-
-    if (clientRows.length) {
-        nextComments[clientKey] = clientRows;
+        rowComments.value = nextComments;
+        saveToLocalStorage(COMMENTS_STORAGE_KEY, nextComments);
     } else {
-        delete nextComments[clientKey];
-    }
+        const nextComments = { ...additionalComments.value };
 
-    saveToLocalStorage(COMMENTS_STORAGE_KEY, nextComments);
-    rowComments.value = nextComments;
+        if (comment) {
+            nextComments[key] = comment;
+        } else {
+            delete nextComments[key];
+        }
+
+        additionalComments.value = nextComments;
+        saveToLocalStorage(
+            ADDITIONAL_COMMENTS_STORAGE_KEY,
+            nextComments,
+        );
+    }
 
     const nextDrafts = { ...draftComments.value };
     delete nextDrafts[draftKey];
     draftComments.value = nextDrafts;
 };
 
+const getRowClassName = (row: DataObject) => {
+    const hasClientDemand = Boolean(
+        props.clientsDemand &&
+        Object.keys(props.clientsDemand).length,
+    );
+
+    if (!hasClientDemand) return "";
+
+    return hiddenRows.value.has(getHiddenKey(row))
+        ? "hidden-row"
+        : "";
+};
+
+onMounted(() => {
+    try {
+        const savedComments = localStorage.getItem(COMMENTS_STORAGE_KEY);
+        const savedAdditionalComments = localStorage.getItem(
+            ADDITIONAL_COMMENTS_STORAGE_KEY,
+        );
+
+        const general: GeneralComments = {};
+        const clientSpecific: ClientComments = {};
+
+        if (savedComments) {
+            const parsed: Record<string, unknown> = JSON.parse(savedComments);
+
+            Object.entries(parsed).forEach(([key, value]) => {
+                if (typeof value === "string") {
+                    general[key] = value;
+                    return;
+                }
+
+                if (!Array.isArray(value)) return;
+
+                value.forEach((item: {
+                    nomenclature?: string;
+                    comment?: string;
+                    additionalComment?: string;
+                }) => {
+                    if (!item?.nomenclature) return;
+
+                    const nomenclatureKey = normalize(item.nomenclature);
+
+                    if (item.comment?.trim()) {
+                        general[nomenclatureKey] = item.comment;
+                    }
+
+                    if (item.additionalComment?.trim()) {
+                        const clientKey = JSON.stringify([
+                            normalize(key),
+                            nomenclatureKey,
+                        ]);
+
+                        clientSpecific[clientKey] = item.additionalComment;
+                    }
+                });
+            });
+        }
+
+        if (savedAdditionalComments) {
+            const parsed: Record<string, unknown> = JSON.parse(
+                savedAdditionalComments,
+            );
+
+            Object.entries(parsed).forEach(([key, value]) => {
+                if (typeof value === "string") {
+                    clientSpecific[key] = value;
+                    return;
+                }
+
+                if (!Array.isArray(value)) return;
+
+                value.forEach((item: {
+                    nomenclature?: string;
+                    comment?: string;
+                }) => {
+                    if (!item?.nomenclature || !item.comment?.trim()) return;
+
+                    const clientKey = JSON.stringify([
+                        normalize(key),
+                        normalize(item.nomenclature),
+                    ]);
+
+                    clientSpecific[clientKey] = item.comment;
+                });
+            });
+        }
+
+        rowComments.value = general;
+        additionalComments.value = clientSpecific;
+
+        saveToLocalStorage(COMMENTS_STORAGE_KEY, general);
+        saveToLocalStorage(
+            ADDITIONAL_COMMENTS_STORAGE_KEY,
+            clientSpecific,
+        );
+    } catch (error) {
+        console.error("Не удалось загрузить комментарии:", error);
+        rowComments.value = {};
+        additionalComments.value = {};
+    }
+
+    try {
+        const savedHiddenRows = localStorage.getItem(
+            HIDDEN_ROWS_STORAGE_KEY,
+        );
+
+        if (savedHiddenRows) {
+            hiddenRows.value = new Set(
+                JSON.parse(savedHiddenRows) as string[],
+            );
+        }
+    } catch (error) {
+        console.error("Не удалось загрузить скрытые позиции:", error);
+        hiddenRows.value = new Set();
+    }
+});
+
+const hiddenRowsCount = computed(() => {
+    return tableData.value.filter(row =>
+        hiddenRows.value.has(getHiddenKey(row)),
+    ).length;
+});
+
+watch(hiddenRows, rows => {
+    saveToLocalStorage(
+        HIDDEN_ROWS_STORAGE_KEY,
+        [...rows],
+    );
+});
 
 const getUniqueValues = (key: string) => {
     return [
@@ -331,9 +389,9 @@ const getUniqueValues = (key: string) => {
                 .filter(value =>
                     value !== null &&
                     value !== undefined &&
-                    value !== ""
+                    value !== "",
                 )
-                .map(value => String(value))
+                .map(value => String(value)),
         ),
     ]
         .sort((a, b) => a.localeCompare(b, "ru"))
@@ -369,14 +427,12 @@ const getAdditionalFields = (row: DataObject) => {
 const searchedData = computed(() => {
     const query = normalize(debouncedSearchQuery.value);
 
-    if (!query) {
-        return tableData.value;
-    }
-    
+    if (!query) return tableData.value;
+
     return tableData.value.filter(row =>
         searchableFields.some(key =>
-            normalize(row[key]).includes(query)
-        )
+            normalize(row[key]).includes(query),
+        ),
     );
 });
 
@@ -385,25 +441,23 @@ const displayedData = computed(() => {
     const demand = props.clientsDemand;
     const mode = sortingByPriorityField.value;
 
-    if (!demand || !mode) {
-        return data;
-    }
+    if (!demand || !mode) return data;
 
     const demandManager = normalize(
-        demand[CONST_TITLES.MANAGER]
+        demand[CONST_TITLES.MANAGER],
     );
 
     const demandClient = normalize(
-        demand[CONST_TITLES.CONTRAGENT]
+        demand[CONST_TITLES.CONTRAGENT],
     );
 
     return data.filter(row => {
         const rowManager = normalize(
-            row[CONST_TITLES.RESPONSIBLE_MANAGER]
+            row[CONST_TITLES.RESPONSIBLE_MANAGER],
         );
 
         const rowClient = normalize(
-            row[CONST_TITLES.CURRENT_CLIENT]
+            row[CONST_TITLES.CURRENT_CLIENT],
         );
 
         const sameManager = Boolean(demandManager && rowManager)
@@ -456,12 +510,10 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         key: CONST_TITLES.ONE_C_NOMENCLATURE,
         width: 130,
         sorter: "default",
-        filter: createFilter(
-            CONST_TITLES.ONE_C_NOMENCLATURE
-        ),
+        filter: createFilter(CONST_TITLES.ONE_C_NOMENCLATURE),
         filterMultiple: true,
         filterOptions: getUniqueValues(
-            CONST_TITLES.ONE_C_NOMENCLATURE
+            CONST_TITLES.ONE_C_NOMENCLATURE,
         ),
         resizable: true,
 
@@ -470,57 +522,61 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                 row[CONST_TITLES.ONE_C_NOMENCLATURE];
 
             const color = getProductColor(
-                nomenclature as string | undefined
+                nomenclature as string | undefined,
             );
 
-            return h("div", { class: "nomenclature-cell" }, 
-                [
-                    props.clientsDemand && Object.keys(props.clientsDemand).length
-                        ? h(
-                            NPopconfirm,
-                            {
-                                positiveText: hiddenRows.value.has(getHiddenKey(row))
-                                    ? "Показать"
-                                    : "Скрыть",
-                                negativeText: "Отмена",
-                                placement: "top",
-                                showIcon: false,
-                                onPositiveClick: () => toggleHidden(row),
-                            },
-                            {
-                                trigger: () => h("button", {
+            const isHidden = hiddenRows.value.has(getHiddenKey(row));
+
+            return h("div", { class: "nomenclature-cell" }, [
+                props.clientsDemand && Object.keys(props.clientsDemand).length
+                    ? h(
+                        NPopconfirm,
+                        {
+                            positiveText: isHidden ? "Показать" : "Скрыть",
+                            negativeText: "Отмена",
+                            placement: "top",
+                            showIcon: false,
+                            onPositiveClick: () => toggleHidden(row),
+                        },
+                        {
+                            trigger: () => h(
+                                "button",
+                                {
                                     class: [
                                         "hide-line",
-                                        hiddenRows.value.has(getHiddenKey(row)) &&
-                                            "hide-line--active",
+                                        isHidden && "hide-line--active",
                                     ],
-                                    title: hiddenRows.value.has(getHiddenKey(row))
+                                    title: isHidden
                                         ? "Убрать из скрытого"
                                         : "Скрыть",
-                                    onClick: (event: MouseEvent) => event.stopPropagation(),
-                                }, h(HideEyeIcon)),
-                                default: () => hiddenRows.value.has(getHiddenKey(row))
-                                    ? "Убрать номенклатуру из скрытых?"
-                                    : "Скрыть номенклатуру для этого клиента?",
-                            },
-                        )
-                        : null,
-                    h("span", 
-                        {
-                            class: "product-color",
-                            style: { backgroundColor: color },
-                        }
-                    ),
-                    h("span",
-                        {
-                            class: "nomenclature-value",
-                            title: nomenclature,
-                            onClick: () => copy(nomenclature, "Номенклатура скопирована"),
+                                    onClick: (event: MouseEvent) =>
+                                        event.stopPropagation(),
+                                },
+                                h(HideEyeIcon),
+                            ),
+                            default: () => isHidden
+                                ? "Убрать номенклатуру из скрытых?"
+                                : "Скрыть номенклатуру для этого клиента?",
                         },
-                        nomenclature || `-`,
-                    ),
-                ]
-            );
+                    )
+                    : null,
+                h("span", {
+                    class: "product-color",
+                    style: { backgroundColor: color },
+                }),
+                h(
+                    "span",
+                    {
+                        class: "nomenclature-value",
+                        title: nomenclature,
+                        onClick: () => copy(
+                            nomenclature,
+                            "Номенклатура скопирована",
+                        ),
+                    },
+                    nomenclature || "-",
+                ),
+            ]);
         },
     },
     {
@@ -528,30 +584,22 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         key: CONST_TITLES.RESPONSIBLE_MANAGER,
         width: 55,
         sorter: "default",
-        filter: createFilter(
-            CONST_TITLES.RESPONSIBLE_MANAGER
-        ),
+        filter: createFilter(CONST_TITLES.RESPONSIBLE_MANAGER),
         filterMultiple: true,
         filterOptions: getUniqueValues(
-            CONST_TITLES.RESPONSIBLE_MANAGER
+            CONST_TITLES.RESPONSIBLE_MANAGER,
         ),
         resizable: true,
-
-        render: (row) => row[CONST_TITLES.RESPONSIBLE_MANAGER] || "-"
+        render: row => row[CONST_TITLES.RESPONSIBLE_MANAGER] || "-",
     },
-
     {
         title: "Филиал",
         key: CONST_TITLES.BRANCH,
         width: 45,
         sorter: "default",
-        filter: createFilter(
-            CONST_TITLES.BRANCH
-        ),
+        filter: createFilter(CONST_TITLES.BRANCH),
         filterMultiple: true,
-        filterOptions: getUniqueValues(
-            CONST_TITLES.BRANCH
-        ),
+        filterOptions: getUniqueValues(CONST_TITLES.BRANCH),
         resizable: true,
     },
     {
@@ -559,26 +607,88 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         key: CONST_TITLES.CURRENT_CLIENT,
         width: 120,
         sorter: "default",
-        filter: createFilter(
-            CONST_TITLES.CURRENT_CLIENT
-        ),
+        filter: createFilter(CONST_TITLES.CURRENT_CLIENT),
         filterMultiple: true,
-        filterOptions: getUniqueValues(
-            CONST_TITLES.CURRENT_CLIENT
-        ),
+        filterOptions: getUniqueValues(CONST_TITLES.CURRENT_CLIENT),
         resizable: true,
 
         render: row => {
             const client = row[CONST_TITLES.CURRENT_CLIENT];
-            return client ? h(
-                "span",
+
+            const unsuitableComment = getStoredComment(
+                row,
+                "additionalComment",
+            ).trim();
+
+            const nomenclatureComment = getStoredComment(
+                row,
+                "comment",
+            ).trim();
+
+            const hasClientDemand = Boolean(
+                props.clientsDemand &&
+                Object.keys(props.clientsDemand).length,
+            );
+
+            const createCommentIcon = (
+                comment: string,
+                type: "unsuitable" | "nomenclature",
+            ) => h(
+                NTooltip,
                 {
-                    class: "client-copyable-text",
-                    title: client,
-                    onClick: () => copy(client, "Клиент скопирован"),
+                    placement: "top",
+                    trigger: "hover",
                 },
-                cutOverflowedText(client, 30)
-            ) : h("span", {style: {marginLeft: "10px"}}, `-`);
+                {
+                    trigger: () => h(
+                        "span",
+                        {
+                            class: "comment-icon-wrapper",
+                        },
+                        [
+                            h(CommentIcon, {
+                                class: [
+                                    "comment-icon",
+                                    `comment-icon--${type}`,
+                                    comment
+                                        ? "comment-icon--active"
+                                        : "comment-icon--empty",
+                                ],
+                            }),
+                        ],
+                    ),
+                    default: () => comment || "Комментарий отсутствует",
+                },
+            );
+
+            return h("div", { class: "client-cell" }, [
+                hasClientDemand
+                    ? createCommentIcon(
+                        unsuitableComment,
+                        "unsuitable",
+                    )
+                    : null,
+
+                createCommentIcon(
+                    nomenclatureComment,
+                    "nomenclature",
+                ),
+
+                client
+                    ? h(
+                        "span",
+                        {
+                            class: "client-copyable-text",
+                            title: client,
+                            onClick: () => copy(
+                                client,
+                                "Клиент скопирован",
+                            ),
+                        },
+                        cutOverflowedText(client, 30),
+                    )
+                    : h("span", "-"),
+            ]);
         },
     },
     {
@@ -586,18 +696,14 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         key: CONST_TITLES.UNDERSOLDED_COST,
         width: 40,
         resizable: true,
-
-        sorter: (rowA, rowB) => {
-            return (
-                handleFormatNumber(rowA[CONST_TITLES.UNDERSOLDED_COST]) - 
-                handleFormatNumber(rowB[CONST_TITLES.UNDERSOLDED_COST])
-            )
-        },
-
+        sorter: (rowA, rowB) =>
+            handleFormatNumber(rowA[CONST_TITLES.UNDERSOLDED_COST]) -
+            handleFormatNumber(rowB[CONST_TITLES.UNDERSOLDED_COST]),
         render: row => {
             const cost = formatNumber(
-                row[CONST_TITLES.UNDERSOLDED_COST]
+                row[CONST_TITLES.UNDERSOLDED_COST],
             );
+
             return cost ? `${cost} р.` : "-";
         },
     },
@@ -605,12 +711,10 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         title: "Дата привоза",
         key: CONST_TITLES.DELIVERY_DATE,
         width: 50,
-
         sorter: (rowA, rowB) =>
             (toTimestamp(rowA?.[CONST_TITLES.DELIVERY_DATE]) ?? 0) -
             (toTimestamp(rowB?.[CONST_TITLES.DELIVERY_DATE]) ?? 0),
-
-        render: (row) => row[CONST_TITLES.DELIVERY_DATE] || "-"
+        render: row => row[CONST_TITLES.DELIVERY_DATE] || "-",
     },
     {
         title: "Жёсткость",
@@ -618,41 +722,31 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         width: 60,
         resizable: true,
         filterMultiple: true,
-
-        filter: createFilter(
-            CONST_TITLES.HARDNESS
-        ),
-
-        filterOptions: getUniqueValues(
-            CONST_TITLES.HARDNESS
-        ),
-
+        filter: createFilter(CONST_TITLES.HARDNESS),
+        filterOptions: getUniqueValues(CONST_TITLES.HARDNESS),
         sorter: (rowA, rowB) =>
             (toTimestamp(rowA?.[CONST_TITLES.DELIVERY_DATE]) ?? 0) -
             (toTimestamp(rowB?.[CONST_TITLES.DELIVERY_DATE]) ?? 0),
-
         render: row => {
-            const days =
-                row[CONST_TITLES.DAYS_SINCE_DELIVERY];
+            const days = row[CONST_TITLES.DAYS_SINCE_DELIVERY];
+            const hardness = row[CONST_TITLES.HARDNESS];
 
-            const hardness =
-                row[CONST_TITLES.HARDNESS];
-
-            return h("div",
-                { class: "hardness-cell" },
-                [ 
-                    h("span",
-                        {
-                            class: "hardness-value",
-                            style: {color: getHardnessColor(days)},
-                        }, hardness || "-"),
-                    h("br"),
-                    h("span",
-                        {class: "hardness-days"},
-                        `(${days ?? 0} ${setDaysText(days)})`
-                    ),
-                ]
-            );
+            return h("div", { class: "hardness-cell" }, [
+                h(
+                    "span",
+                    {
+                        class: "hardness-value",
+                        style: { color: getHardnessColor(days) },
+                    },
+                    hardness || "-",
+                ),
+                h("br"),
+                h(
+                    "span",
+                    { class: "hardness-days" },
+                    `(${days ?? 0} ${setDaysText(days)})`,
+                ),
+            ]);
         },
     },
     {
@@ -660,43 +754,37 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         key: CONST_TITLES.REMAINDER_BOXES_1C,
         width: 40,
         resizable: true,
-
-        sorter: (rowA, rowB) => {
-            return (
-                handleFormatNumber(rowA[CONST_TITLES.REMAINDER_BOXES_1C]) -
-                handleFormatNumber(rowB[CONST_TITLES.REMAINDER_BOXES_1C])
-            )
-        },
-
+        sorter: (rowA, rowB) =>
+            handleFormatNumber(rowA[CONST_TITLES.REMAINDER_BOXES_1C]) -
+            handleFormatNumber(rowB[CONST_TITLES.REMAINDER_BOXES_1C]),
         render: row => {
             const remainder = trimTrailingZeros(
-                row[CONST_TITLES.REMAINDER_BOXES_1C]
+                row[CONST_TITLES.REMAINDER_BOXES_1C],
             );
-            return  Number(remainder) !== 0 ? `${remainder} кор.` : "-";
+
+            return Number(remainder) !== 0 ? `${remainder} кор.` : "-";
         },
     },
-
     {
         title: "Недопрод.",
         key: CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW,
         width: 40,
         resizable: true,
-
-        sorter: (rowA, rowB) => {
-            return (
-                handleFormatNumber(rowA[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW]) -
-                handleFormatNumber(rowB[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW])
-            )  
-        },
-
+        sorter: (rowA, rowB) =>
+            handleFormatNumber(
+                rowA[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW],
+            ) -
+            handleFormatNumber(
+                rowB[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW],
+            ),
         render: row => {
             const remainder = trimTrailingZeros(
-                row[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW]
+                row[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW],
             );
+
             return Number(remainder) !== 0 ? `${remainder} кор.` : "-";
         },
     },
-
     {
         type: "expand",
         width: 20,
@@ -704,65 +792,76 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
 
         renderExpand: row =>
             h("div", { class: "expanded-row-content" }, [
-                h("div", { class: "row-comment-control" }, [
-                    h(NInput, {
-                        value: getDraftComment(row, "additionalComment"),
-                        size: "small",
-                        placeholder: "Причины почему позиция не подходит",
-                        type: "textarea",
-                        autosize: { minRows: 1, maxRows: 4 },
-                        class: "row-comment-input",
-                        onUpdateValue: (value: string) => {
-                            updateDraftComment(row, "additionalComment", value);
-                        },
-                    }),
-                    h(NButton, {
-                        size: "small",
-                        type: "primary",
-                        class: "row-comment-save button-unsuitable",
-                        disabled:
-                            getDraftComment(row, "additionalComment") ===
-                            getStoredComment(row, "additionalComment"),
-                        onClick: () => saveComment(row, "additionalComment"),
-                    }, {
-                        default: () => "Сохранить",
-                    }),
-                ]),
-
+                (props.clientsDemand?.[CONST_TITLES.CONTRAGENT]
+                    ? [
+                        h("div", { class: "row-comment-control" }, [
+                            h(NInput, {
+                                value: getDraftComment(row, "additionalComment"),
+                                size: "small",
+                                placeholder: "Причины почему позиция не подходит",
+                                type: "textarea",
+                                autosize: { minRows: 1, maxRows: 4 },
+                                class: "row-comment-input",
+                                onUpdateValue: (value: string) => {
+                                    updateDraftComment(row, "additionalComment", value);
+                                },
+                            }),
+                            h(NButton, {
+                                size: "small",
+                                type: "primary",
+                                class: "row-comment-save button-unsuitable",
+                                disabled:
+                                    getDraftComment(row, "additionalComment") ===
+                                    getStoredComment(row, "additionalComment"),
+                                onClick: () => saveComment(row, "additionalComment"),
+                            }, {
+                                default: () => "Сохранить",
+                            }),
+                        ]),
+                    ]
+                    : []),
                 h(InterchangeableAdditionalInfo, {
                     fields: getAdditionalFields(row),
                 }),
-
-                h("div", { class: "row-comment-control row-comment-control-bottom" }, [
-                    h(NInput, {
-                        value: getDraftComment(row, "comment"),
-                        size: "small",
-                        placeholder: "Добавить комментарий...",
-                        type: "textarea",
-                        autosize: { minRows: 1, maxRows: 4 },
-                        class: "row-comment-input",
-                        onUpdateValue: (value: string) => {
-                            updateDraftComment(row, "comment", value);
-                        },
-                    }),
-                    h(NButton, {
-                        size: "small",
-                        type: "primary",
-                        class: "row-comment-save",
-                        disabled:
-                            getDraftComment(row, "comment") ===
-                            getStoredComment(row, "comment"),
-                        onClick: () => saveComment(row, "comment"),
-                    }, {
-                        default: () => "Сохранить",
-                    }),
-                ]),
+                h(
+                    "div",
+                    {
+                        class: "row-comment-control row-comment-control-bottom",
+                    },
+                    [
+                        h(NInput, {
+                            value: getDraftComment(row, "comment"),
+                            size: "small",
+                            placeholder: "Добавить комментарий...",
+                            type: "textarea",
+                            autosize: { minRows: 1, maxRows: 4 },
+                            class: "row-comment-input",
+                            onUpdateValue: (value: string) => {
+                                updateDraftComment(row, "comment", value);
+                            },
+                        }),
+                        h(NButton, {
+                            size: "small",
+                            type: "primary",
+                            class: "row-comment-save",
+                            disabled:
+                                getDraftComment(row, "comment") ===
+                                getStoredComment(row, "comment"),
+                            onClick: () => saveComment(row, "comment"),
+                        }, {
+                            default: () => "Сохранить",
+                        }),
+                    ],
+                ),
             ]),
     },
 ]);
 
 const handleUpdateFilters = (
-    filters: Record<string, (string | number)[] | string | number | undefined | null>
+    filters: Record<
+        string,
+        (string | number)[] | string | number | undefined | null
+    >,
 ) => {
     activeFilters.value = filters;
 };
@@ -774,6 +873,28 @@ const filterableKeys = [
     CONST_TITLES.CURRENT_CLIENT,
     CONST_TITLES.HARDNESS,
 ];
+
+const visibleData = computed(() => {
+    const hasClientDemand = Boolean(
+        props.clientsDemand &&
+        Object.keys(props.clientsDemand).length,
+    );
+
+    return displayedData.value.filter(row => {
+        const isHidden = hiddenRows.value.has(getHiddenKey(row));
+
+        if (!hasClientDemand) return true;
+
+        switch (hiddenRowsMode.value) {
+        case "all":
+            return true;
+        case "visible":
+            return !isHidden;
+        case "hidden":
+            return isHidden;
+        }
+    });
+});
 
 const displayedCount = computed(() => {
     return visibleData.value.filter(row => {
@@ -787,6 +908,7 @@ const displayedCount = computed(() => {
             ) {
                 return true;
             }
+
             const values = Array.isArray(selectedValues)
                 ? selectedValues
                 : [selectedValues];
@@ -794,30 +916,6 @@ const displayedCount = computed(() => {
             return values.some(value => createFilter(key)(value, row));
         });
     }).length;
-});
-
-const visibleData = computed(() => {
-    const hasClientDemand = Boolean(
-        props.clientsDemand &&
-        Object.keys(props.clientsDemand).length
-    );
-
-    return displayedData.value.filter(row => {
-        const isHidden = hiddenRows.value.has(getHiddenKey(row));
-
-        if (!hasClientDemand) {
-            return true;
-        }
-
-        switch (hiddenRowsMode.value) {
-        case "all":
-            return true;
-        case "visible":
-            return !isHidden;
-        case "hidden":
-            return isHidden;
-        }
-    });
 });
 
 const clearFilters = () => {
@@ -838,7 +936,6 @@ const scrollPageToTop = () => {
     });
 };
 </script>
-
 <template>
     <div class="result-container">
         <div
@@ -880,14 +977,32 @@ const scrollPageToTop = () => {
                             v-if="clientsDemand && Object.keys(clientsDemand).length"
                             class="triple-toggle"
                         >
-                            <button
+                            <template
                                 v-for="(option, index) in hiddenRowsOptions"
                                 :key="option.value + index"
-                                :class="{ active: hiddenRowsMode === option.value }"
-                                @click="hiddenRowsMode = option.value"
                             >
-                                {{ option.label }}
-                            </button>
+                                <NBadge
+                                    v-if="option.value === 'hidden'"
+                                    :value="hiddenRowsCount"
+                                    :show="hiddenRowsCount > 0"
+                                    :offset="[0, 2]"
+                                >
+                                    <button
+                                        :class="{ active: hiddenRowsMode === option.value }"
+                                        @click="hiddenRowsMode = option.value"
+                                    >
+                                        {{ option.label }}
+                                    </button>
+                                </NBadge>
+
+                                <button
+                                    v-else
+                                    :class="{ active: hiddenRowsMode === option.value }"
+                                    @click="hiddenRowsMode = option.value"
+                                >
+                                    {{ option.label }}
+                                </button>
+                            </template>
                         </div>
                     </NSpace>
 
@@ -1081,6 +1196,46 @@ const scrollPageToTop = () => {
     font-size: 12px;
 }
 
+:deep(.client-cell) {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+:deep(.comment-icon-wrapper) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: help;
+}
+
+:deep(.comment-icon) {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+:deep(.comment-icon--unsuitable.comment-icon--active) {
+    color: #e05252;
+}
+
+:deep(.comment-icon--nomenclature.comment-icon--active) {
+    color: #3569a8;
+}
+
+:deep(.comment-icon--empty) {
+    color: #a0a0a0;
+}
+
+:deep(.client-copyable-text) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .row-comment-control :deep(.n-input__border),
 .row-comment-control :deep(.n-input__state-border) {
     display: none;
@@ -1107,6 +1262,17 @@ const scrollPageToTop = () => {
 }
 :deep(.hidden-row td) {
     opacity: 0.5;
+}
+
+:deep(.n-badge-sup) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    line-height: 1;
+    min-width: 11px;
+    height: 14px;
+    padding: 0 2px;
 }
 
 .triple-toggle {
