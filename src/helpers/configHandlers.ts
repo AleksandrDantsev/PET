@@ -40,12 +40,34 @@ const ch = {
 
         if (!managers || !branches) return null;
 
+        const normalize = (value: string | number): string =>
+            String(value)
+                .normalize("NFC")
+                .trim()
+                .replace(/\s+/g, " ");
+
+        const normalizeKey = (value: string): string =>
+            normalize(value)
+                .toLocaleLowerCase("ru-RU")
+                .replace(/ё/g, "е");
+
         const result: Record<string, string> = {};
+        const seenManagers = new Set<string>();
 
         managers.forEach((manager, index) => {
-            if (String(manager).trim() === "") return;
+            const normalizedManager = normalize(manager as string);
 
-            result[String(manager).trim()] = String(branches[index] ?? "");
+            if (!normalizedManager) return;
+
+            const managerKey = normalizeKey(normalizedManager);
+
+            // Не допускаем логические дубли менеджеров.
+            if (seenManagers.has(managerKey)) return;
+
+            const normalizedBranch = normalize((branches[index] ?? "") as string);
+
+            seenManagers.add(managerKey);
+            result[normalizedManager] = normalizedBranch;
         });
 
         return result;
