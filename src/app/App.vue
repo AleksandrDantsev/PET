@@ -3,6 +3,7 @@ import { api } from "@/api/api";
 import { ref, onMounted, defineAsyncComponent } from "vue"
 import type { IGoogleTableData } from "../types/TableSheetData";
 import AppErrorPanel from "@/components/common/AppErrorPanel.vue";
+import { ID_LIST } from "@/configs/ID_LIST";
 import { LocalStorage } from "@/utils/localStorage";
 import { 
     NConfigProvider,
@@ -48,21 +49,21 @@ onMounted(async () => {
         interchangeableData,
     ] = await Promise.all([
         api.google
-            .getSheetValuesById(358090170)
+            .getSheetValuesById(ID_LIST.actual)
             .catch(error => {
                 reportAppError("Ошибка загрузки листа недопроданного", error);
                 return null;
             }),
 
         api.google
-            .getSheetValuesById(581263708)
+            .getSheetValuesById(ID_LIST.config)
             .catch(error => {
                 reportAppError("Ошибка загрузки листа конфигурации", error);
                 return null;
             }),
 
         api.google
-            .getSheetValuesById(517769516)
+            .getSheetValuesById(ID_LIST.interchangeable)
             .catch(error => {
                 reportAppError("Ошибка загрузки листа базы данных с потребностью клиента", error);
                 return null;
