@@ -8,7 +8,7 @@ function normalize(
         .replace(/\u00A0/g, " ")
         .replace(/\s+/g, " ")
         .replace(/[‐-‒–—−]/g, "-")
-        .replace(/ё/gi, "е")
+        .replace(/[ёЁ]/g, char => char === "Ё" ? "Е" : "е")
         .trim()
 
     return toLowerRegister === false ? result : result.toLowerCase();
@@ -100,18 +100,14 @@ function formatDate(timestamp: number | null | undefined): string {
         return "";
     }
 
-    return new Date(timestamp).toLocaleDateString("ru-RU");
+    const date = new Date(timestamp);
+
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    return date.toLocaleDateString("ru-RU");
 }
-
-
-function hasValue<T>(value: T): boolean {
-    return (
-        value !== null &&
-        value !== undefined &&
-        value !== ""
-    );
-};
-
 
 function trimTrailingZeros(
     value: string | number | null | undefined
@@ -134,24 +130,29 @@ function cutOverflowedText(
     if (!value) {
         return "";
     }
+
     const stringValue = String(value);
 
-    if (stringValue.length >= quantityLetter) {
+    if (quantityLetter < 0) {
+        return value;
+    }
+
+    if (stringValue.length > quantityLetter) {
         return stringValue.slice(0, quantityLetter) + "...";
     }
-    else return stringValue;
+
+    return stringValue;
 }
 
 
 function setDaysText(
     days: string | number | undefined
 ): string {
-
     if (!days) {
         return "";
     }
 
-    days = Number(days);
+    days = Math.abs(Number(days));
 
     const lastTwoDigits = days % 100;
     const lastDigit = days % 10;
@@ -172,7 +173,7 @@ function setDaysText(
 }
 
 
-function formatNumber(
+function formatCost(
     value: string | number | undefined
 ): string {
     if (value === undefined || value === null || value === "") {
@@ -213,11 +214,10 @@ export {
     normalizeForSorting,
     toNumber,
     toTimestamp,
-    hasValue,
     trimTrailingZeros,
     cutOverflowedText,
     setDaysText,
-    formatNumber,
+    formatCost,
     handleFormatNumber,
     formatDate,
 };

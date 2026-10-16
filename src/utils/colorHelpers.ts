@@ -131,6 +131,12 @@ export function setColorText(
     text: string | number | undefined
 ) {
     const normalizedText = normalize(text);
+    if (!text || String(text).trim() === "") {
+        return [{
+            colorName: "-",
+            color: "inherit",
+        }];
+    }
 
     if (
         text == "" || 
