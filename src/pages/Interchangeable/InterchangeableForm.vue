@@ -5,8 +5,9 @@ import { useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
 import SaveIcon from "@/components/icons/SaveIcon.vue";
 import { MANAGERS_BRANCHES, CONTRAGENTS, CONST_TITLES } from "@/configs/CONFIG_CONST";
+import { ID_LIST } from "@/configs/ID_LIST";
+import { check } from "@/helpers/checkInterchangeablePositions";
 import { api } from "@/api/api";
-// import type { IGoogleTableData } from "../../types/TableSheetData";
 import {
     NAutoComplete,
     NButton,
@@ -20,7 +21,6 @@ import {
 } from "naive-ui";
 
 const props = defineProps<{
-    // actualData?: IGoogleTableData | null;
     search: (value: Record<string, string>) => void;
 }>();
 
@@ -33,7 +33,19 @@ const searchRules: FormRules = {
 
     contragent: {
         required: true,
-        message: "Выберите контрагента",
+        validator: (_rule, value: string) => {
+            if (!value?.trim()) {
+                return new Error("Выберите контрагента");
+            }
+
+            if (!findContragent(value)) {
+                return new Error(
+                    "Контрагент не найден. Выберите значение из списка"
+                );
+            }
+
+            return true;
+        },
         trigger: ["blur", "input", "change"],
     },
 };
@@ -137,6 +149,18 @@ watch(
     }
 );
 
+const findContragent = (
+    inputName: string | null | undefined,
+): string | undefined => {
+    if (!inputName?.trim() || !CONTRAGENTS) {
+        return undefined;
+    }
+
+    return Object.keys(CONTRAGENTS).find(listName =>
+        check.checkContragent(listName, inputName)
+    );
+};
+
 const managerOptions = computed(() =>
     Object.keys(MANAGERS_BRANCHES ?? {}).map(manager => ({
         label: manager,
@@ -185,9 +209,9 @@ const returnInputValues = async () => {
         return;
     }
 
-    if (isSearched.value) {
-        return;
-    }
+    const contragent = findContragent(formValue.contragent);
+    if (!contragent || isSearched.value) return;
+
     isSearched.value = true;
 
     setTimeout(() => {
@@ -196,7 +220,7 @@ const returnInputValues = async () => {
 
     props.search({
         nomenclature: formValue.nomenclature,
-        contragent: formValue.contragent,
+        contragent,
         manager: formValue.manager,
         branch: formValue.branch,
         date: formValue.date?.toString() ?? "",
@@ -205,6 +229,7 @@ const returnInputValues = async () => {
         quantity: formValue.quantity?.toString() ?? "",
         dateOfDelivery: formValue.dateOfDelivery?.toString() ?? "",
     });
+
     window.scrollTo(0, 0);
 };
 
@@ -251,7 +276,7 @@ const save = async () => {
 
     try {
         await api.google.appendToGoogleSheet(
-            1671143802,
+            ID_LIST.passport,
             {
                 [CONST_TITLES.NOMENCLATURE]: formValue.nomenclature,
                 [CONST_TITLES.CLIENT]: formValue.contragent,
