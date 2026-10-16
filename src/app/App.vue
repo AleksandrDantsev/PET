@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import { api } from "@/api/api";
-import { ref, onMounted } from "vue"
+import { ref, onMounted, defineAsyncComponent } from "vue"
 import type { IGoogleTableData } from "../types/TableSheetData";
-import InterchangeablePage from "@/pages/Interchangeable/InterchangeablePage.vue";
+import AppErrorPanel from "@/components/common/AppErrorPanel.vue";
 import { LocalStorage } from "@/utils/localStorage";
-import { NConfigProvider, NMessageProvider, NGlobalStyle, ruRU } from "naive-ui";
+import { 
+    NConfigProvider,
+    NMessageProvider,
+    NNotificationProvider,
+    NGlobalStyle,
+    ruRU,
+} from "naive-ui";
 import { themeOverrides,  } from "@/theme/naiveTheme";
 import UpButton from "@/components/common/UpButton.vue";
+import { reportAppError } from "@/utils/appErrors";
+
+const InterchangeablePage = defineAsyncComponent(
+    () => import("@/pages/Interchangeable/InterchangeablePage.vue")
+);
 
 const ACTUAL_DATA = ref<IGoogleTableData | null>(null);
 const INTERCHANGEABLE_DATA = ref<IGoogleTableData | null>(null);
@@ -39,21 +50,21 @@ onMounted(async () => {
         api.google
             .getSheetValuesById(358090170)
             .catch(error => {
-                console.error("actualData error:", error);
+                reportAppError("Ошибка загрузки листа недопроданного", error);
                 return null;
             }),
 
         api.google
             .getSheetValuesById(581263708)
             .catch(error => {
-                console.error("configData error:", error);
+                reportAppError("Ошибка загрузки листа конфигурации", error);
                 return null;
             }),
 
         api.google
             .getSheetValuesById(517769516)
             .catch(error => {
-                console.error("interchangeableData error:", error);
+                reportAppError("Ошибка загрузки листа базы данных с потребностью клиента", error);
                 return null;
             }),
     ]);
@@ -84,17 +95,20 @@ onMounted(async () => {
         :theme-overrides="themeOverrides" 
         :locale="ruRU"
     >
-        <n-message-provider>
-            <n-global-style />
-            <div>
-                <InterchangeablePage
-                    v-if="ACTUAL_DATA && INTERCHANGEABLE_DATA"
-                    :actual-data="ACTUAL_DATA" 
-                    :interchangeable-data="INTERCHANGEABLE_DATA"
-                />
-            </div>
-            <UpButton />
-        </n-message-provider>
+        <n-notification-provider placement="bottom-right">
+            <n-message-provider>
+                <n-global-style />
+                <AppErrorPanel />
+                <div>
+                    <InterchangeablePage
+                        v-if="ACTUAL_DATA && INTERCHANGEABLE_DATA"
+                        :actual-data="ACTUAL_DATA" 
+                        :interchangeable-data="INTERCHANGEABLE_DATA"
+                    />
+                </div>
+                <UpButton />
+            </n-message-provider>
+        </n-notification-provider>
     </n-config-provider>
 </template>
 
