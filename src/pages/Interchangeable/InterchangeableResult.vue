@@ -582,7 +582,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         title: "Менеджер",
         key: CONST_TITLES.RESPONSIBLE_MANAGER,
-        width: 55,
+        width: 45,
         sorter: "default",
         filter: createFilter(CONST_TITLES.RESPONSIBLE_MANAGER),
         filterMultiple: true,
@@ -605,7 +605,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         title: "Клиент",
         key: CONST_TITLES.CURRENT_CLIENT,
-        width: 120,
+        width: 125,
         sorter: "default",
         filter: createFilter(CONST_TITLES.CURRENT_CLIENT),
         filterMultiple: true,
