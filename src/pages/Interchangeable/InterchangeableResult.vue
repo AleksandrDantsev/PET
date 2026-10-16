@@ -62,8 +62,7 @@ const draftComments = ref<Record<string, string>>({});
 const hiddenRows = ref<Set<string>>(new Set());
 
 const activeFilters = ref<
-    Record<string, (string | number)[] | string | number | undefined | null>
->({});
+    Record<string, (string | number)[] | string | number | undefined | null>>({});
 
 const tableRef = ref<DataTableInst | null>(null);
 const debouncedSearchQuery = ref(searchQuery.value);

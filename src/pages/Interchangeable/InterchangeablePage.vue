@@ -7,10 +7,7 @@ import InterchangeableResult from "./InterchangeableResult.vue";
 import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
 import { check } from "@/helpers/checkInterchangeablePositions.ts";
 import { ih } from "@/helpers/interchangeableFilters.ts";
-
-import {
-    NEmpty
-} from "naive-ui";
+import { NEmpty } from "naive-ui";
 
 const props = defineProps<{
     actualData?: IGoogleTableData | null;
