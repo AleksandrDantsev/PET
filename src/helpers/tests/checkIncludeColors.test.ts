@@ -98,7 +98,111 @@ describe("checkIncludeColors", () => {
             ).toBe(false);
         });
     });
+    describe("Дополнительные ветви checkIncludeColors", () => {
+        describe("Проверка типов входных данных", () => {
+            it("возвращает false, если входные цвета не являются массивом", () => {
+                expect(
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    check.checkIncludeColors("бел", null as any),
+                ).toBe(false);
 
+                expect(
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    check.checkIncludeColors("бел", "Крышка белая" as any),
+                ).toBe(false);
+            });
+
+            it("возвращает false, если искомый цвет — массив пустых значений", () => {
+                expect(
+                    check.checkIncludeColors(
+                        ["", "   "],
+                        ["Крышка белая"],
+                    ),
+                ).toBe(false);
+            });
+
+            it("игнорирует пустые элементы массива искомых цветов", () => {
+                expect(
+                    check.checkIncludeColors(
+                        ["", "   ", "бел"],
+                        ["Крышка белая"],
+                    ),
+                ).toBe(true);
+            });
+        });
+
+        describe("Составной бело-жёлтый цвет", () => {
+            it.each([
+                ["бел-желт", "Крышка бело-желтый", true],
+                ["бел-желт", "Крышка бело желтый", true],
+                ["бел-желт", "Крышка бело   желтый", true],
+                ["бел-желт", "Крышка белая", false],
+                ["бел-желт", "Крышка желтая", false],
+                ["бел", "Крышка бело-желтый", false],
+                ["желт", "Крышка бело-желтый", false],
+            ])("%s в названии «%s» → %s", (color, input, expected) => {
+                expect(
+                    check.checkIncludeColors(color, [input]),
+                ).toBe(expected);
+            });
+
+            it("находит обычный белый цвет рядом с составным", () => {
+                expect(
+                    check.checkIncludeColors(
+                        "бел",
+                        ["Крышка бело-желтый, дополнительная белая"],
+                    ),
+                ).toBe(true);
+            });
+
+            it("находит обычный жёлтый цвет рядом с составным", () => {
+                expect(
+                    check.checkIncludeColors(
+                        "желт",
+                        ["Крышка бело-желтый, дополнительная желтая"],
+                    ),
+                ).toBe(true);
+            });
+
+            it("находит составной цвет среди нескольких входных названий", () => {
+                expect(
+                    check.checkIncludeColors(
+                        "бел-желт",
+                        ["Крышка красная", "Крышка бело-желтый"],
+                    ),
+                ).toBe(true);
+            });
+        });
+
+        describe("Несколько цветов в одном названии", () => {
+            it("находит любой из искомых цветов в названии", () => {
+                expect(
+                    check.checkIncludeColors(
+                        ["зелен", "красн"],
+                        ["Крышка красная и зеленая"],
+                    ),
+                ).toBe(true);
+            });
+
+            it("не считает составной цвет обычным белым или жёлтым", () => {
+                expect(
+                    check.checkIncludeColors(
+                        ["бел", "желт"],
+                        ["Крышка бело-желтый"],
+                    ),
+                ).toBe(false);
+            });
+
+            it("возвращает false, если ни один цвет не совпадает", () => {
+                expect(
+                    check.checkIncludeColors(
+                        ["син", "голуб"],
+                        ["Крышка красная", "Крышка желтая"],
+                    ),
+                ).toBe(false);
+            });
+        });
+    });
     describe("Пустые и отсутствующие значения", () => {
         it.each([
             [null, ["Крышка белая"]],

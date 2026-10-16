@@ -34,6 +34,87 @@ describe("checkContragent", () => {
         });
     });
 
+    describe("Дополнительные ветви checkContragent", () => {
+        describe("Пустые слова после нормализации", () => {
+            it("возвращает false, если название состоит только из знаков препинания", () => {
+                expect(
+                    check.checkContragent("!!!", "Ромашка"),
+                ).toBe(false);
+            });
+
+            it("возвращает false, если оба названия после нормализации пустые", () => {
+                expect(
+                    check.checkContragent("!!!", "..."),
+                ).toBe(false);
+            });
+        });
+
+        describe("Короткие слова", () => {
+            it("сопоставляет одинаковые короткие слова", () => {
+                expect(
+                    check.checkContragent("Кот", "Кот"),
+                ).toBe(true);
+            });
+
+            it("не сопоставляет разные короткие слова", () => {
+                expect(
+                    check.checkContragent("Кот", "Код"),
+                ).toBe(false);
+            });
+        });
+
+        describe("Длинные слова и расстояние Левенштейна", () => {
+            it("допускает опечатку в слове длиннее 10 символов", () => {
+                expect(
+                    check.checkContragent(
+                        "abcdefghijklmnop",
+                        "abxdefghijklmnop",
+                    ),
+                ).toBe(true);
+            });
+
+            it("не допускает более двух ошибок в длинном слове", () => {
+                expect(
+                    check.checkContragent(
+                        "abcdefghijklmnop",
+                        "abxdefghijxlxnop",
+                    ),
+                ).toBe(false);
+            });
+        });
+
+        describe("Подбор лучшего совпадения", () => {
+            it("выбирает более точное совпадение среди нескольких кандидатов", () => {
+                expect(
+                    check.checkContragent(
+                        "Ромашка Север",
+                        "Ромашки Ромашка Юг Севера",
+                    ),
+                ).toBe(true);
+            });
+        });
+
+        describe("Направление проверки вхождения", () => {
+            it("принимает название из списка как подстроку входного названия", () => {
+                expect(
+                    check.checkContragent(
+                        "Альфа",
+                        "Группа Альфа",
+                    ),
+                ).toBe(true);
+            });
+
+            it("не принимает обратное вхождение, если слова не совпадают", () => {
+                expect(
+                    check.checkContragent(
+                        "Группа Альфа",
+                        "Альфа",
+                    ),
+                ).toBe(false);
+            });
+        });
+    });
+
     describe("Организационно-правовые формы", () => {
         it.each([
             ["ООО Ромашка", "Ромашка"],
