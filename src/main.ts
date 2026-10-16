@@ -2,8 +2,14 @@
 import "@/assets/styles/normalize.scss";
 import "@fontsource/inter";
 
-import { createApp } from 'vue'
-import App from '@/app/App.vue'
+import { createApp } from "vue";
+import App from "@/app/App.vue";
+import { reportAppError } from "@/utils/appErrors";
 
+const app = createApp(App);
 
-createApp(App).mount('#app')
+app.config.errorHandler = (error, _instance, info) => {
+    reportAppError(`Ошибка Vue: ${info}`, error);
+};
+
+app.mount("#app");
