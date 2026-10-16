@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatNumber } from "@/utils/normalize";
+import { formatCost } from "@/utils/normalize";
 import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
 
 interface AdditionalField {
@@ -30,7 +30,7 @@ const formatValue = (value: unknown, key: string = "") => {
     }
 
     if (typeof value === "number") {
-        return formatNumber(value) ?? String(value);
+        return formatCost(value) ?? String(value);
     }
 
     if (Array.isArray(value)) {

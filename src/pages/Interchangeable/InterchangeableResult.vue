@@ -20,7 +20,7 @@ import HideEyeIcon from "@/components/icons/HideEyeIcon.vue";
 import CommentIcon from "@/components/icons/CommentIcon.vue";
 import {
     cutOverflowedText,
-    formatNumber,
+    formatCost,
     normalize,
     setDaysText,
     trimTrailingZeros,
@@ -699,7 +699,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
             handleFormatNumber(rowA[CONST_TITLES.UNDERSOLDED_COST]) -
             handleFormatNumber(rowB[CONST_TITLES.UNDERSOLDED_COST]),
         render: row => {
-            const cost = formatNumber(
+            const cost = formatCost(
                 row[CONST_TITLES.UNDERSOLDED_COST],
             );
 
