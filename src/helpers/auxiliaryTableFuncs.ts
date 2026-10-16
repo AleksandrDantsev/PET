@@ -6,22 +6,28 @@ const ah = {
         titles: string[]
     ): number | null {
         if (!data?.values) return null;
-        const valuesArr = data.values;
 
-        for (let rowIndex = 0; rowIndex < valuesArr.length; rowIndex++) {
-            const row = valuesArr[rowIndex];
+        const normalize = (value: string | number): string =>
+            String(value).trim().replace(/\s+/g, " ").toLowerCase();
+
+        const normalizedTitles = titles.map(normalize);
+
+        for (let rowIndex = 0; rowIndex < data.values.length; rowIndex++) {
+            const row = data.values[rowIndex].map(normalize);
 
             let count = 0;
 
-            for (const title of titles) {
+            for (const title of normalizedTitles) {
                 if (row.includes(title)) {
                     count++;
                 }
             }
+
             if (count >= 4) {
                 return rowIndex;
             }
         }
+
         return null;
     },
 
