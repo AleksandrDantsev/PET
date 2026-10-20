@@ -12,8 +12,9 @@ import {
     NGlobalStyle,
     ruRU,
 } from "naive-ui";
-import { themeOverrides,  } from "@/theme/naiveTheme";
+import { themeOverrides } from "@/theme/naiveTheme";
 import UpButton from "@/components/common/UpButton.vue";
+import { useAppReload } from "@/composables/useAppReload";
 import { reportAppError } from "@/utils/appErrors";
 
 const InterchangeablePage = defineAsyncComponent(
@@ -88,7 +89,7 @@ onMounted(async () => {
         );
     }
 });
-
+useAppReload();
 </script>
 
 <template>
@@ -156,7 +157,7 @@ $minWidthTooltip: 500px;
 }
 
 ::selection {
-    background-color: #456d3a6b;
+    background-color: #27830d70;
     color: white;
 }
 </style>
