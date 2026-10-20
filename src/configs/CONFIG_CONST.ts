@@ -3,7 +3,8 @@ import type { IGoogleTableData } from "@/types/TableSheetData";
 import { 
     getConfigConst,
     getConfigManagersBranchList,
-    getConfigContragentsList
+    getConfigContragentsList,
+    getZnurTypes,
 } from "@/helpers/configHandlers";
 
 function required<T>(value: T | null | undefined, name: string): T {
@@ -26,10 +27,14 @@ const MANAGERS_BRANCHES = required(
 const CONTRAGENTS = required(
     getConfigContragentsList(сonfigData), "CONTRAGENTS"
 )
+const ZNUR_TYPES = required(
+    getZnurTypes(сonfigData), "ZNUR_TYPES"
+)
 
 
 export {
     CONST_TITLES,
     MANAGERS_BRANCHES,
     CONTRAGENTS,
+    ZNUR_TYPES,
 };

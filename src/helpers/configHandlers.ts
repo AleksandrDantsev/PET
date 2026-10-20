@@ -108,6 +108,25 @@ const ch = {
         });
 
         return result;
+    },
+
+    getZnurTypes(
+        data: IGoogleTableData | null
+    ): Array<string | number | boolean> | null {
+        if (!data?.values) return null;
+
+        const columnsData = valuesToColumns(data);
+        console.log(columnsData)
+        if (!columnsData) {
+            return null;
+        }
+
+        const columnZnur = columnsData["ТИПЫ ЗНУР"];
+
+        if (!columnZnur) {
+            return null;
+        }
+        return columnZnur;
     }
 }
 
@@ -117,4 +136,5 @@ export const {
     getConfigConst,
     getConfigManagersBranchList,
     getConfigContragentsList,
+    getZnurTypes,
 } = ch;
