@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from "electron";
+import { app, BrowserWindow, dialog, Menu } from "electron";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,8 +24,6 @@ async function ensureGoogleCredentials() {
     await fs.mkdir(path.dirname(credentialsPath), {
         recursive: true,
     });
-    // В dev-режиме копируем существующий ключ проекта,
-    // если он ещё не сохранён в userData.
     if (!app.isPackaged) {
         const developmentPath = path.join(process.cwd(), "credentials", "service-account.json");
         try {
@@ -38,11 +36,10 @@ async function ensureGoogleCredentials() {
                 await fs.writeFile(credentialsPath, content, "utf8");
             }
             catch {
-                // Если файла нет, ниже предложим выбрать его вручную.
+                // Если файла нет, предложим выбрать его вручную.
             }
         }
     }
-    // Проверяем ранее сохранённый ключ.
     try {
         const content = await fs.readFile(credentialsPath, "utf8");
         await validateCredentials(content);
@@ -51,8 +48,6 @@ async function ensureGoogleCredentials() {
     catch {
         // Файл отсутствует или не прошёл проверку.
     }
-    // Предлагаем выбрать файл, пока пользователь не выберет
-    // корректный JSON или не отменит настройку.
     while (true) {
         const result = await dialog.showOpenDialog({
             title: "Выберите service-account.json",
@@ -102,7 +97,49 @@ function createWindow() {
             nodeIntegration: false,
         },
     });
-    win.webContents.openDevTools();
+    const contextMenu = Menu.buildFromTemplate([
+        {
+            label: "Перезагрузить",
+            click: () => {
+                win.webContents.reload();
+            },
+        },
+        {
+            label: "Отменить",
+            role: "undo",
+        },
+        { type: "separator" },
+        { role: "copy", label: "Копировать" },
+        { role: "paste", label: "Вставить" },
+        { role: "cut", label: "Вырезать" },
+        { role: "selectAll", label: "Выделить всё" },
+        { type: "separator" },
+        { type: "separator" },
+        {
+            label: "Открыть DevTools",
+            click: () => win.webContents.openDevTools(),
+        },
+        {
+            label: "О приложении",
+            click: () => {
+                dialog.showMessageBox(win, {
+                    type: "info",
+                    title: "О приложении",
+                    message: "PET App",
+                    detail: `Версия: ${app.getVersion()}\nElectron: ${process.versions.electron}\nChrome: ${process.versions.chrome}`,
+                    buttons: ["OK"],
+                });
+            },
+        },
+    ]);
+    win.webContents.on("context-menu", (_event, params) => {
+        contextMenu.popup({
+            window: win,
+            ...(params.isEditable
+                ? {}
+                : {}),
+        });
+    });
     if (app.isPackaged) {
         win.loadFile(path.join(app.getAppPath(), "dist", "index.html"));
     }
