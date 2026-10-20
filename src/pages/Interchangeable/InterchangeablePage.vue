@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import type { DataObject, IGoogleTableData } from "../../types/TableSheetData.ts";
+import type { DataObject, IGoogleTableData, SearchFormValue } from "../../types/TableSheetData.ts";
 import { dataToObjects } from "@/helpers/dataHandlers.ts";
 import InterchangeableForm from "./InterchangeableForm.vue";
 import InterchangeableResult from "./InterchangeableResult.vue";
@@ -40,7 +40,7 @@ const interchangeableDataObjs = computed(() => {
     return dataToObjects(props.interchangeableData);
 });
 
-const search = (fields: Record<string, string>) => {
+const search = (fields: SearchFormValue) => {
     isSearched.value = true;
 
     if (
@@ -186,7 +186,8 @@ const search = (fields: Record<string, string>) => {
 
         <div class="results-wrapper">
             <InterchangeableResult
-                v-if="Object.keys(filteredActualResultObjs).length"
+                v-if="Object.keys(filteredActualResultObjs).length 
+                    || Object.keys(clientsDemand).length"
                 :clients-demand="clientsDemand"
                 :filtered-actual-result-objs="filteredActualResultObjs"
             />
