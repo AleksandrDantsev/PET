@@ -51,6 +51,8 @@ type GeneralComments = Record<string, string>;
 type ClientComments = Record<string, string>;
 
 const PAGINATION_LENGTH = 30;
+const currentPage = ref(1);
+
 const COMMENTS_STORAGE_KEY = "interchangeable-row-comments";
 const ADDITIONAL_COMMENTS_STORAGE_KEY =
     "interchangeable-row-additional-comments";
@@ -65,6 +67,7 @@ const activeFilters = ref<
     Record<string, (string | number)[] | string | number | undefined | null>>({});
 
 const tableRef = ref<DataTableInst | null>(null);
+
 const debouncedSearchQuery = ref(searchQuery.value);
 const sortingByPriorityField = ref("");
 const hiddenRowsMode = ref<HiddenRowsMode>("visible");
@@ -502,7 +505,8 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         key: "index",
         width: 20,
         align: "center",
-        render: (_row, index) => index + 1,
+        render: (_row, index) =>
+            (currentPage.value - 1) * PAGINATION_LENGTH + index + 1,
     },
     {
         title: "Номенклатура",
@@ -786,7 +790,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     },
     {
         type: "expand",
-        width: 20,
+        width: 17,
         expandable: () => true,
 
         renderExpand: row =>
@@ -895,6 +899,26 @@ const visibleData = computed(() => {
     });
 });
 
+const pagination = computed(() =>
+    visibleData.value.length > PAGINATION_LENGTH
+        ? {
+            page: currentPage.value,
+            pageSize: PAGINATION_LENGTH,
+            showSizePicker: false,
+            showQuickJumper: false,
+        }
+        : false,
+);
+
+const handlePageUpdate = (page: number) => {
+    currentPage.value = page;
+    scrollPageToTop();
+};
+
+watch(visibleData, () => {
+    currentPage.value = 1;
+});
+
 const displayedCount = computed(() => {
     return visibleData.value.filter(row => {
         return filterableKeys.every(key => {
@@ -937,10 +961,7 @@ const scrollPageToTop = () => {
 </script>
 <template>
     <div class="result-container">
-        <div
-            v-if="filteredActualResultObjs.length"
-            class="container-result"
-        >
+        <div class="container-result">
             <Transition name="client-demand">
                 <InterchangeableClientDemand
                     v-if="
@@ -951,7 +972,10 @@ const scrollPageToTop = () => {
                 />
             </Transition>
 
-            <div class="table-toolbar">
+            <div 
+                v-if="visibleData.length"
+                class="table-toolbar"
+            >
                 <NSpace
                     align="center"
                     justify="space-between"
@@ -1054,12 +1078,8 @@ const scrollPageToTop = () => {
                 :row-key="rowKey"
                 table-layout="fixed"
                 :row-class-name="getRowClassName"
-                :pagination="visibleData.length > PAGINATION_LENGTH ? {
-                    pageSize: PAGINATION_LENGTH,
-                    showSizePicker: false,
-                    showQuickJumper: false,
-                } : false"
-                @update:page="scrollPageToTop"
+                :pagination="pagination"
+                @update:page="handlePageUpdate"
                 @update:filters="handleUpdateFilters"
             >   
                 <template #empty>
