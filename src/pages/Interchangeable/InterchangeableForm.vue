@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from "vue";
-import { normalizeForSorting, formatDate } from "@/utils/normalize";
+import { normalizeForSorting, formatDate, capitalize } from "@/utils/normalize";
 import { useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
 import SaveIcon from "@/components/icons/SaveIcon.vue";
-import { MANAGERS_BRANCHES, CONTRAGENTS, CONST_TITLES } from "@/configs/CONFIG_CONST";
+import { MANAGERS_BRANCHES, CONTRAGENTS, CONST_TITLES, ZNUR_TYPES } from "@/configs/CONFIG_CONST";
 import { ID_LIST } from "@/configs/ID_LIST";
 import { check } from "@/helpers/checkInterchangeablePositions";
 import { api } from "@/api/api";
+import type { SearchFormValue } from "@/types/TableSheetData";
 import {
     NAutoComplete,
     NButton,
@@ -21,7 +22,7 @@ import {
 } from "naive-ui";
 
 const props = defineProps<{
-    search: (value: Record<string, string>) => void;
+    search: (value: SearchFormValue) => void;
 }>();
 
 const searchRules: FormRules = {
@@ -29,24 +30,14 @@ const searchRules: FormRules = {
         required: true,
         message: "Введите номенклатуру",
         trigger: ["blur", "input"],
+        type: "string",
     },
 
     contragent: {
         required: true,
-        validator: (_rule, value: string) => {
-            if (!value?.trim()) {
-                return new Error("Выберите контрагента");
-            }
-
-            if (!findContragent(value)) {
-                return new Error(
-                    "Контрагент не найден. Выберите значение из списка"
-                );
-            }
-
-            return true;
-        },
+        message: "Введите клиента",
         trigger: ["blur", "input", "change"],
+        type: "string",
     },
 };
 
@@ -55,12 +46,14 @@ const passportRules: FormRules = {
         required: true,
         message: "Выберите менеджера",
         trigger: ["change"],
+        type: "string",
     },
 
     branch: {
         required: true,
         message: "Выберите филиал",
         trigger: ["change"],
+        type: "string",
     },
 
     date: {
@@ -73,13 +66,15 @@ const passportRules: FormRules = {
     znurType: {
         required: true,
         message: "Введите тип ЗНУР",
-        trigger: ["blur", "input"],
+        trigger: ["change"],
+        type: "string",
     },
 
     contract: {
         required: true,
         message: "Введите договор",
         trigger: ["blur", "input"],
+        type: "string",
     },
 
     quantity: {
@@ -108,6 +103,21 @@ const branchOptions = [
     },
 ];
 
+const znurOptions = computed(() => {
+    const result = [] as Array<{label: string, value: string}>;
+    if (!ZNUR_TYPES) {
+        return result;
+    }
+
+    ZNUR_TYPES.forEach(el => result.push(
+        {
+            label: capitalize(String(el)),
+            value: String(el)
+        }
+    ))
+    return result;
+});
+
 const formRef = ref<FormInst | null>(null);
 const passportFormRef = ref<FormInst | null>(null);
 const message = useMessage();
@@ -115,10 +125,10 @@ const message = useMessage();
 const formValue = reactive({
     nomenclature: "",
     contragent: "",
-    manager: "",
-    branch: "",
+    manager: null as string | null,
+    branch: null as string | null,
     date: Date.now() as number | null,
-    znurType: "",
+    znurType: null as string | null,
     contract: "",
     quantity: null as number | null,
     dateOfDelivery: Date.now() as number | null,
@@ -237,10 +247,10 @@ const resetForm = () => {
     Object.assign(formValue, {
         nomenclature: "",
         contragent: "",
-        manager: "",
-        branch: "",
+        manager: null,
+        branch: null,
         date: Date.now(),
-        znurType: "",
+        znurType: null,
         contract: "",
         quantity: null,
         dateOfDelivery: Date.now(),
@@ -280,10 +290,10 @@ const save = async () => {
             {
                 [CONST_TITLES.NOMENCLATURE]: formValue.nomenclature,
                 [CONST_TITLES.CLIENT]: formValue.contragent,
-                [CONST_TITLES.MANAGER]: formValue.manager,
-                [CONST_TITLES.BRANCH]: formValue.branch,
+                [CONST_TITLES.MANAGER]: formValue.manager ?? "",
+                [CONST_TITLES.BRANCH]: formValue.branch ?? "",
                 [CONST_TITLES.APPROVAL_DATE]: formatDate(formValue.date),
-                [CONST_TITLES.TYPE_OF_ZNUR]: formValue.znurType,
+                [CONST_TITLES.TYPE_OF_ZNUR]: formValue.znurType ?? "",
                 [CONST_TITLES.CONTRACT]: formValue.contract,
                 [CONST_TITLES.QUANTITY]: formValue.quantity ?? "",
                 [CONST_TITLES.PLANNED_SHIPMENT_DATE]: formatDate(
@@ -405,8 +415,9 @@ const save = async () => {
                     path="znurType"
                     class="znurType-field"
                 >
-                    <n-input
+                    <n-select
                         v-model:value="formValue.znurType"
+                        :options="znurOptions"
                         placeholder="Тип ЗНУР"
                         clearable
                     />
