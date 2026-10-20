@@ -51,11 +51,11 @@ const ih: IPET = {
         const productType = this.getType(nomenclature);
         const text = this.normalize(nomenclature);
 
-        const base = ["1810", "1881", "38", "48"];
+        const base = ["1810", "1881", "38", "48", "Oil"];
         let standarts: string[] = [];
 
         if (productType === "преформа") {
-            standarts = ["BPF", "Oil", ...base];
+            standarts = ["BPF", ...base];
         }
 
         if (productType === "крышка") {
@@ -150,7 +150,7 @@ const ih: IPET = {
             "бирюз",
         ];
 
-        const text = String(nomenclature)
+        const text = nomenclature
             .toLowerCase()
             .replaceAll("ё", "е");
 
@@ -159,9 +159,15 @@ const ih: IPET = {
         );
 
         if (found.includes("бело-желт")) {
-            return found.filter(
-                (color) => color !== "бел" && color !== "желт"
-            );
+            return found.filter((color) => {
+                if (color === "бел") return false;
+
+                if (color === "желт") {
+                    return /(?<![а-я])желт/.test(text.replace(/бело-желт/g, ""));
+                }
+
+                return true;
+            });
         }
 
         return found;
