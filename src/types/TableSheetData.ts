@@ -15,3 +15,15 @@ export type DataObject = Record<
   string, 
   string | undefined | number
 >;
+
+export type SearchFormValue = {
+    nomenclature: string;
+    contragent: string;
+    manager: string | null;
+    branch: string | null;
+    date: string;
+    znurType: string | null;
+    contract: string;
+    quantity: string;
+    dateOfDelivery: string;
+};
