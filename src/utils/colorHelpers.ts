@@ -3,7 +3,7 @@ import { normalize } from "./normalize";
 const productColors = {
     "бело-желт": {
         colorName: "бело-желтый",
-        color: "#f5e6a8",
+        color: "#edeea0",
     },
     "ультрамарин": {
         colorName: "ультрамарин",
@@ -11,11 +11,11 @@ const productColors = {
     },
     "бесцветн": {
         colorName: "бесцветный",
-        color: "#bfd7e2",
+        color: "#cad8dfc2",
     },
     "коричнев": {
         colorName: "коричневый",
-        color: "#795548",
+        color: "#c28324",
     },
     "золот": {
         colorName: "золотой",
@@ -43,7 +43,7 @@ const productColors = {
     },
     "голуб": {
         colorName: "голубой",
-        color: "#42a5f5",
+        color: "#84c0f1",
     },
     "желт": {
         colorName: "желтый",
@@ -51,7 +51,7 @@ const productColors = {
     },
     "зелен": {
         colorName: "зеленый",
-        color: "#43a047",
+        color: "#38b43e",
     },
     "красн": {
         colorName: "красный",
@@ -59,11 +59,11 @@ const productColors = {
     },
     "розов": {
         colorName: "розовый",
-        color: "#ec407a",
+        color: "#f55a8e",
     },
     "син": {
         colorName: "синий",
-        color: "#1e88e5",
+        color: "#1a77c9",
     },
     "черн": {
         colorName: "черный",
