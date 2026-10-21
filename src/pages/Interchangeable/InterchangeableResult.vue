@@ -94,6 +94,7 @@ const includedFieldsInAdditionalSector = [
     CONST_TITLES.REMAINDER_1C,
     CONST_TITLES.UNDERSALE_REASON,
     CONST_TITLES.NEXT_ACTION,
+    CONST_TITLES.DATE_NEXT_ACTION,
     CONST_TITLES.ALL_CUSTOMERS_SHIPPED_ITEM_MANAGER,
 ];
 
@@ -371,9 +372,17 @@ onMounted(() => {
 });
 
 const hiddenRowsCount = computed(() => {
-    return tableData.value.filter(row =>
-        hiddenRows.value.has(getHiddenKey(row)),
-    ).length;
+    const uniqueKeys = new Set<string>();
+
+    tableData.value.forEach(row => {
+        const key = getHiddenKey(row);
+
+        if (hiddenRows.value.has(key)) {
+            uniqueKeys.add(key);
+        }
+    });
+
+    return uniqueKeys.size;
 });
 
 watch(hiddenRows, rows => {
@@ -801,7 +810,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                             h(NInput, {
                                 value: getDraftComment(row, "additionalComment"),
                                 size: "small",
-                                placeholder: "Причины почему позиция не подходит",
+                                placeholder: "Комментарий по позиции для этого клиента...",
                                 type: "textarea",
                                 autosize: { minRows: 1, maxRows: 4 },
                                 class: "row-comment-input",
@@ -835,7 +844,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
                         h(NInput, {
                             value: getDraftComment(row, "comment"),
                             size: "small",
-                            placeholder: "Добавить комментарий...",
+                            placeholder: "Комментарий по позиции...",
                             type: "textarea",
                             autosize: { minRows: 1, maxRows: 4 },
                             class: "row-comment-input",
@@ -973,7 +982,6 @@ const scrollPageToTop = () => {
             </Transition>
 
             <div 
-                v-if="visibleData.length"
                 class="table-toolbar"
             >
                 <NSpace
@@ -997,7 +1005,11 @@ const scrollPageToTop = () => {
                             }"
                         />
                         <div 
-                            v-if="clientsDemand && Object.keys(clientsDemand).length"
+                            v-if="
+                                clientsDemand && 
+                                    Object.keys(clientsDemand).length &&
+                                    searchedData.length
+                            "
                             class="triple-toggle"
                         >
                             <template
@@ -1030,7 +1042,11 @@ const scrollPageToTop = () => {
                     </NSpace>
 
                     <NSpace
-                        v-if="clientsDemand && Object.keys(clientsDemand).length"
+                        v-if="
+                            clientsDemand &&
+                                Object.keys(clientsDemand).length &&
+                                searchedData.length
+                        "
                         align="center"
                     >
                         <div class="triple-toggle priority-toggle">
