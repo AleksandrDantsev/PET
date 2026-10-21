@@ -25,7 +25,7 @@ const formatValue = (value: unknown, key: string = "") => {
         return "-";
     }
 
-    if (key === CONST_TITLES.ALL_CUSTOMERS_SHIPPED_ITEM_MANAGER) {
+    if (key === CONST_TITLES?.ALL_CUSTOMERS_SHIPPED_ITEM_MANAGER) {
         return splitByDate(String(value))
     }
 
