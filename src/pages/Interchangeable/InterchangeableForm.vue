@@ -4,10 +4,12 @@ import { normalizeForSorting, formatDate, capitalize } from "@/utils/normalize";
 import { useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
 import SaveIcon from "@/components/icons/SaveIcon.vue";
+import PasteFromClipboardIcon from "@/components/icons/PasteFromClipboardIcon.vue";
 import { MANAGERS_BRANCHES, CONTRAGENTS, CONST_TITLES, ZNUR_TYPES } from "@/configs/CONFIG_CONST";
 import { ID_LIST } from "@/configs/ID_LIST";
 import { check } from "@/helpers/checkInterchangeablePositions";
 import { api } from "@/api/api";
+import TrashIcon from "@/components/icons/TrashIcon.vue";
 import type { SearchFormValue } from "@/types/TableSheetData";
 import {
     NAutoComplete,
@@ -165,7 +167,9 @@ const findContragent = (
     if (!inputName?.trim() || !CONTRAGENTS) {
         return undefined;
     }
-
+    console.log(Object.keys(CONTRAGENTS).find(listName =>
+        check.checkContragent(listName, inputName)
+    ))
     return Object.keys(CONTRAGENTS).find(listName =>
         check.checkContragent(listName, inputName)
     );
@@ -304,7 +308,6 @@ const save = async () => {
         );
 
         message.success("Данные успешно добавлены");
-        resetForm();
 
     } catch (error) {
         message.error("Не удалось добавить данные");
@@ -351,7 +354,7 @@ const save = async () => {
                     @focus="selectInputText"
                 />
             </n-form-item>
-
+            
             <n-button
                 class="search-button"
                 type="primary"
@@ -360,6 +363,17 @@ const save = async () => {
             >
                 Найти
             </n-button>
+            <NButton
+                class="clear-button"
+                size="small"
+                quaternary
+                title="Очистить поля"
+                @click="resetForm"
+            >
+                <template #icon>
+                    <TrashIcon />
+                </template>
+            </NButton>
         </n-form>
     </div>
 
@@ -461,6 +475,18 @@ const save = async () => {
                 </n-form-item>
             </div>
 
+            <NButton
+                class="clipboard-button"
+                size="small"
+                quaternary
+                title="Вставить из буфера"
+                @click="() => {}"
+            >
+                <template #icon>
+                    <PasteFromClipboardIcon />
+                </template>
+            </NButton>
+
             <n-button
                 class="save-button"
                 type="primary"
@@ -493,7 +519,7 @@ $transition: 0.15s ease;
 
 .search-wrapper {
     position: sticky;
-    top: 0;
+    top: 37px;
     z-index: 10;
     padding: 12px 14px 0;
     background: $color-bg;
@@ -509,7 +535,7 @@ $transition: 0.15s ease;
 
 .search-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 96px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 96px 35px;
     gap: $gap;
     align-items: end;
     width: 100%;
@@ -695,6 +721,59 @@ $effectSearchButtonColor: #40af5c;
     &:active {
         border-color: $effectSearchButtonColor;
         background: $effectSearchButtonColor;
+    }
+}
+
+@mixin miniButtons {
+    height: $control-height;
+    width: $control-height;
+    flex-shrink: 0;
+    color: #737373;
+    background-color: #f5f5f5;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.clear-button {
+    @include miniButtons;
+    &:hover {
+        color: #d03050;
+        background-color: #fff0f0;
+        border-color: #f2b8c0;
+    }
+
+    &:active {
+        background-color: #ffe0e4;
+        border-color: #e99aa7;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #d03050;
+        outline-offset: 2px;
+    }
+}
+
+.clipboard-button {
+    @include miniButtons;
+        &:hover {
+        color: #4e7ada;
+        background-color: #f0f0ff;
+        border-color: #b8dbf2;
+    }
+
+    &:active {
+        background-color: #e0e7ff;
+        border-color: #9a9be9;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #305bd0;
+        outline-offset: 2px;
     }
 }
 
