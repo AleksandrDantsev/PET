@@ -5,11 +5,6 @@ interface IRangeGrams {
     to: string | number | null | undefined;
 }
 
-interface IBestMatch {
-    index: number;
-    similarity: number;
-}
-
 interface ICheckConditionsFuncs {
     checkContragent(
         listName: string | null | undefined,
@@ -59,165 +54,48 @@ const check: ICheckConditionsFuncs = {
         }
 
         const normalize = (text: string): string =>
-            String(text)
+            text
                 .toLowerCase()
                 .replace(/ё/g, "е")
                 .replace(/[()[\]{},.;:"'«»]/g, " ")
-                .replace(/(^|[^а-яёa-z])(ип|ооо|ао|зао|пао|оао)(?=$|[^а-яёa-z])/g, "$1 ")
                 .replace(/\s+/g, " ")
                 .trim();
 
-        const getWords = (text: string): string[] =>
-            normalize(text)
-                .split(" ")
-                .filter(Boolean);
+        const a = normalize(listName);
+        const b = normalize(inputName);
+
+        if (a === b) return true;
 
         const levenshtein = (a: string, b: string): number => {
-            if (a === b) return 0;
-
-            if (!a.length) return b.length;
-            if (!b.length) return a.length;
-
-            let prev = Array.from(
+            const row = Array.from(
                 { length: b.length + 1 },
                 (_, i) => i
             );
 
             for (let i = 1; i <= a.length; i++) {
-                const curr: number[] = [i];
+                let diagonal = row[0];
+                row[0] = i;
 
                 for (let j = 1; j <= b.length; j++) {
-                    const cost =
-                        a[i - 1] === b[j - 1]
-                            ? 0
-                            : 1;
+                    const above = row[j];
 
-                    curr[j] = Math.min(
-                        curr[j - 1] + 1,
-                        prev[j] + 1,
-                        prev[j - 1] + cost
-                    );
-                }
-
-                prev = curr;
-            }
-
-            return prev[b.length];
-        };
-
-        const getWordSimilarity = (
-            a: string,
-            b: string
-        ): number => {
-            if (a === b) {
-                return 1;
-            }
-
-            const maxLength = Math.max(
-                a.length,
-                b.length
-            );
-
-            if (maxLength < 5) {
-                return 0;
-            }
-
-            const distance = levenshtein(a, b);
-
-            const similarity =
-                1 - distance / maxLength;
-
-            if (maxLength <= 6) {
-                return distance <= 1
-                    ? similarity
-                    : 0;
-            }
-
-            if (maxLength <= 10) {
-                return distance <= 2
-                    ? similarity
-                    : 0;
-            }
-
-            return distance <= 2
-                ? similarity
-                : 0;
-        };
-
-        const listWords = getWords(listName);
-        const inputWords = getWords(inputName);
-
-        if (!listWords.length || !inputWords.length) {
-            return false;
-        }
-
-        const normalizedList = normalize(listName);
-        const normalizedInput = normalize(inputName);
-
-        if (normalizedList === normalizedInput) {
-            return true;
-        }
-
-        if (normalizedInput.includes(normalizedList)) {
-            return true;
-        }
-
-        let matchedCount = 0;
-        let totalSimilarity = 0;
-
-        const usedInputIndexes = new Set<number>();
-
-        for (const listWord of listWords) {
-            let bestMatch: IBestMatch | null = null;
-
-            for (let i = 0; i < inputWords.length; i++) {
-                if (usedInputIndexes.has(i)) {
-                    continue;
-                }
-
-                const inputWord = inputWords[i];
-
-                const similarity =
-                    getWordSimilarity(
-                        listWord,
-                        inputWord
+                    row[j] = Math.min(
+                        row[j] + 1,
+                        row[j - 1] + 1,
+                        diagonal + (a[i - 1] === b[j - 1] ? 0 : 1)
                     );
 
-                if (
-                    similarity > 0 &&
-                    (
-                        !bestMatch ||
-                        similarity > bestMatch.similarity
-                    )
-                ) {
-                    bestMatch = {
-                        index: i,
-                        similarity,
-                    };
+                    diagonal = above;
                 }
             }
 
-            if (bestMatch) {
-                matchedCount++;
-                totalSimilarity += bestMatch.similarity;
+            return row[b.length];
+        };
 
-                usedInputIndexes.add(
-                    bestMatch.index
-                );
-            }
-        }
+        const maxLength = Math.max(a.length, b.length);
+        const maxDistance = maxLength <= 10 ? 1 : Math.floor(maxLength * 0.08);
 
-        const coverage =
-            matchedCount / listWords.length;
-
-        if (coverage < 1) {
-            return false;
-        }
-
-        const averageSimilarity =
-            totalSimilarity / matchedCount;
-
-        return averageSimilarity >= 0.8;
+        return levenshtein(a, b) <= maxDistance;
     },
 
     checkStandart: function (
@@ -294,26 +172,39 @@ const check: ICheckConditionsFuncs = {
         const colors = (
             Array.isArray(arrColors) ? arrColors : [arrColors]
         )
-            .filter((color) => Boolean(color?.trim()))
-            .map((color) => ih.normalize(color));
+            .filter(color => Boolean(color?.trim()))
+            .map(color => ih.normalize(color));
 
         const inputs = arrInputColors
-            .filter((input) => Boolean(input?.trim()))
-            .map((input) => ih.normalize(input));
+            .filter(input => Boolean(input?.trim()))
+            .map(input => ih.normalize(input));
 
         if (!colors.length || !inputs.length) {
             return false;
         }
 
-        const interchangeableColors: Record<string, string> = {
-            син: "голуб",
-            голуб: "син",
+        const interchangeableColorGroups = [
+            ["син", "голуб", "бесцветн"],
+        ];
+
+        const areColorsEquivalent = (
+            a: string,
+            b: string
+        ): boolean => {
+            if (a === b) {
+                return true;
+            }
+
+            return interchangeableColorGroups.some(
+                group => group.includes(a) && group.includes(b)
+            );
         };
 
         const compositePattern = /бело[-\s]+желт/g;
 
-        return inputs.some((input) => {
+        return inputs.some(input => {
             const composites = input.match(compositePattern) ?? [];
+
             const inputWithoutComposite = input.replace(
                 compositePattern,
                 " "
@@ -326,7 +217,7 @@ const check: ICheckConditionsFuncs = {
                 ...composites.map(() => "бело-желт"),
             ];
 
-            return colors.some((color) => {
+            return colors.some(color => {
                 if (!color) {
                     return false;
                 }
@@ -335,20 +226,30 @@ const check: ICheckConditionsFuncs = {
                     return normalizedInputColors.includes("бело-желт");
                 }
 
-                if (color === "бел" || color === "желт") {
-                    if (normalizedInputColors.includes("бело-желт")) {
-                        return normalizedInputColors.some(
-                            (inputColor) =>
-                                inputColor !== "бело-желт" &&
-                                inputColor === color
-                        );
-                    }
+                if (
+                    color === "бел" &&
+                    normalizedInputColors.includes("бело-желт")
+                ) {
+                    return normalizedInputColors.some(
+                        inputColor =>
+                            inputColor !== "бело-желт" &&
+                            inputColor === color
+                    );
+                }
+
+                if (
+                    color === "желт" &&
+                    normalizedInputColors.includes("бело-желт")
+                ) {
+                    return normalizedInputColors.some(
+                        inputColor =>
+                            inputColor !== "бело-желт" &&
+                            inputColor === color
+                    );
                 }
 
                 return normalizedInputColors.some(
-                    (inputColor) =>
-                        inputColor === color ||
-                        interchangeableColors[color] === inputColor
+                    inputColor => areColorsEquivalent(color, inputColor)
                 );
             });
         });
