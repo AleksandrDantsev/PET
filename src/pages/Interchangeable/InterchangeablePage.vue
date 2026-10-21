@@ -14,6 +14,10 @@ const props = defineProps<{
     interchangeableData: IGoogleTableData | null;
 }>();
 
+const emit = defineEmits<{
+    (e: "update-title", title: string): void;
+}>();
+
 const filteredActualResultObjs = ref<DataObject[]>([]);
 const clientsDemand = ref<DataObject>({});
 const isSearched = ref<boolean>(false);
@@ -93,6 +97,9 @@ const search = (fields: SearchFormValue) => {
             )
         );
     });
+    if (descriptionProduct?.fullName) {
+        emit("update-title", descriptionProduct.fullName);
+    }
 
     // Для отладки
     //     console.table(
@@ -123,6 +130,9 @@ const search = (fields: SearchFormValue) => {
         return;
     }
     clientsDemand.value = clientDemand;
+
+    console.log(descriptionProduct)
+    console.log(clientsDemand.value)
 
     const result = actualDataObjs.value.filter(item => {
         const nomenclature = item[CONST_TITLES.ONE_C_NOMENCLATURE];
