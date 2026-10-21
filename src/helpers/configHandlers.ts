@@ -90,23 +90,30 @@ const ch = {
         const clients = columnsData["КЛИЕНТЫ"];
         const branches = columnsData["ФИЛИАЛ"];
         const managers = columnsData["МЕНЕДЖЕРЫ КЛИЕНТОВ"];
+        const holding = columnsData["ХОЛДИНГ"];
 
         if (!clients || !branches || !managers) return null;
 
         const result: Record<string, {
             branch: string;
             manager: string;
+            holding?: string;
         }> = {};
 
         clients.forEach((client, index) => {
-            if (String(client).trim() === "") return;
+            const normClient = String(client).trim();
 
-            result[String(client).trim()] = {
+            if (normClient === "") return;
+
+            result[normClient] = {
                 branch: String(branches[index] ?? ""),
-                manager: String(managers[index] ?? "")
+                manager: String(managers[index] ?? ""),
             };
+            if (holding) {
+                result[normClient].holding = String(holding[index] ?? "")
+            }
         });
-
+        console.log(result)
         return result;
     },
 
