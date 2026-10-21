@@ -11,11 +11,11 @@ const productColors = {
     },
     "бесцветн": {
         colorName: "бесцветный",
-        color: "#cad8dfc2",
+        color: "#b1bec5c2",
     },
     "коричнев": {
         colorName: "коричневый",
-        color: "#c28324",
+        color: "#b37922",
     },
     "золот": {
         colorName: "золотой",
@@ -47,11 +47,11 @@ const productColors = {
     },
     "желт": {
         colorName: "желтый",
-        color: "#faf60c",
+        color: "#f8f402",
     },
     "зелен": {
         colorName: "зеленый",
-        color: "#38b43e",
+        color: "#43a047",
     },
     "красн": {
         colorName: "красный",
@@ -59,7 +59,7 @@ const productColors = {
     },
     "розов": {
         colorName: "розовый",
-        color: "#f55a8e",
+        color: "#ec407a",
     },
     "син": {
         colorName: "синий",
