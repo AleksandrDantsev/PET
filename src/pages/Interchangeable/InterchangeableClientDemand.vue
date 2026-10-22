@@ -2,7 +2,14 @@
 import { computed } from "vue";
 import type { DataObject } from "@/types/TableSheetData";
 import { setColorText } from "@/utils/colorHelpers";
+import { formatCost } from "@/utils/normalize";
 import { CONST_TITLES } from "@/configs/CONFIG_CONST";
+
+interface DisplayField {
+    key: string;
+    label: string;
+    value: string;
+}
 
 const props = defineProps<{
     clientsDemand?: DataObject;
@@ -19,55 +26,134 @@ const subtitles = {
     baseColor: "Основной цвет:",
     interchangeableColors: "Взаимозаменяемые цвета:",
     possibleColors: "Возможные цвета:",
-}
+} as const;
 
-const colorsData = computed(() => {
-    if (!props.clientsDemand) {
-        return undefined;
+const formatValue = (value: unknown): string => {
+    if (value == null || String(value).trim() === "") {
+        return "-";
     }
-    return {
-        mainColors: setColorText(
-            props.clientsDemand[CONST_TITLES.PRIMARY_COLOR]
-        ),
-        interchangeableColors: setColorText(
-            props.clientsDemand[CONST_TITLES.INTERCHANGEABLE_COLORS]
-        ),
-        possibleColors: setColorText(
-            props.clientsDemand[CONST_TITLES.POSSIBLE_COLORS]
-        )
+
+    if (typeof value === "number") {
+        return formatCost(value) ?? String(value);
     }
+
+    if (Array.isArray(value)) {
+        return value.join(", ");
+    }
+
+    if (typeof value === "object") {
+        return JSON.stringify(value);
+    }
+
+    return String(value);
+};
+
+const formatRange = (from: unknown, to: unknown): string => {
+    const fromValue = formatValue(from);
+    const toValue = formatValue(to);
+
+    if (fromValue === "-" && toValue === "-") {
+        return "-";
+    }
+
+    return `${fromValue} – ${toValue} гр.`;
+};
+
+const displayFields = computed<DisplayField[]>(() => {
+    const demand = props.clientsDemand;
+
+    if (!demand) {
+        return [];
+    }
+
+    const litrazh = demand[CONST_TITLES.LITRAZH];
+
+    return [
+        {
+            key: "contragent",
+            label: subtitles.contragent,
+            value: formatValue(demand[CONST_TITLES.CONTRAGENT]),
+        },
+        {
+            key: "branch",
+            label: subtitles.branch,
+            value: formatValue(demand[CONST_TITLES.BRANCH_DELIVERY]),
+        },
+        {
+            key: "manager",
+            label: subtitles.manager,
+            value: formatValue(demand[CONST_TITLES.MANAGER]),
+        },
+        {
+            key: "typeOfProduct",
+            label: subtitles.typeOfProduct,
+            value: formatValue(demand[CONST_TITLES.TYPE_OF_PRODUCT]),
+        },
+        {
+            key: "standard",
+            label: subtitles.standard,
+            value: formatValue(demand[CONST_TITLES.STANDARD]),
+        },
+        {
+            key: "litrazh",
+            label: subtitles.litrazh,
+            value: litrazh == null || String(litrazh).trim() === ""
+                ? "-"
+                : `${formatValue(litrazh)} л.`,
+        },
+        {
+            key: "rangeOfGrams",
+            label: subtitles.rangeOfGrams,
+            value: formatRange(
+                demand[CONST_TITLES.WEIGHT_FROM],
+                demand[CONST_TITLES.WEIGHT_TO],
+            ),
+        },
+    ];
 });
 
-const colorGroups = computed(() => [
-    {
-        label: subtitles.baseColor,
-        values: colorsData.value?.mainColors,
-    },
-    {
-        label: subtitles.interchangeableColors,
-        values: colorsData.value?.interchangeableColors,
-    },
-    {
-        label: subtitles.possibleColors,
-        values: colorsData.value?.possibleColors,
-    },
-]);
+const colorGroups = computed(() => {
+    const demand = props.clientsDemand;
 
+    if (!demand) {
+        return [];
+    }
+
+    return [
+        {
+            key: "baseColor",
+            label: subtitles.baseColor,
+            values: setColorText(
+                demand[CONST_TITLES.PRIMARY_COLOR],
+            ),
+        },
+        {
+            key: "interchangeableColors",
+            label: subtitles.interchangeableColors,
+            values: setColorText(
+                demand[CONST_TITLES.INTERCHANGEABLE_COLORS],
+            ),
+        },
+        {
+            key: "possibleColors",
+            label: subtitles.possibleColors,
+            values: setColorText(
+                demand[CONST_TITLES.POSSIBLE_COLORS],
+            ),
+        },
+    ];
+});
 </script>
 <template>
     <div class="contragent-desc-container">
-        <Transition name="fade-slide">
-            <div 
+        <Transition name="fade-slide" mode="out-in">
+            <div
                 v-if="!clientsDemand"
-                key="not-found" 
+                key="not-found"
                 class="interchangeable-unit-not-found"
-            >
-                Не найдено подходящих данных о контрагенте в листе
-                "Взаимозаменяемое", учитывая позицию
-            </div>
-
-            <div 
-                v-else 
+            />
+            <div
+                v-else
                 key="content"
             >
                 <div class="contragent-desc-title">
@@ -75,72 +161,35 @@ const colorGroups = computed(() => [
                 </div>
 
                 <div class="contragent-desc-wrapper">
-                    <div class="subtitle-client-container">
+                    <div
+                        v-for="field in displayFields"
+                        :key="field.key"
+                        class="subtitle-client-container"
+                    >
                         <span class="subtitle">
-                            {{ subtitles.contragent }}
+                            {{ field.label }}
                         </span>
-                        {{ clientsDemand[CONST_TITLES.CONTRAGENT] }}
-                    </div>
 
-                    <div class="subtitle-client-container">
-                        <span class="subtitle">
-                            {{ subtitles.branch }}
-                        </span>
-                        {{ clientsDemand[CONST_TITLES.BRANCH_DELIVERY] }}
-                    </div>
-
-                    <div class="subtitle-client-container">
-                        <span class="subtitle">
-                            {{ subtitles.manager }}
-                        </span>
-                        {{ clientsDemand[CONST_TITLES.MANAGER] }}
-                    </div>
-
-                    <div class="subtitle-client-container">
-                        <span class="subtitle">
-                            {{ subtitles.typeOfProduct }}
-                        </span>
-                        {{ clientsDemand[CONST_TITLES.TYPE_OF_PRODUCT] }}
-                    </div>
-
-                    <div class="subtitle-client-container">
-                        <span class="subtitle">
-                            {{ subtitles.standard }}
-                        </span>
-                        {{ clientsDemand[CONST_TITLES.STANDARD] }}
-                    </div>
-
-                    <div class="subtitle-client-container">
-                        <span class="subtitle">
-                            {{ subtitles.litrazh }}
-                        </span>
-                        {{ 
-                            clientsDemand[CONST_TITLES.LITRAZH] ? 
-                                clientsDemand[CONST_TITLES.LITRAZH] + " л." : "-" 
-                        }}
-                    </div>
-
-                    <div class="subtitle-client-container">
-                        <span class="subtitle">
-                            {{ subtitles.rangeOfGrams }}
-                        </span>
-                        {{ clientsDemand[CONST_TITLES.WEIGHT_FROM] }} - {{ clientsDemand[CONST_TITLES.WEIGHT_TO] }} 
-                        {{ clientsDemand[CONST_TITLES.WEIGHT_FROM] && "гр." }}
+                        <span>{{ field.value }}</span>
                     </div>
 
                     <div
-                        v-for="(group, index) in colorGroups"
-                        :key="group.label + index"
+                        v-for="group in colorGroups"
+                        :key="group.key"
                         class="subtitle-client-container"
                     >
-                        <span class="subtitle">{{ group.label }}</span>
+                        <span class="subtitle">
+                            {{ group.label }}
+                        </span>
 
                         <span
                             v-for="value in group.values"
                             :key="`${value.colorName}-${value.color}`"
                             class="color-value"
-                            :style="{ 
-                                color: value.color === '#ffffff' ? 'inherit' : value.color 
+                            :style="{
+                                color: value.color === '#ffffff'
+                                    ? 'inherit'
+                                    : value.color,
                             }"
                         >
                             {{ value.colorName || "-" }}
@@ -202,6 +251,26 @@ const colorGroups = computed(() => [
     line-height: 1.5;
 }
 
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        filter 0.35s ease;
+}
+
+.fade-slide-enter-from {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.98);
+    filter: blur(2px);
+}
+
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-2px) scaleY(0.99);
+    filter: blur(1px);
+}
+
 @media (max-width: 600px) {
     .contragent-desc-container {
         margin-top: 14px;
@@ -224,26 +293,6 @@ const colorGroups = computed(() => [
         margin: 0 0 2px;
         font-size: 9px;
     }
-}
-
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-    transition:
-        opacity 0.35s ease,
-        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-        filter 0.35s ease;
-}
-
-.fade-slide-enter-from {
-    opacity: 0;
-    transform: translateY(-4px) scaleY(0.98);
-    filter: blur(2px);
-}
-
-.fade-slide-leave-to {
-    opacity: 0;
-    transform: translateY(-2px) scaleY(0.99);
-    filter: blur(1px);
 }
 
 </style>
