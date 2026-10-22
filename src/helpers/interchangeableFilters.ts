@@ -85,6 +85,9 @@ const ih: IPET = {
         if (found.some((item) => item.includes("50")) && !found.includes("48")) {
             found.push("48");
         }
+        if (found.some((item) => item.includes("45")) && !found.includes("48")) {
+            found.push("48");
+        }
 
         return [...new Set(found)];
     },
