@@ -106,14 +106,14 @@ const check: ICheckConditionsFuncs = {
             | null
             | undefined
     ): boolean {
-        if (
-            listStandart == null ||
-            inputStandartArr == null
-        ) {
+        if (listStandart == null || inputStandartArr == null) {
             return false;
         }
 
-        const normalizedList = ih.normalize(listStandart);
+        const normalizeStandart = (standard: string): string =>
+            standard.match(/\d+(?:[.,]\d+)?/)?.[0].replace(",", ".") ?? "";
+
+        const normalizedList = normalizeStandart(listStandart);
 
         if (!normalizedList) {
             return false;
@@ -123,40 +123,12 @@ const check: ICheckConditionsFuncs = {
             ? inputStandartArr
             : [inputStandartArr];
 
-        const matches = (
-            standard: string,
-            text: string
-        ): boolean => {
-            const normalizedStandard = ih.normalize(standard);
-
-            if (!normalizedStandard) {
-                return false;
-            }
-
-            const escaped = normalizedStandard.replace(
-                /[.*+?^${}()|[\]\\]/g,
-                "\\$&"
-            );
-
-            const isNumeric = /^\d+$/.test(normalizedStandard);
-
-            const pattern = isNumeric
-                ? `(?<!\\d)${escaped}(?!\\d)`
-                : `(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`;
-
-            return new RegExp(pattern, "u").test(text);
-        };
-
-        return standards.some((elem) => {
-            const normalizedElem = ih.normalize(elem);
-
-            if (!normalizedElem) {
-                return false;
-            }
+        return standards.some((standard) => {
+            const normalizedStandard = normalizeStandart(standard);
 
             return (
-                matches(normalizedElem, normalizedList) ||
-                matches(normalizedList, normalizedElem)
+                normalizedStandard !== "" &&
+                normalizedStandard === normalizedList
             );
         });
     },
