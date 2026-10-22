@@ -31,11 +31,17 @@ import {
 import { debounce } from "@/utils/debounce";
 import InterchangeableClientDemand from "./InterchangeableClientDemand.vue";
 import InterchangeableAdditionalInfo from "./InterchangeableAdditionalInfo.vue";
-import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
+import { 
+    CONST_TITLES,
+    COMMENTS_STORAGE_KEY,
+    ADDITIONAL_COMMENTS_STORAGE_KEY,
+    HIDDEN_ROWS_STORAGE_KEY,
+} from "@/configs/CONFIG_CONST.ts";
 
 const props = defineProps<{
     clientsDemand: DataObject | null;
     filteredActualResultObjs: DataObject[];
+    searchedFields: Record<string, string | number | null> | null;
 }>();
 
 const tableData = computed(() => props.filteredActualResultObjs);
@@ -53,10 +59,7 @@ type ClientComments = Record<string, string>;
 const PAGINATION_LENGTH = 30;
 const currentPage = ref(1);
 
-const COMMENTS_STORAGE_KEY = "interchangeable-row-comments";
-const ADDITIONAL_COMMENTS_STORAGE_KEY =
-    "interchangeable-row-additional-comments";
-const HIDDEN_ROWS_STORAGE_KEY = "interchangeable-hidden-rows";
+
 
 const rowComments = ref<GeneralComments>({});
 const additionalComments = ref<ClientComments>({});
@@ -78,7 +81,7 @@ const hiddenRowsOptions: {
 }[] = [
     { label: "Все", value: "all" },
     { label: "Без скрытых", value: "visible" },
-    { label: "Только скрытые", value: "hidden" },
+    { label: "Скрытые", value: "hidden" },
 ];
 
 const { copy } = useCopyToClipboard();
@@ -107,6 +110,7 @@ const searchableFields = [
     CONST_TITLES.HARDNESS,
     CONST_TITLES.REMAINDER_BOXES_1C,
     CONST_TITLES.NUMBER_TASK_BITRIX,
+    CONST_TITLES.DATE_NEXT_ACTION,
 ];
 
 const sortingFields = [
@@ -253,17 +257,46 @@ const saveComment = (
     draftComments.value = nextDrafts;
 };
 
-const getRowClassName = (row: DataObject) => {
-    const hasClientDemand = Boolean(
-        props.clientsDemand &&
-        Object.keys(props.clientsDemand).length,
+const isSearchedMatch = (row: DataObject): boolean => {
+    console.log(props.searchedFields)
+    
+    const searchedNomenclature = normalize(
+        String(props.searchedFields?.nomenclature)
     );
 
-    if (!hasClientDemand) return "";
+    const searchedClient = normalize(
+        String(props.searchedFields?.contragent)
+    );
 
-    return hiddenRows.value.has(getHiddenKey(row))
-        ? "hidden-row"
-        : "";
+    if (!searchedNomenclature || !searchedClient) {
+        return false;
+    }
+
+    return (
+        normalize(row[CONST_TITLES.ONE_C_NOMENCLATURE]) ===
+            searchedNomenclature &&
+        normalize(row[CONST_TITLES.CURRENT_CLIENT]) ===
+            searchedClient
+    );
+};
+
+const getRowClassName = (row: DataObject): string => {
+    const classes: string[] = [];
+
+    if (isSearchedMatch(row)) {
+        classes.push("searched-match-row");
+    }
+
+    const hasClientDemand = Boolean(
+        props.clientsDemand &&
+        Object.keys(props.clientsDemand).length
+    );
+
+    if (hasClientDemand && hiddenRows.value.has(getHiddenKey(row))) {
+        classes.push("hidden-row");
+    }
+
+    return classes.join(" ");
 };
 
 onMounted(() => {
@@ -452,45 +485,51 @@ const displayedData = computed(() => {
     const demand = props.clientsDemand;
     const mode = sortingByPriorityField.value;
 
-    if (!demand || !mode) return data;
+    let filteredData = data;
 
-    const demandManager = normalize(
-        demand[CONST_TITLES.MANAGER],
-    );
-
-    const demandClient = normalize(
-        demand[CONST_TITLES.CONTRAGENT],
-    );
-
-    return data.filter(row => {
-        const rowManager = normalize(
-            row[CONST_TITLES.RESPONSIBLE_MANAGER],
+    if (demand && mode) {
+        const demandManager = normalize(
+            demand[CONST_TITLES.MANAGER]
         );
 
-        const rowClient = normalize(
-            row[CONST_TITLES.CURRENT_CLIENT],
+        const demandClient = normalize(
+            demand[CONST_TITLES.CONTRAGENT]
         );
 
-        const sameManager = Boolean(demandManager && rowManager)
-            && demandManager === rowManager;
+        filteredData = data.filter(row => {
+            const rowManager = normalize(
+                row[CONST_TITLES.RESPONSIBLE_MANAGER]
+            );
 
-        const sameClient = Boolean(demandClient && rowClient)
-            && demandClient === rowClient;
+            const rowClient = normalize(
+                row[CONST_TITLES.CURRENT_CLIENT]
+            );
 
-        switch (mode) {
-        case "sameManagerSameClient":
-            return sameManager && sameClient;
+            const sameManager = Boolean(demandManager && rowManager)
+                && demandManager === rowManager;
 
-        case "sameManagerAnotherClient":
-            return sameManager && !sameClient;
+            const sameClient = Boolean(demandClient && rowClient)
+                && demandClient === rowClient;
 
-        case "anotherManagerAnotherClient":
-            return !sameManager && !sameClient;
+            switch (mode) {
+            case "sameManagerSameClient":
+                return sameManager && sameClient;
 
-        default:
-            return true;
-        }
-    });
+            case "sameManagerAnotherClient":
+                return sameManager && !sameClient;
+
+            case "anotherManagerAnotherClient":
+                return !sameManager && !sameClient;
+
+            default:
+                return true;
+            }
+        });
+    }
+
+    return [...filteredData].sort(
+        (a, b) => Number(isSearchedMatch(b)) - Number(isSearchedMatch(a))
+    );
 });
 
 const rowKey = (row: DataObject) => JSON.stringify(row);
@@ -796,6 +835,15 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
 
             return Number(remainder) !== 0 ? `${remainder} кор.` : "-";
         },
+    },
+    {
+        title: "Дата (действ.)",
+        key: CONST_TITLES.DATE_NEXT_ACTION,
+        width: 50,
+        sorter: (rowA, rowB) =>
+            (toTimestamp(rowA?.[CONST_TITLES.DATE_NEXT_ACTION]) ?? 0) -
+            (toTimestamp(rowB?.[CONST_TITLES.DATE_NEXT_ACTION]) ?? 0),
+        render: row => row[CONST_TITLES.DATE_NEXT_ACTION] || "-",
     },
     {
         type: "expand",
@@ -1247,8 +1295,8 @@ const scrollPageToTop = () => {
 }
 
 :deep(.comment-icon) {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
     transition: color 0.2s ease;
 }
@@ -1426,6 +1474,19 @@ const scrollPageToTop = () => {
     align-items: center;
     min-width: 0;
     gap: 6px;
+}
+
+:deep(.n-data-table .searched-match-row td) {
+    background-color: #d6dde7 !important;
+    box-shadow: 5px 0px 5px 0 #d5e0ec91;
+}
+
+:deep(.n-data-table .searched-match-row td:first-child) {
+    box-shadow: inset 2px 0 0 #83a5cc5e;
+}
+
+:deep(.n-data-table .searched-match-row:hover td) {
+    background-color: #e5e8ece7 !important;
 }
 
 @mixin copyable-text {
