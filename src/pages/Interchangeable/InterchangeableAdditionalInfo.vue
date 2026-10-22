@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { formatCost } from "@/utils/normalize";
-import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
 
 interface AdditionalField {
     key: string;
@@ -12,21 +11,9 @@ defineProps<{
 }>();
 
 
-const splitByDate = (value: string) => {  // временное решение, скорее всего формат входных данных изменится
-    return value
-        .split(/(?<=\(\d{2}\.\d{2}\.\d{4}\))\s+/)
-        .map(item => item.trim())
-        .filter(Boolean)
-        .join("\n");
-};
-
-const formatValue = (value: unknown, key: string = "") => {
-    if (value == null || value === "") {
+const formatValue = (value: unknown) => {
+    if (value == null || String(value).trim() === "") {
         return "-";
-    }
-
-    if (key === CONST_TITLES?.ALL_CUSTOMERS_SHIPPED_ITEM_MANAGER) {
-        return splitByDate(String(value))
     }
 
     if (typeof value === "number") {
@@ -57,7 +44,7 @@ const formatValue = (value: unknown, key: string = "") => {
             </div>
 
             <div class="additional-value">
-                {{ formatValue(field.value, field.key) }}
+                {{ formatValue(field.value) }}
             </div>
         </div>
     </div>
