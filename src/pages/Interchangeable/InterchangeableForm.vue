@@ -1,29 +1,32 @@
 <script setup lang="ts">
-import { ref, computed, watch, reactive, nextTick } from "vue";
-import { normalizeForSorting, formatDate, capitalize } from "@/utils/normalize";
-import { useMessage } from "naive-ui";
-import type { FormInst, FormRules } from "naive-ui";
-import SaveIcon from "@/components/icons/SaveIcon.vue";
-import PasteFromClipboardIcon from "@/components/icons/PasteFromClipboardIcon.vue";
-import { MANAGERS_BRANCHES, CONTRAGENTS, CONST_TITLES, ZNUR_TYPES } from "@/configs/CONFIG_CONST";
-import { ID_LIST } from "@/configs/ID_LIST";
-import { check } from "@/helpers/checkInterchangeablePositions";
-import { api } from "@/api/api";
-import TrashIcon from "@/components/icons/TrashIcon.vue";
-import { usePasteIntoFormFromClipboard } from "@/composables/usePasteToFormFromClipboard";
-import type { SearchFormValue } from "@/types/TableSheetData";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import {
     NAutoComplete,
     NButton,
     NDatePicker,
     NForm,
     NFormItem,
+    NIcon,
     NInput,
     NInputNumber,
     NSelect,
-    NIcon,
+    useMessage,
 } from "naive-ui";
+import type { FormInst, FormRules } from "naive-ui";
+
+import { api } from "@/api/api";
+import { MANAGERS_BRANCHES, CONTRAGENTS, CONST_TITLES, ZNUR_TYPES } from "@/configs/CONFIG_CONST";
+import { ID_LIST } from "@/configs/ID_LIST";
+import { check } from "@/helpers/checkInterchangeablePositions";
 import { getManagerAndBranchByClient } from "@/helpers/auxiliaryTableFuncs";
+import { normalizeForSorting, formatDate, capitalize } from "@/utils/normalize";
+import type { SearchFormValue } from "@/types/TableSheetData";
+
+import { usePasteIntoFormFromClipboard } from "@/composables/usePasteToFormFromClipboard";
+
+import SaveIcon from "@/components/icons/SaveIcon.vue";
+import PasteFromClipboardIcon from "@/components/icons/PasteFromClipboardIcon.vue";
+import TrashIcon from "@/components/icons/TrashIcon.vue";
 
 const props = defineProps<{
     search: (value: SearchFormValue) => void;
@@ -107,20 +110,16 @@ const branchOptions = [
     },
 ];
 
-const znurOptions = computed(() => {
-    const result = [] as Array<{label: string, value: string}>;
-    if (!ZNUR_TYPES) {
-        return result;
-    }
+const znurOptions = computed(() =>
+    (ZNUR_TYPES ?? []).map(el => {
+        const value = String(el);
 
-    ZNUR_TYPES.forEach(el => result.push(
-        {
-            label: capitalize(String(el)),
-            value: String(el)
-        }
-    ))
-    return result;
-});
+        return {
+            label: capitalize(value),
+            value,
+        };
+    })
+);
 
 const formRef = ref<FormInst | null>(null);
 const passportFormRef = ref<FormInst | null>(null);
@@ -246,7 +245,7 @@ const returnInputValues = async () => {
     try {
         await formRef.value?.validate();
     } catch {
-        if (!formValue.nomenclature.trim() && !formValue.contragent?.trim()) {
+        if (!formValue.nomenclature.trim() || !formValue.contragent?.trim()) {
             message.warning('Заполните поля "Номенклатура" и "Контрагент"');
             return;
         }
@@ -338,7 +337,7 @@ const save = async () => {
         message.success("Данные успешно добавлены");
     } catch (error) {
         console.error(error);
-        if (Object.values(formValue).some(el => !String(el).trim())) {
+        if (Object.values(formValue).some(el => !el)) {
             message.warning("Заполните обязательные поля");
             return;
         }
