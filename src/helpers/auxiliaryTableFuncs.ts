@@ -1,4 +1,5 @@
 import type { IGoogleTableData } from "../types/TableSheetData";
+import { check } from "./checkInterchangeablePositions";
 
 const ah = {
     findIndexOfHeaderRow: function (
@@ -45,6 +46,28 @@ const ah = {
             header => String(header).trim().toLowerCase() === title.trim().toLowerCase()
         )
         return index !== -1 ? index : null;
+    },
+
+    getManagerAndBranchByClient(data: Record<string, 
+    {
+        branch: string;
+        manager: string;
+    }> | null, 
+    searchedClient: string | null
+    ): {
+        branch: string;
+        manager: string;
+    } | null {
+        if (!data || !searchedClient) return null;
+        for (const client in data) {
+            if (check.checkContragent(client, searchedClient)) {
+                return {
+                    manager: (data[client].manager?? "").trim() ,
+                    branch: (data[client].branch.trim() ?? "").trim(),
+                }
+            }
+        }
+        return null;
     }
 }
 
@@ -52,4 +75,5 @@ const ah = {
 export const {
     findIndexOfHeaderRow,
     getIndexOfColumnByTitle,
+    getManagerAndBranchByClient,
 } = ah;
