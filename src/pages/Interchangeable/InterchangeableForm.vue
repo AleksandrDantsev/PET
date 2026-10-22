@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, reactive } from "vue";
+import { ref, computed, watch, reactive, nextTick } from "vue";
 import { normalizeForSorting, formatDate, capitalize } from "@/utils/normalize";
 import { useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
@@ -10,6 +10,7 @@ import { ID_LIST } from "@/configs/ID_LIST";
 import { check } from "@/helpers/checkInterchangeablePositions";
 import { api } from "@/api/api";
 import TrashIcon from "@/components/icons/TrashIcon.vue";
+import { usePasteIntoFormFromClipboard } from "@/composables/usePasteToFormFromClipboard";
 import type { SearchFormValue } from "@/types/TableSheetData";
 import {
     NAutoComplete,
@@ -22,6 +23,7 @@ import {
     NSelect,
     NIcon,
 } from "naive-ui";
+import { getManagerAndBranchByClient } from "@/helpers/auxiliaryTableFuncs";
 
 const props = defineProps<{
     search: (value: SearchFormValue) => void;
@@ -122,6 +124,7 @@ const znurOptions = computed(() => {
 
 const formRef = ref<FormInst | null>(null);
 const passportFormRef = ref<FormInst | null>(null);
+const { pasteFromClipboard } = usePasteIntoFormFromClipboard();
 const message = useMessage();
 
 const formValue = reactive({
@@ -160,6 +163,29 @@ watch(
         formValue.branch = hasMultipleBranches ? "" : managerBranch;
     }
 );
+
+const setValueIntoFormFromClipboard = async () => {
+    const result = await pasteFromClipboard();
+    if (!result) return;
+
+    const description = getManagerAndBranchByClient(
+        CONTRAGENTS,
+        result.client
+    );
+
+    Object.assign(formValue, {
+        nomenclature: result.nomenclature ?? "",
+        contragent: result.client ?? "",
+        manager: description?.manager ?? null,
+        znurType: znurOptions.value[0]?.label ?? null,
+        quantity: result.quantityBox ?? null,
+        contract: result.order ?? "",
+    });
+
+    await nextTick();
+
+    formValue.branch = description?.branch ?? null;
+};
 
 const findContragent = (
     inputName: string | null | undefined,
@@ -220,6 +246,10 @@ const returnInputValues = async () => {
     try {
         await formRef.value?.validate();
     } catch {
+        if (!formValue.nomenclature.trim() && !formValue.contragent?.trim()) {
+            message.warning('Заполните поля "Номенклатура" и "Контрагент"');
+            return;
+        }
         return;
     }
 
@@ -276,19 +306,18 @@ const isSearched = ref(false);
 const save = async () => {
     if (isSavedMessage.value) return;
 
-    try {
-        await Promise.all([
-            formRef.value?.validate(),
-            passportFormRef.value?.validate(),
-        ]);
-    } catch (error) {
-        console.error(error);
+    if (!formRef.value || !passportFormRef.value) {
         return;
     }
 
     isSavedMessage.value = true;
 
     try {
+        await Promise.all([
+            formRef.value.validate(),
+            passportFormRef.value.validate(),
+        ]);
+
         await api.google.appendToGoogleSheet(
             ID_LIST.passport,
             {
@@ -300,19 +329,19 @@ const save = async () => {
                 [CONST_TITLES.TYPE_OF_ZNUR]: formValue.znurType ?? "",
                 [CONST_TITLES.CONTRACT]: formValue.contract,
                 [CONST_TITLES.QUANTITY]: formValue.quantity ?? "",
-                [CONST_TITLES.PLANNED_SHIPMENT_DATE]: formatDate(
-                    formValue.dateOfDelivery,
-                ),
+                [CONST_TITLES.PLANNED_SHIPMENT_DATE]:
+                    formatDate(formValue.dateOfDelivery),
             },
-            CONST_TITLES.NOMENCLATURE
+            CONST_TITLES.NOMENCLATURE,
         );
 
         message.success("Данные успешно добавлены");
-
     } catch (error) {
-        message.error("Не удалось добавить данные");
         console.error(error);
-
+        if (Object.values(formValue).some(el => !String(el).trim())) {
+            message.warning("Заполните обязательные поля");
+            return;
+        }
     } finally {
         isSavedMessage.value = false;
     }
@@ -480,7 +509,7 @@ const save = async () => {
                 size="small"
                 quaternary
                 title="Вставить из буфера"
-                @click="() => {}"
+                @click="setValueIntoFormFromClipboard"
             >
                 <template #icon>
                     <PasteFromClipboardIcon />
