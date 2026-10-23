@@ -1,7 +1,7 @@
 {
   "name": "pet-app",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "PET App",
   "author": "Aleksandr Dantsev",
   "type": "module",
@@ -42,7 +42,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "PET App"
+      "shortcutName": "PET App",
+      "deleteAppDataOnUninstall": false
     }
   },
   "dependencies": {
