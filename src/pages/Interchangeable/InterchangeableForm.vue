@@ -548,7 +548,7 @@ $transition: 0.15s ease;
 .search-wrapper {
     position: sticky;
     top: 37px;
-    z-index: 10;
+    z-index: 9999;
     padding: 12px 14px 0;
     background: $color-bg;
     border-radius: 8px 8px 0 0;
