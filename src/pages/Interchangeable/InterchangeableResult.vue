@@ -38,6 +38,15 @@ import {
     HIDDEN_ROWS_STORAGE_KEY,
 } from "@/configs/CONFIG_CONST.ts";
 
+import DataTableFilter from "./Filters/DataTableFilter.vue";
+import {
+    createDefaultFilter,
+    matchesTableFilters,
+    type FilterColumnConfig,
+    type TableFilterState,
+} from "@/composables/useTableFilters";
+import type { FilterType, ColumnFilter } from "./Filters/DataTableFilter.vue";
+
 const props = defineProps<{
     clientsDemand: DataObject | null;
     filteredActualResultObjs: DataObject[];
@@ -66,8 +75,61 @@ const additionalComments = ref<ClientComments>({});
 const draftComments = ref<Record<string, string>>({});
 const hiddenRows = ref<Set<string>>(new Set());
 
-const activeFilters = ref<
-    Record<string, (string | number)[] | string | number | undefined | null>>({});
+const tableFilters = ref<TableFilterState>({});
+
+const filterConfigs: FilterColumnConfig[] = [
+    { key: CONST_TITLES.ONE_C_NOMENCLATURE, type: "text" },
+    { key: CONST_TITLES.RESPONSIBLE_MANAGER, type: "text" },
+    { key: CONST_TITLES.BRANCH, type: "text" },
+    { key: CONST_TITLES.CURRENT_CLIENT, type: "text" },
+    { key: CONST_TITLES.UNDERSOLDED_COST, type: "number" },
+    { key: CONST_TITLES.DELIVERY_DATE, type: "date" },
+    { key: CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP, type: "text" },
+    { key: CONST_TITLES.REMAINDER_BOXES_1C, type: "number" },
+    { key: CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW, type: "number" },
+    { key: CONST_TITLES.DATE_NEXT_ACTION, type: "date" },
+];
+
+const allFilterValues = computed<Record<string, string[]>>(() => {
+    const result: Record<string, string[]> = {};
+
+    for (const { key } of filterConfigs) {
+        result[key] = getUniqueValues(key).map(option => option.value);
+    }
+
+    return result;
+});
+
+const filterDefaults = computed<Record<string, string[]>>(() => {
+    const result: Record<string, string[]> = {};
+
+    for (const { key } of filterConfigs) {
+        result[key] = (allFilterValues.value[key] ?? []).filter(
+            value =>
+                key !== CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP ||
+                !value.startsWith("0 в реал"),
+        );
+    }
+
+    return result;
+});
+
+const getTableFilter = (key: string): ColumnFilter => {
+    const config = filterConfigs.find(item => item.key === key);
+
+    return tableFilters.value[key]
+        ?? createDefaultFilter(
+            filterDefaults.value[key] ?? [],
+            config?.type ?? "text",
+        );
+};
+
+const updateTableFilter = (key: string, value: ColumnFilter) => {
+    tableFilters.value = {
+        ...tableFilters.value,
+        [key]: value,
+    };
+};
 
 const tableRef = ref<DataTableInst | null>(null);
 
@@ -127,6 +189,35 @@ const sortingFields = [
         value: "anotherManagerAnotherClient",
     },
 ];
+
+const getUniqueValues = (key: string) => {
+    return [
+        ...new Set(
+            tableData.value
+                .map(row => row[key])
+                .filter(value =>
+                    value !== null &&
+                    value !== undefined &&
+                    value !== "",
+                )
+                .map(value => String(value)),
+        ),
+    ]
+        .sort((a, b) => {
+            const normalize = (value: string) =>
+                value.replace(/[^\p{L}\p{N}\s]/gu, "");
+
+            return normalize(a).localeCompare(
+                normalize(b),
+                "ru",
+                { numeric: true },
+            );
+        })
+        .map(value => ({
+            label: value,
+            value,
+        }));
+};
 
 const saveToLocalStorage = (key: string, value: unknown) => {
     try {
@@ -425,41 +516,6 @@ watch(hiddenRows, rows => {
     );
 });
 
-const getUniqueValues = (key: string) => {
-    return [
-        ...new Set(
-            tableData.value
-                .map(row => row[key])
-                .filter(value =>
-                    value !== null &&
-                    value !== undefined &&
-                    value !== "",
-                )
-                .map(value => String(value)),
-        ),
-    ]
-        .sort((a, b) => {
-            const normalize = (value: string) =>
-                value.replace(/[^\p{L}\p{N}\s]/gu, "");
-
-            return normalize(a).localeCompare(
-                normalize(b),
-                "ru",
-                { numeric: true },
-            );
-        })
-        .map(value => ({
-            label: value,
-            value,
-        }));
-};
-
-const createFilter = (key: string) => {
-    return (value: string | number, row: DataObject) => {
-        return String(row[key] ?? "") === String(value);
-    };
-};
-
 const getAdditionalFields = (row: DataObject) => {
     return includedFieldsInAdditionalSector
         .filter(key => {
@@ -541,6 +597,18 @@ const displayedData = computed(() => {
     );
 });
 
+const filteredByColumns = computed(() => {
+    return displayedData.value.filter(row =>
+        matchesTableFilters(
+            row,
+            filterConfigs,
+            tableFilters.value,
+            allFilterValues.value,
+            filterDefaults.value,
+        ),
+    );
+});
+
 const rowKey = (row: DataObject) => JSON.stringify(row);
 
 const toggleHidden = (row: DataObject) => {
@@ -556,25 +624,41 @@ const toggleHidden = (row: DataObject) => {
     hiddenRows.value = next;
 };
 
+const renderFilterTitle = (
+    key: string,
+    title: string,
+    type: FilterType,
+) => {
+    return () => h(DataTableFilter, {
+        title,
+        type,
+        options: getUniqueValues(key),
+        defaultValues: filterDefaults.value[key] ?? [],
+        modelValue: getTableFilter(key),
+        "onUpdate:modelValue": (value: ColumnFilter) => {
+            updateTableFilter(key, value);
+        },
+    });
+};
+
 const columns = computed<DataTableColumns<DataObject>>(() => [
     {
-        title: "№п/п",
+        title: "№",
         key: "index",
-        width: 20,
+        width: 18,
         align: "center",
         render: (_row, index) =>
             (currentPage.value - 1) * PAGINATION_LENGTH + index + 1,
     },
     {
-        title: "Номенклатура",
-        key: CONST_TITLES.ONE_C_NOMENCLATURE,
-        width: 130,
-        sorter: "default",
-        filter: createFilter(CONST_TITLES.ONE_C_NOMENCLATURE),
-        filterMultiple: true,
-        filterOptions: getUniqueValues(
+        title: renderFilterTitle(
             CONST_TITLES.ONE_C_NOMENCLATURE,
+            "Номенклатура",
+            "text",
         ),
+        key: CONST_TITLES.ONE_C_NOMENCLATURE,
+        width: 120,
+        sorter: "default",
         resizable: true,
 
         render: row => {
@@ -640,36 +724,37 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         },
     },
     {
-        title: "Менеджер",
-        key: CONST_TITLES.RESPONSIBLE_MANAGER,
-        width: 45,
-        sorter: "default",
-        filter: createFilter(CONST_TITLES.RESPONSIBLE_MANAGER),
-        filterMultiple: true,
-        filterOptions: getUniqueValues(
+        title: renderFilterTitle(
             CONST_TITLES.RESPONSIBLE_MANAGER,
+            "Менеджер",
+            "text",
         ),
+        key: CONST_TITLES.RESPONSIBLE_MANAGER,
+        width: 50,
+        sorter: "default",
         resizable: true,
         render: row => row[CONST_TITLES.RESPONSIBLE_MANAGER] || "-",
     },
     {
-        title: "Филиал",
+        title: renderFilterTitle(
+            CONST_TITLES.BRANCH,
+            "Филиал",
+            "text",
+        ),
         key: CONST_TITLES.BRANCH,
         width: 45,
         sorter: "default",
-        filter: createFilter(CONST_TITLES.BRANCH),
-        filterMultiple: true,
-        filterOptions: getUniqueValues(CONST_TITLES.BRANCH),
         resizable: true,
     },
     {
-        title: "Клиент",
+        title: renderFilterTitle(
+            CONST_TITLES.CURRENT_CLIENT,
+            "Клиент",
+            "text",
+        ),
         key: CONST_TITLES.CURRENT_CLIENT,
-        width: 125,
+        width: 115,
         sorter: "default",
-        filter: createFilter(CONST_TITLES.CURRENT_CLIENT),
-        filterMultiple: true,
-        filterOptions: getUniqueValues(CONST_TITLES.CURRENT_CLIENT),
         resizable: true,
 
         render: row => {
@@ -752,7 +837,11 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         },
     },
     {
-        title: "Стоимость",
+        title: renderFilterTitle(
+            CONST_TITLES.UNDERSOLDED_COST,
+            "Стоимость",
+            "number",
+        ),
         key: CONST_TITLES.UNDERSOLDED_COST,
         width: 45,
         resizable: true,
@@ -768,7 +857,11 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         },
     },
     {
-        title: "Дата привоза",
+        title: renderFilterTitle(
+            CONST_TITLES.DELIVERY_DATE,
+            "Дата привоза",
+            "date",
+        ),
         key: CONST_TITLES.DELIVERY_DATE,
         width: 50,
         sorter: (rowA, rowB) =>
@@ -777,17 +870,14 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         render: row => row[CONST_TITLES.DELIVERY_DATE] || "-",
     },
     {
-        title: "Жёсткость",
+        title: renderFilterTitle(
+            CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP,
+            "Жесткость",
+            "text",
+        ),
         key: CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP,
         width: 60,
         resizable: true,
-        filterMultiple: true,
-        filter: createFilter(CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP),
-        filterOptions: getUniqueValues(CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP),
-        defaultFilterOptionValues: getUniqueValues(
-            CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP,
-        ).map(option => option.value)
-            .filter(value => !value.startsWith("0 в реал")),
         sorter: (rowA, rowB) =>
             (toTimestamp(rowA?.[CONST_TITLES.DELIVERY_DATE]) ?? 0) -
             (toTimestamp(rowB?.[CONST_TITLES.DELIVERY_DATE]) ?? 0),
@@ -814,7 +904,11 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         },
     },
     {
-        title: "Остатки",
+        title: renderFilterTitle(
+            CONST_TITLES.REMAINDER_BOXES_1C,
+            "Остатки",
+            "number",
+        ),
         key: CONST_TITLES.REMAINDER_BOXES_1C,
         width: 40,
         resizable: true,
@@ -830,7 +924,11 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         },
     },
     {
-        title: "Недопрод.",
+        title: renderFilterTitle(
+            CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW,
+            "Недопрод.",
+            "number",
+        ),
         key: CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW,
         width: 40,
         resizable: true,
@@ -850,7 +948,11 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
         },
     },
     {
-        title: "Дата (действ.)",
+        title: renderFilterTitle(
+            CONST_TITLES.DATE_NEXT_ACTION,
+            "Дата (действ.)",
+            "date",
+        ),
         key: CONST_TITLES.DATE_NEXT_ACTION,
         width: 50,
         sorter: (rowA, rowB) =>
@@ -930,30 +1032,13 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     },
 ]);
 
-const handleUpdateFilters = (
-    filters: Record<
-        string,
-        (string | number)[] | string | number | undefined | null
-    >,
-) => {
-    activeFilters.value = filters;
-};
-
-const filterableKeys = [
-    CONST_TITLES.ONE_C_NOMENCLATURE,
-    CONST_TITLES.RESPONSIBLE_MANAGER,
-    CONST_TITLES.BRANCH,
-    CONST_TITLES.CURRENT_CLIENT,
-    CONST_TITLES.HARDNESS,
-];
-
 const visibleData = computed(() => {
     const hasClientDemand = Boolean(
         props.clientsDemand &&
         Object.keys(props.clientsDemand).length,
     );
 
-    return displayedData.value.filter(row => {
+    return filteredByColumns.value.filter(row => {
         const isHidden = hiddenRows.value.has(getHiddenKey(row));
 
         if (!hasClientDemand) return true;
@@ -989,37 +1074,19 @@ watch(visibleData, () => {
     currentPage.value = 1;
 });
 
-const displayedCount = computed(() => {
-    return visibleData.value.filter(row => {
-        return filterableKeys.every(key => {
-            const selectedValues = activeFilters.value[key];
+const displayedCount = computed(() => visibleData.value.length);
 
-            if (
-                selectedValues == null ||
-                (Array.isArray(selectedValues) &&
-                    selectedValues.length === 0)
-            ) {
-                return true;
-            }
-
-            const values = Array.isArray(selectedValues)
-                ? selectedValues
-                : [selectedValues];
-
-            return values.some(value => createFilter(key)(value, row));
-        });
-    }).length;
-});
 
 const clearFilters = () => {
     searchQuery.value = "";
     debouncedSearchQuery.value = "";
 
-    tableRef.value?.clearFilters();
+    tableFilters.value = {};
+    sortingByPriorityField.value = "";
+
     tableRef.value?.clearSorter();
 
-    activeFilters.value = {};
-    sortingByPriorityField.value = "";
+    currentPage.value = 1;
 };
 
 const scrollPageToTop = () => {
@@ -1132,9 +1199,9 @@ const scrollPageToTop = () => {
                         </span>
 
                         <NButton
-                            dashed
-                            size="small"
                             class="clear-button"
+                            size="small"
+                            dashed
                             @click="clearFilters"
                         >
                             Сбросить фильтры
@@ -1157,7 +1224,6 @@ const scrollPageToTop = () => {
                 :row-class-name="getRowClassName"
                 :pagination="pagination"
                 @update:page="handlePageUpdate"
-                @update:filters="handleUpdateFilters"
             >   
                 <template #empty>
                     <div style="min-height: 10px;">
@@ -1505,6 +1571,10 @@ const scrollPageToTop = () => {
 
 :deep(.n-data-table .searched-match-row:hover td) {
     background-color: #e5e8ece7 !important;
+}
+
+:deep(.n-data-table-sorter) {
+    display: none !important;
 }
 
 @mixin copyable-text {
