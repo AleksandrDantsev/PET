@@ -19,6 +19,11 @@ import UpButton from "@/components/common/UpButton.vue";
 import { useAppReload } from "@/composables/useAppReload";
 import { reportAppError } from "@/utils/appErrors";
 import { cutOverflowedText } from "@/utils/normalize";
+import { 
+    CONFIG_DATA_STORAGE_KEY,
+    ACTUAL_DATA_STORAGE_KEY,
+    INTERCHANGEABLE_DATA_STORAGE_KEY 
+} from "@/configs/CONFIG_CONST";
 
 const InterchangeablePage = defineAsyncComponent(
     () => import("@/pages/Interchangeable/InterchangeablePage.vue")
@@ -101,16 +106,16 @@ async function loadGoogleSheets() {
 
             if (changed) {
                 ACTUAL_DATA.value = actualData;
-                LocalStorage.save("actualData", actualData);
+                LocalStorage.save(ACTUAL_DATA_STORAGE_KEY, actualData);
             }
         }
 
         if (configData) {
             const savedConfigData =
-                LocalStorage.get<IGoogleTableData>("configData");
+                LocalStorage.get<IGoogleTableData>(CONFIG_DATA_STORAGE_KEY);
 
             if (hasDataChanged(savedConfigData, configData)) {
-                LocalStorage.save("configData", configData);
+                LocalStorage.save(CONFIG_DATA_STORAGE_KEY, configData);
             }
         }
 
@@ -124,7 +129,7 @@ async function loadGoogleSheets() {
                 INTERCHANGEABLE_DATA.value = interchangeableData;
 
                 LocalStorage.save(
-                    "interchangeableData",
+                    INTERCHANGEABLE_DATA_STORAGE_KEY,
                     interchangeableData,
                 );
             }
@@ -138,10 +143,10 @@ onMounted(async () => {
     window.scrollTo(0, 0);
 
     const savedActualData =
-        LocalStorage.get<IGoogleTableData>("actualData");
+        LocalStorage.get<IGoogleTableData>(ACTUAL_DATA_STORAGE_KEY);
 
     const savedInterchangeableData =
-        LocalStorage.get<IGoogleTableData>("interchangeableData");
+        LocalStorage.get<IGoogleTableData>(INTERCHANGEABLE_DATA_STORAGE_KEY);
 
     if (savedActualData) {
         ACTUAL_DATA.value = savedActualData;
@@ -303,8 +308,8 @@ $minWidthTooltip: 500px;
 .tabs-header {
   position: sticky;
   top: 0;
-  z-index: 100;
-  background: var(--n-color);
+  z-index: 9999;
+  background: #fff;
 }
 
 .n-popconfirm .n-popconfirm__content {
