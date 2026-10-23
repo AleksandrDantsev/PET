@@ -18,6 +18,7 @@ const emit = defineEmits<{
     (e: "update-title", title: string): void;
 }>();
 
+const searchedFields = ref<Record<string, string | number | null> | null>(null);
 const filteredActualResultObjs = ref<DataObject[]>([]);
 const clientsDemand = ref<DataObject>({});
 const isSearched = ref<boolean>(false);
@@ -56,10 +57,15 @@ const search = (fields: SearchFormValue) => {
         clientsDemand.value = {};
         return;
     }
+    searchedFields.value = fields;
 
     const contragent = fields.contragent;
-    const descriptionProduct = ih.getDescriptionProduct(fields.nomenclature);
 
+    const descriptionProduct = ih.getDescriptionProduct(
+        fields.nomenclature
+    );
+    
+    console.log(fields)
     const productTypeInput = descriptionProduct?.type;
 
     const clientDemand = interchangeableDataObjs.value.find(item => {
@@ -97,6 +103,9 @@ const search = (fields: SearchFormValue) => {
             )
         );
     });
+    console.log(descriptionProduct)
+    console.log(clientsDemand.value)
+    console.log(clientDemand)
     if (descriptionProduct?.fullName) {
         emit("update-title", descriptionProduct.fullName);
     }
@@ -130,9 +139,6 @@ const search = (fields: SearchFormValue) => {
         return;
     }
     clientsDemand.value = clientDemand;
-
-    console.log(descriptionProduct)
-    console.log(clientsDemand.value)
 
     const result = actualDataObjs.value.filter(item => {
         const nomenclature = item[CONST_TITLES.ONE_C_NOMENCLATURE];
@@ -189,7 +195,6 @@ const search = (fields: SearchFormValue) => {
 };
 
 </script>
-
 <template>
     <div class="search-wrapper">
         <InterchangeableForm :search="search" />
@@ -200,8 +205,8 @@ const search = (fields: SearchFormValue) => {
                     || Object.keys(clientsDemand).length"
                 :clients-demand="clientsDemand"
                 :filtered-actual-result-objs="filteredActualResultObjs"
+                :searched-fields="searchedFields"
             />
-
             <NEmpty
                 v-else
                 :description="'Не найдены потребности клиента по данному типу товара'"
