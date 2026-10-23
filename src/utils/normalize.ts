@@ -207,6 +207,73 @@ function handleFormatNumber(value: string | number | undefined): number {
     )
 }
 
+function normalizeForFilter(
+    value: string | number | null | undefined,
+): string {
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    return String(value)
+        .replace(/[\u00A0\u202F]/g, " ")
+        .replace(/\s+/g, " ")
+        .replace(/[‐-‒–—−]/g, "-")
+        .replace(/[ёЁ]/g, char => char === "Ё" ? "Е" : "е")
+        .trim()
+        .toLocaleLowerCase("ru")
+        .replace(/(?<=\d),(?=\d)/g, ".");
+}
+
+
+function parseNumericValue(
+    value: string | number | null | undefined,
+): number | null {
+    if (value === null || value === undefined || value === "") {
+        return null;
+    }
+
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : null;
+    }
+
+    let normalized = value
+        .replace(/[\u00A0\u202F\s]/g, "")
+        .replace(/[₽$€]/g, "");
+
+    if (!/^-?\d[\d.,]*$/.test(normalized)) {
+        return null;
+    }
+
+    if (normalized.includes(",") && normalized.includes(".")) {
+        if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+            normalized = normalized.replace(/\./g, "").replace(",", ".");
+        } else {
+            normalized = normalized.replace(/,/g, "");
+        }
+    } else if (normalized.includes(",")) {
+        normalized = normalized.replace(",", ".");
+    } else if (/^-?\d{1,3}(?:\.\d{3})+$/.test(normalized)) {
+        normalized = normalized.replace(/\./g, "");
+    }
+
+    const result = Number(normalized);
+
+    return Number.isFinite(result) ? result : null;
+}
+
+function normalizeNumberForSearch(
+    value: string | number | null | undefined,
+): string {
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    return String(value)
+        .replace(/[\u00A0\u202F\s]/g, "")
+        .replace(",", ".");
+}
+
+
 
 export {
     normalize,
@@ -220,4 +287,7 @@ export {
     formatCost,
     handleFormatNumber,
     formatDate,
+    normalizeForFilter,
+    parseNumericValue,
+    normalizeNumberForSearch,
 };
