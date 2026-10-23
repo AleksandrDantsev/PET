@@ -438,7 +438,16 @@ const getUniqueValues = (key: string) => {
                 .map(value => String(value)),
         ),
     ]
-        .sort((a, b) => a.localeCompare(b, "ru"))
+        .sort((a, b) => {
+            const normalize = (value: string) =>
+                value.replace(/[^\p{L}\p{N}\s]/gu, "");
+
+            return normalize(a).localeCompare(
+                normalize(b),
+                "ru",
+                { numeric: true },
+            );
+        })
         .map(value => ({
             label: value,
             value,
@@ -745,7 +754,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     {
         title: "Стоимость",
         key: CONST_TITLES.UNDERSOLDED_COST,
-        width: 40,
+        width: 45,
         resizable: true,
         sorter: (rowA, rowB) =>
             handleFormatNumber(rowA[CONST_TITLES.UNDERSOLDED_COST]) -
@@ -769,18 +778,22 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
     },
     {
         title: "Жёсткость",
-        key: CONST_TITLES.HARDNESS,
+        key: CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP,
         width: 60,
         resizable: true,
         filterMultiple: true,
-        filter: createFilter(CONST_TITLES.HARDNESS),
-        filterOptions: getUniqueValues(CONST_TITLES.HARDNESS),
+        filter: createFilter(CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP),
+        filterOptions: getUniqueValues(CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP),
+        defaultFilterOptionValues: getUniqueValues(
+            CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP,
+        ).map(option => option.value)
+            .filter(value => !value.startsWith("0 в реал")),
         sorter: (rowA, rowB) =>
             (toTimestamp(rowA?.[CONST_TITLES.DELIVERY_DATE]) ?? 0) -
             (toTimestamp(rowB?.[CONST_TITLES.DELIVERY_DATE]) ?? 0),
         render: row => {
             const days = row[CONST_TITLES.DAYS_SINCE_DELIVERY];
-            const hardness = row[CONST_TITLES.HARDNESS];
+            const hardness = row[CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP];
 
             return h("div", { class: "hardness-cell" }, [
                 h(
@@ -1429,6 +1442,11 @@ const scrollPageToTop = () => {
 
 :deep(.result-table) {
     min-height: calc(100vh - 220px);
+}
+
+:deep(.n-data-table-th) {
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 :deep(.n-data-table .n-data-table-td),
