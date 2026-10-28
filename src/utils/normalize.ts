@@ -273,6 +273,14 @@ function normalizeNumberForSearch(
         .replace(",", ".");
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isObjectEqual(obj1: Record<string, any>, obj2: Record<string, any>) {
+    if (!obj1 || !obj2) {
+        return false;
+    }
+    return JSON.stringify(obj1) === JSON.stringify(obj2);
+}
+
 
 
 export {
@@ -290,4 +298,5 @@ export {
     normalizeForFilter,
     parseNumericValue,
     normalizeNumberForSearch,
+    isObjectEqual,
 };
