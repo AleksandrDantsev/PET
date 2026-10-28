@@ -45,12 +45,15 @@ import {
     type FilterColumnConfig,
     type TableFilterState,
 } from "@/composables/useTableFilters";
+import type { SearchFormValue } from "../../types/TableSheetData.ts";
 import type { FilterType, ColumnFilter } from "./Filters/DataTableFilter.vue";
+import { check } from "@/helpers/checkInterchangeablePositions.ts";
+import { ih } from "@/helpers/interchangeableFilters.ts";
 
 const props = defineProps<{
     clientsDemand: DataObject | null;
     filteredActualResultObjs: DataObject[];
-    searchedFields: Record<string, string | number | null> | null;
+    searchedFields: SearchFormValue | null;
 }>();
 
 const tableData = computed(() => props.filteredActualResultObjs);
@@ -348,34 +351,99 @@ const saveComment = (
     draftComments.value = nextDrafts;
 };
 
-const isSearchedMatch = (row: DataObject): boolean => {
-    console.log(props.searchedFields)
-    
+
+const isClientAndNomenclatureMatch = (row: DataObject): boolean => {
     const searchedNomenclature = normalize(
-        String(props.searchedFields?.nomenclature)
+        String(props.searchedFields?.nomenclature ?? "")
     );
 
-    const searchedClient = normalize(
-        String(props.searchedFields?.contragent)
+    const searchedContragent = normalize(
+        String(props.searchedFields?.contragentNames?.contragent ?? "")
     );
 
-    if (!searchedNomenclature || !searchedClient) {
+    const searchedHolding = normalize(
+        String(props.searchedFields?.contragentNames?.holding ?? "")
+    );
+
+    if (!searchedNomenclature || (!searchedContragent && !searchedHolding)) {
+        return false;
+    }
+
+    const rowClient = normalize(
+        String(row[CONST_TITLES.CURRENT_CLIENT] ?? "")
+    );
+
+    return (
+        normalize(String(row[CONST_TITLES.ONE_C_NOMENCLATURE] ?? "")) ===
+            searchedNomenclature &&
+        ((searchedContragent !== "" && rowClient === searchedContragent) ||
+            (searchedHolding !== "" && rowClient === searchedHolding))
+    );
+};
+
+const isNomenclatureMatch = (row: DataObject): boolean => {
+    const searchedNomenclature = normalize(
+        String(props.searchedFields?.nomenclature ?? "")
+    );
+
+    if (!searchedNomenclature) {
         return false;
     }
 
     return (
         normalize(row[CONST_TITLES.ONE_C_NOMENCLATURE]) ===
-            searchedNomenclature &&
-        normalize(row[CONST_TITLES.CURRENT_CLIENT]) ===
-            searchedClient
+        searchedNomenclature
     );
+};
+
+const getColorMatchPriority = (row: DataObject): number => {
+    const searchedNomenclature = String(
+        props.searchedFields?.nomenclature ?? ""
+    );
+
+    if (!searchedNomenclature.trim()) {
+        return 0;
+    }
+
+    const searchedColors = ih.getColor(searchedNomenclature);
+
+    if (!searchedColors.length) {
+        return 0;
+    }
+
+    const rowNomenclature = String(
+        row[CONST_TITLES.ONE_C_NOMENCLATURE] ?? ""
+    );
+
+    const rowColors = ih.getColor(rowNomenclature);
+
+    if (!rowColors.length) {
+        return 0;
+    }
+
+    const hasExactColorMatch = searchedColors.some(
+        color => rowColors.includes(color)
+    );
+
+    if (hasExactColorMatch) {
+        return 2;
+    }
+
+    const hasCompatibleColorMatch = check.checkIncludeColors(
+        searchedColors,
+        [rowNomenclature]
+    );
+
+    return hasCompatibleColorMatch ? 1 : 0;
 };
 
 const getRowClassName = (row: DataObject): string => {
     const classes: string[] = [];
 
-    if (isSearchedMatch(row)) {
+    if (isClientAndNomenclatureMatch(row)) {
         classes.push("searched-match-row");
+    } else if (isNomenclatureMatch(row)) {
+        classes.push("searched-nomenclature-row");
     }
 
     const hasClientDemand = Boolean(
@@ -592,9 +660,21 @@ const displayedData = computed(() => {
         });
     }
 
-    return [...filteredData].sort(
-        (a, b) => Number(isSearchedMatch(b)) - Number(isSearchedMatch(a))
-    );
+    return [...filteredData].sort((a, b) => {
+        const getPriority = (row: DataObject): number => {
+            if (isClientAndNomenclatureMatch(row)) return 5;
+            if (isNomenclatureMatch(row)) return 4;
+
+            const colorPriority = getColorMatchPriority(row);
+
+            if (colorPriority === 2) return 3;
+            if (colorPriority === 1) return 2;
+
+            return 0;
+        };
+
+        return getPriority(b) - getPriority(a);
+    });
 });
 
 const filteredByColumns = computed(() => {
@@ -657,7 +737,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
             "text",
         ),
         key: CONST_TITLES.ONE_C_NOMENCLATURE,
-        width: 120,
+        width: 140,
         sorter: "default",
         resizable: true,
 
@@ -730,7 +810,7 @@ const columns = computed<DataTableColumns<DataObject>>(() => [
             "text",
         ),
         key: CONST_TITLES.RESPONSIBLE_MANAGER,
-        width: 50,
+        width: 52,
         sorter: "default",
         resizable: true,
         render: row => row[CONST_TITLES.RESPONSIBLE_MANAGER] || "-",
@@ -1280,9 +1360,9 @@ const scrollPageToTop = () => {
     font-size: 12px;
 }
 
-.hardness-value {
+:deep(.hardness-value) {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .hardness-days {
@@ -1560,18 +1640,46 @@ const scrollPageToTop = () => {
     gap: 6px;
 }
 
-:deep(.n-data-table .searched-match-row td) {
-    background-color: #d6dde7 !important;
-    box-shadow: 5px 0px 5px 0 #d5e0ec91;
+@mixin searched-row(
+    $background,
+    $shadow,
+    $border,
+    $hover-background: #e5e8ece7
+) {
+    td {
+        background-color: $background !important;
+        box-shadow: 5px 0 5px 0 $shadow;
+    }
+
+    td:first-child {
+        box-shadow: inset 2px 0 0 $border;
+    }
+
+    &:hover td {
+        background-color: $hover-background !important;
+    }
 }
 
-:deep(.n-data-table .searched-match-row td:first-child) {
-    box-shadow: inset 2px 0 0 #83a5cc5e;
+
+:deep(.n-data-table .searched-match-row) {
+    @include searched-row(
+        #f3e3dc,
+        #ecdbd591,
+        #cc98835e,
+        #f5e9e4
+    );
 }
 
-:deep(.n-data-table .searched-match-row:hover td) {
-    background-color: #e5e8ece7 !important;
+:deep(.n-data-table .searched-nomenclature-row) {
+    @include searched-row(
+        #d6dde7,
+        #d5e0ec91,
+        #83a5cc5e,
+        #e5e8ece7
+    );
 }
+
+
 
 :deep(.n-data-table-sorter) {
     display: none !important;
