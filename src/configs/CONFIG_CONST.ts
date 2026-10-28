@@ -16,6 +16,7 @@ function required<T>(
     return value;
 }
 
+// НЕ ИЗМЕНЯТЬ НАЗВАНИЕ ПЕРЕМЕННЫХ!!!
 const COMMENTS_STORAGE_KEY = "interchangeable-row-comments";
 const ADDITIONAL_COMMENTS_STORAGE_KEY = "interchangeable-row-additional-comments";
 const HIDDEN_ROWS_STORAGE_KEY = "interchangeable-hidden-rows";
