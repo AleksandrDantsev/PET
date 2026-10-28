@@ -18,7 +18,7 @@ const emit = defineEmits<{
     (e: "update-title", title: string): void;
 }>();
 
-const searchedFields = ref<Record<string, string | number | null> | null>(null);
+const searchedFields = ref<SearchFormValue | null>(null);
 const filteredActualResultObjs = ref<DataObject[]>([]);
 const clientsDemand = ref<DataObject>({});
 const isSearched = ref<boolean>(false);
@@ -57,55 +57,74 @@ const search = (fields: SearchFormValue) => {
         clientsDemand.value = {};
         return;
     }
+
     searchedFields.value = fields;
 
-    const contragent = fields.contragent;
+    const { contragent, holding } = fields.contragentNames;
 
     const descriptionProduct = ih.getDescriptionProduct(
         fields.nomenclature
     );
-    
-    console.log(fields)
+
     const productTypeInput = descriptionProduct?.type;
 
-    const clientDemand = interchangeableDataObjs.value.find(item => {
-        return (
-            check.checkType(
-                String(item[CONST_TITLES.TYPE_OF_PRODUCT]),
-                productTypeInput
-            ) &&
-            check.checkStandart(
-                String(item[CONST_TITLES.STANDARD]),
-                descriptionProduct?.standart
-            ) &&
-            check.checkContragent(
-                String(item[CONST_TITLES.CONTRAGENT]),
-                contragent
-            ) &&
-            (
-                productTypeInput === "преформа"
-                    ? check.checkGrams(
-                        {
-                            from: String(item[CONST_TITLES.WEIGHT_FROM] ?? ""),
-                            to: String(item[CONST_TITLES.WEIGHT_TO] ?? ""),
-                        },
-                        descriptionProduct?.grams
-                    )
-                    : true
-            ) &&
-            check.checkIncludeColors(
-                descriptionProduct?.color,
-                [
-                    String(item[CONST_TITLES.PRIMARY_COLOR] ?? ""),
-                    String(item[CONST_TITLES.INTERCHANGEABLE_COLORS] ?? ""),
-                    String(item[CONST_TITLES.POSSIBLE_COLORS] ?? ""),
-                ]
-            )
-        );
-    });
-    console.log(descriptionProduct)
-    console.log(clientsDemand.value)
-    console.log(clientDemand)
+    const findClientDemand = (clientName: string | undefined) => {
+        if (!clientName) {
+            return undefined;
+        }
+
+        return interchangeableDataObjs.value.find(item => {
+            return (
+                check.checkType(
+                    String(item[CONST_TITLES.TYPE_OF_PRODUCT] ?? ""),
+                    productTypeInput
+                ) &&
+                check.checkStandart(
+                    String(item[CONST_TITLES.STANDARD] ?? ""),
+                    descriptionProduct?.standard
+                ) &&
+                check.checkContragent(
+                    String(item[CONST_TITLES.CONTRAGENT] ?? ""),
+                    clientName
+                ) &&
+                (
+                    productTypeInput === "преформа"
+                        ? check.checkGrams(
+                            {
+                                from: String(
+                                    item[CONST_TITLES.WEIGHT_FROM] ?? ""
+                                ),
+                                to: String(
+                                    item[CONST_TITLES.WEIGHT_TO] ?? ""
+                                ),
+                            },
+                            descriptionProduct?.grams
+                        )
+                        : true
+                ) &&
+                check.checkIncludeColors(
+                    descriptionProduct?.color,
+                    [
+                        String(
+                            item[CONST_TITLES.PRIMARY_COLOR] ?? ""
+                        ),
+                        String(
+                            item[CONST_TITLES.INTERCHANGEABLE_COLORS] ?? ""
+                        ),
+                        String(
+                            item[CONST_TITLES.POSSIBLE_COLORS] ?? ""
+                        ),
+                    ]
+                )
+            );
+        });
+    };
+
+    // Сначала ищем потребность контрагента, затем — холдинга.
+    const clientDemand =
+        findClientDemand(contragent) ??
+        findClientDemand(holding);
+
     if (descriptionProduct?.fullName) {
         emit("update-title", descriptionProduct.fullName);
     }
@@ -138,6 +157,7 @@ const search = (fields: SearchFormValue) => {
         clientsDemand.value = {};
         return;
     }
+
     clientsDemand.value = clientDemand;
 
     const result = actualDataObjs.value.filter(item => {
@@ -147,19 +167,22 @@ const search = (fields: SearchFormValue) => {
             return false;
         }
 
-        const actualProductDescription = ih.getDescriptionProduct(String(nomenclature));
-  
+        const actualProductDescription = ih.getDescriptionProduct(
+            String(nomenclature)
+        );
+
         if (!actualProductDescription) {
             return false;
         }
+
         return (
             check.checkType(
                 actualProductDescription.type,
-                String(clientDemand[CONST_TITLES.TYPE_OF_PRODUCT])
+                String(clientDemand[CONST_TITLES.TYPE_OF_PRODUCT] ?? "")
             ) &&
             check.checkStandart(
                 String(clientDemand[CONST_TITLES.STANDARD] ?? ""),
-                actualProductDescription.standart
+                actualProductDescription.standard
             ) &&
             (
                 actualProductDescription.type === "преформа"
@@ -183,9 +206,15 @@ const search = (fields: SearchFormValue) => {
             check.checkIncludeColors(
                 actualProductDescription.color,
                 [
-                    String(clientDemand[CONST_TITLES.PRIMARY_COLOR] ?? ""),
-                    String(clientDemand[CONST_TITLES.INTERCHANGEABLE_COLORS] ?? ""),
-                    String(clientDemand[CONST_TITLES.POSSIBLE_COLORS] ?? ""),
+                    String(
+                        clientDemand[CONST_TITLES.PRIMARY_COLOR] ?? ""
+                    ),
+                    String(
+                        clientDemand[CONST_TITLES.INTERCHANGEABLE_COLORS] ?? ""
+                    ),
+                    String(
+                        clientDemand[CONST_TITLES.POSSIBLE_COLORS] ?? ""
+                    ),
                 ]
             )
         );
