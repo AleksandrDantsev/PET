@@ -7,7 +7,7 @@ import InterchangeableResult from "./InterchangeableResult.vue";
 import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
 import { check } from "@/helpers/checkInterchangeablePositions.ts";
 import { ih } from "@/helpers/interchangeableFilters.ts";
-import { NEmpty } from "naive-ui";
+import { NEmpty, useMessage } from "naive-ui";
 
 const props = defineProps<{
     actualData?: IGoogleTableData | null;
@@ -18,6 +18,7 @@ const emit = defineEmits<{
     (e: "update-title", title: string): void;
 }>();
 
+const message = useMessage();
 const searchedFields = ref<SearchFormValue | null>(null);
 const filteredActualResultObjs = ref<DataObject[]>([]);
 const clientsDemand = ref<DataObject>({});
@@ -120,10 +121,15 @@ const search = (fields: SearchFormValue) => {
         });
     };
 
-    // Сначала ищем потребность контрагента, затем — холдинга.
-    const clientDemand =
-        findClientDemand(contragent) ??
-        findClientDemand(holding);
+
+    const fContragent = findClientDemand(contragent);
+    const fHolding = fContragent ? undefined : findClientDemand(holding);
+
+    const clientDemand = fContragent ?? fHolding;
+
+    if (!fContragent && fHolding) {
+        message.warning("Клиент найден среди холдингов");
+    }
 
     if (descriptionProduct?.fullName) {
         emit("update-title", descriptionProduct.fullName);
