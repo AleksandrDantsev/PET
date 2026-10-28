@@ -3,7 +3,7 @@ import { normalize } from "./normalize";
 const productColors = {
     "бело-желт": {
         colorName: "бело-желтый",
-        color: "#edeea0",
+        color: "#f1e497",
     },
     "ультрамарин": {
         colorName: "ультрамарин",
@@ -47,7 +47,7 @@ const productColors = {
     },
     "желт": {
         colorName: "желтый",
-        color: "#f8f402",
+        color: "#FFD600",
     },
     "зелен": {
         colorName: "зеленый",
