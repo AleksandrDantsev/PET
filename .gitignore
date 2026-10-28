@@ -38,3 +38,6 @@ credentials/
 *.njsproj
 *.sln
 *.sw?
+service/parse/sales.xlsx
+service/parse/result.xlsx
+service/parse/parse_excel.py
