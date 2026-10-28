@@ -16,9 +16,12 @@ export type DataObject = Record<
   string | undefined | number
 >;
 
-export type SearchFormValue = {
+export interface SearchFormValue {
     nomenclature: string;
-    contragent: string;
+    contragentNames: {
+        contragent: string;
+        holding: string;
+    };
     manager: string | null;
     branch: string | null;
     date: string;
@@ -26,4 +29,4 @@ export type SearchFormValue = {
     contract: string;
     quantity: string;
     dateOfDelivery: string;
-};
+}
