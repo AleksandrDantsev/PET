@@ -304,6 +304,8 @@ const isFilterApplied = computed(() => {
             placement="bottom-end"
             :show-arrow="true"
             :width="250"
+            to="body"
+            :z-index="99999"
             raw
         >
             <template #trigger>
@@ -449,7 +451,6 @@ const isFilterApplied = computed(() => {
                     <NButton
                         size="small"
                         dashed
-                        type="error"
                         @click="reset"
                     >
                         Сбросить
@@ -540,7 +541,7 @@ const isFilterApplied = computed(() => {
     flex-direction: column;
     gap: 7px;
     width: 250px;
-    max-height: 65vh;
+    max-height: 55vh;
     padding: 12px;
     overflow-y: auto;
     border: 1px solid #e5e7eb;
@@ -633,11 +634,10 @@ const isFilterApplied = computed(() => {
 }
 :deep(.select-all) {
     position: sticky;
-    top: 0;
+    top: -1px;
     z-index: 2;
     flex-shrink: 0;
-    padding: 5px 0;
-    background: var(--n-color, #fff);
+    background: #fff;
     border-bottom: 1px solid #e8e8e8;
 }
 </style>
