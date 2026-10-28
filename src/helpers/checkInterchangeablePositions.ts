@@ -49,7 +49,7 @@ const check: ICheckConditionsFuncs = {
         listName: string | null | undefined,
         inputName: string | null | undefined
     ): boolean {
-        if (!listName || !inputName) {
+        if (!listName?.trim() || !inputName?.trim()) {
             return false;
         }
 
@@ -63,8 +63,6 @@ const check: ICheckConditionsFuncs = {
 
         const a = normalize(listName);
         const b = normalize(inputName);
-
-        if (a === b) return true;
 
         const levenshtein = (a: string, b: string): number => {
             const row = Array.from(
@@ -93,25 +91,34 @@ const check: ICheckConditionsFuncs = {
         };
 
         const maxLength = Math.max(a.length, b.length);
-        const maxDistance = maxLength <= 10 ? 1 : Math.floor(maxLength * 0.08);
+        const maxDistance = maxLength <= 10
+            ? 1
+            : Math.floor(maxLength * 0.08);
 
         return levenshtein(a, b) <= maxDistance;
     },
 
     checkStandart: function (
         listStandart: string | null | undefined,
-        inputStandartArr:
-            | string
-            | string[]
-            | null
-            | undefined
+        inputStandartArr: string | string[] | null | undefined
     ): boolean {
         if (listStandart == null || inputStandartArr == null) {
             return false;
         }
 
-        const normalizeStandart = (standard: string): string =>
-            standard.match(/\d+(?:[.,]\d+)?/)?.[0].replace(",", ".") ?? "";
+        const excludedStandarts = ["oil", "масло", "bpf"];
+
+        const normalizeStandart = (standard: string): string => {
+            if (
+                excludedStandarts.some((item) =>
+                    standard.toLowerCase().includes(item)
+                )
+            ) {
+                return standard.trim().toLowerCase();
+            }
+
+            return standard.match(/\d+(?:[.,]\d+)?/)?.[0].replace(",", ".") ?? "";
+        };
 
         const normalizedList = normalizeStandart(listStandart);
 
