@@ -19,7 +19,7 @@ import { MANAGERS_BRANCHES, CONTRAGENTS, CONST_TITLES, ZNUR_TYPES } from "@/conf
 import { ID_LIST } from "@/configs/ID_LIST";
 import { check } from "@/helpers/checkInterchangeablePositions";
 import { getManagerAndBranchByClient } from "@/helpers/auxiliaryTableFuncs";
-import { normalizeForSorting, formatDate, capitalize } from "@/utils/normalize";
+import { normalizeForSorting, formatDate, capitalize, isObjectEqual } from "@/utils/normalize";
 import type { SearchFormValue } from "@/types/TableSheetData";
 
 import { usePasteIntoFormFromClipboard } from "@/composables/usePasteToFormFromClipboard";
@@ -121,12 +121,7 @@ const znurOptions = computed(() =>
     })
 );
 
-const formRef = ref<FormInst | null>(null);
-const passportFormRef = ref<FormInst | null>(null);
-const { pasteFromClipboard } = usePasteIntoFormFromClipboard();
-const message = useMessage();
-
-const formValue = reactive({
+const initialFormValues = {
     nomenclature: "",
     contragent: "",
     manager: null as string | null,
@@ -136,7 +131,14 @@ const formValue = reactive({
     contract: "",
     quantity: null as number | null,
     dateOfDelivery: Date.now() as number | null,
-});
+} as const;
+
+const formRef = ref<FormInst | null>(null);
+const passportFormRef = ref<FormInst | null>(null);
+const { pasteFromClipboard } = usePasteIntoFormFromClipboard();
+const message = useMessage();
+
+const formValue = reactive({...initialFormValues});
 
 watch(
     () => formValue.manager,
@@ -186,18 +188,40 @@ const setValueIntoFormFromClipboard = async () => {
     formValue.branch = description?.branch ?? null;
 };
 
+type ContragentMatch = {
+    contragent?: string;
+    holding?: string;
+};
+
 const findContragent = (
     inputName: string | null | undefined,
-): string | undefined => {
+): ContragentMatch => {
     if (!inputName?.trim() || !CONTRAGENTS) {
-        return undefined;
+        return {};
     }
-    console.log(Object.keys(CONTRAGENTS).find(listName =>
-        check.checkContragent(listName, inputName)
-    ))
-    return Object.keys(CONTRAGENTS).find(listName =>
-        check.checkContragent(listName, inputName)
+
+    const contragent = Object.keys(CONTRAGENTS).find(
+        name => check.checkContragent(name, inputName)
     );
+
+    if (contragent) {
+        return {
+            contragent,
+            holding: CONTRAGENTS[contragent].holding ?? "",
+        };
+    }
+
+    const holding = Object.values(CONTRAGENTS).find(
+        data =>
+            Boolean(data.holding?.trim()) &&
+            check.checkContragent(data.holding, inputName)
+    )?.holding;
+
+    if (holding) {
+        return { holding };
+    }
+
+    return {};
 };
 
 const managerOptions = computed(() =>
@@ -252,8 +276,19 @@ const returnInputValues = async () => {
         return;
     }
 
-    const contragent = findContragent(formValue.contragent);
-    if (!contragent || isSearched.value) return;
+    const match = findContragent(formValue.contragent);
+
+    const contragentNames = {
+        contragent: match.contragent ?? "",
+        holding: match.holding ?? "",
+    };
+
+    console.log(contragentNames)
+
+    if ((!contragentNames.contragent && !contragentNames.holding) || isSearched.value) {
+        message.warning('Клиент не найден среди названий контрагентов (холдингов)')
+        return;
+    }
 
     isSearched.value = true;
 
@@ -263,7 +298,7 @@ const returnInputValues = async () => {
 
     props.search({
         nomenclature: formValue.nomenclature,
-        contragent,
+        contragentNames,
         manager: formValue.manager,
         branch: formValue.branch,
         date: formValue.date?.toString() ?? "",
@@ -277,17 +312,12 @@ const returnInputValues = async () => {
 };
 
 const resetForm = () => {
-    Object.assign(formValue, {
-        nomenclature: "",
-        contragent: "",
-        manager: null,
-        branch: null,
-        date: Date.now(),
-        znurType: null,
-        contract: "",
-        quantity: null,
-        dateOfDelivery: Date.now(),
-    });
+    if (isObjectEqual(initialFormValues, formValue)) {
+        return;
+    }
+
+    Object.assign(formValue, initialFormValues);
+    message.success("Поля очищены");
 
     formRef.value?.restoreValidation();
     passportFormRef.value?.restoreValidation();
@@ -396,6 +426,7 @@ const save = async () => {
                 size="small"
                 quaternary
                 title="Очистить поля"
+                :disabled="isObjectEqual(formValue, initialFormValues)"
                 @click="resetForm"
             >
                 <template #icon>
@@ -548,7 +579,7 @@ $transition: 0.15s ease;
 .search-wrapper {
     position: sticky;
     top: 37px;
-    z-index: 9999;
+    z-index: 999;
     padding: 12px 14px 0;
     background: $color-bg;
     border-radius: 8px 8px 0 0;
