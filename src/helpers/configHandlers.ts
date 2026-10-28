@@ -74,46 +74,82 @@ const ch = {
     },
 
     getConfigContragentsList(
-        data: IGoogleTableData | null): Record<string, 
-    {
-        branch: string;
-        manager: string;
-    }> | null {
+        data: IGoogleTableData | null,
+    ): Record<
+        string,
+        {
+            branch: string;
+            manager: string;
+            holding?: string;
+        }
+    > | null {
         if (!data?.values) return null;
 
         const columnsData = valuesToColumns(data);
 
-        if (!columnsData) {
-            return null;
-        }
+        if (!columnsData) return null;
 
-        const clients = columnsData["КЛИЕНТЫ"];
-        const branches = columnsData["ФИЛИАЛ"];
-        const managers = columnsData["МЕНЕДЖЕРЫ КЛИЕНТОВ"];
-        const holding = columnsData["ХОЛДИНГ"];
+        const clients = columnsData["КЛИЕНТЫ1"];
+        const branches = columnsData["ФИЛИАЛ1"];
+        const managers = columnsData["МЕНЕДЖЕРЫ КЛИЕНТОВ1"];
+        const holding = columnsData["ХОЛДИНГ1"];
 
         if (!clients || !branches || !managers) return null;
 
-        const result: Record<string, {
+        type Contragent = {
             branch: string;
             manager: string;
             holding?: string;
-        }> = {};
+        };
+
+        const grouped = new Map<string, Contragent[]>();
 
         clients.forEach((client, index) => {
-            const normClient = String(client).trim();
+            const normClient = String(client ?? "").trim();
 
-            if (normClient === "") return;
+            if (
+                normClient === "" ||
+                !branches[index] ||
+                !managers[index]
+            ) {
+                return;
+            }
 
-            result[normClient] = {
+            const entry: Contragent = {
                 branch: String(branches[index] ?? ""),
                 manager: String(managers[index] ?? ""),
             };
+
             if (holding) {
-                result[normClient].holding = String(holding[index] ?? "")
+                entry.holding = String(holding[index] ?? "").trim();
+            }
+
+            const entries = grouped.get(normClient) ?? [];
+            entries.push(entry);
+            grouped.set(normClient, entries);
+        });
+
+        const result: Record<string, Contragent> = {};
+
+        grouped.forEach((entries, client) => {
+            if (entries.length === 1) {
+                result[client] = entries[0];
+                return;
+            }
+
+            const uniqueHoldings = new Set(
+                entries.map(entry => entry.holding ?? ""),
+            );
+
+            if (uniqueHoldings.size > 1) {
+                result[client] =
+                    entries.find(entry => entry.holding !== client) ??
+                    entries[0];
+            } else {
+                result[client] = entries[0];
             }
         });
-        console.log(result)
+        console.log(Object.keys(result).filter(el => el === "Бояринцев Глеб Михайлович ИП"))
         return result;
     },
 
