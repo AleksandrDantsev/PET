@@ -99,39 +99,51 @@ async function loadGoogleSheets() {
         ]);
 
         if (actualData) {
-            const changed = hasDataChanged(
-                ACTUAL_DATA.value,
-                actualData,
-            );
+            const savedActualData =
+                LocalStorage.get<IGoogleTableData>(ACTUAL_DATA_STORAGE_KEY);
 
-            if (changed) {
+            if (
+                savedActualData == null ||
+                hasDataChanged(savedActualData, actualData)
+            ) {
                 ACTUAL_DATA.value = actualData;
                 LocalStorage.save(ACTUAL_DATA_STORAGE_KEY, actualData);
+            } else {
+                ACTUAL_DATA.value = savedActualData;
             }
         }
 
         if (configData) {
-            const savedConfigData =
-                LocalStorage.get<IGoogleTableData>(CONFIG_DATA_STORAGE_KEY);
+            const savedConfigData = LocalStorage.get<IGoogleTableData>(
+                CONFIG_DATA_STORAGE_KEY
+            );
 
-            if (hasDataChanged(savedConfigData, configData)) {
+            if (
+                savedConfigData == null ||
+                hasDataChanged(savedConfigData, configData)
+            ) {
                 LocalStorage.save(CONFIG_DATA_STORAGE_KEY, configData);
             }
         }
 
         if (interchangeableData) {
-            const changed = hasDataChanged(
-                INTERCHANGEABLE_DATA.value,
-                interchangeableData,
-            );
+            const savedInterchangeableData =
+                LocalStorage.get<IGoogleTableData>(
+                    INTERCHANGEABLE_DATA_STORAGE_KEY
+                );
 
-            if (changed) {
+            if (
+                savedInterchangeableData == null ||
+                hasDataChanged(savedInterchangeableData, interchangeableData)
+            ) {
                 INTERCHANGEABLE_DATA.value = interchangeableData;
 
                 LocalStorage.save(
                     INTERCHANGEABLE_DATA_STORAGE_KEY,
                     interchangeableData,
                 );
+            } else {
+                INTERCHANGEABLE_DATA.value = savedInterchangeableData;
             }
         }
     } finally {
@@ -159,13 +171,13 @@ onMounted(async () => {
     await loadGoogleSheets();
 
     intervalId = setInterval(() => {
-        console.log("Ура")
         void loadGoogleSheets().catch(error => {
             reportAppError(
                 "Ошибка автоматического обновления Google Sheets",
                 error,
             );
         });
+        console.log(`Данные обновлены. Частота обновления: ${CHECK_INTERVAL / 60_000} мин.`)
     }, CHECK_INTERVAL);
 });
 
@@ -235,7 +247,12 @@ useAppReload();
         :locale="ruRU"
     >
         <n-notification-provider placement="bottom-right">
-            <n-message-provider>
+            <n-message-provider
+                to="body"
+                :container-style="{
+                    zIndex: 99999999
+                }"    
+            >
                 <n-global-style />
                 <AppErrorPanel />
                 <div class="tabs-header">
