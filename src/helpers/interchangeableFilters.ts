@@ -2,7 +2,7 @@ type ProductType = "крышка" | "колпачок" | "ручка" | "пре�
 
 interface IProductDescription {
     type: ProductType | null;
-    standart: string[] | null;
+    standard: string[] | null;
     grams: number | null;
     color: string[];
     attachment: number | null;
@@ -12,7 +12,7 @@ interface IProductDescription {
 
 interface IPET {
     getType(nomenclature: string | null | undefined): ProductType | null;
-    getStandart(nomenclature: string | null | undefined): string[] | null;
+    getStandard(nomenclature: string | null | undefined): string[] | null;
     getGrams(nomenclature: string | null | undefined): number | null;
     toNumGr(text: string | number | null | undefined): number;
     getColor(nomenclature: string | null | undefined): string[];
@@ -43,7 +43,7 @@ const ih: IPET = {
         return type ?? "преформа";
     },
 
-    getStandart: function (
+    getStandard: function (
         nomenclature: string | null | undefined
     ): string[] | null {
         if (!nomenclature) return null;
@@ -51,26 +51,30 @@ const ih: IPET = {
         const productType = this.getType(nomenclature);
         const text = this.normalize(nomenclature);
 
-        const base = ["1810", "1881", "38", "48", "Oil"];
-        let standarts: string[] = [];
+        const base = ["1810", "1881", "38", "48", "Oil", "Масло"];
+
+        const standard28 = ["d=28", "28 мм", "28мм", "28 mm", "28mm"];
+        const standard45 = ["d=45", "45 мм", "45мм", "45 mm", "45mm"];
+
+        let standards: string[] = [];
 
         if (productType === "преформа") {
-            standarts = ["BPF", ...base];
+            standards = ["BPF", ...base];
         }
 
         if (productType === "крышка") {
-            standarts = ["d=45", "5 л", "КВ-38", "КВ-50", ...base];
+            standards = ["КВ-50", ...standard28, ...standard45, ...base];
         }
 
         if (productType === "ручка") {
-            standarts = ["d=28", "d=45", "РПБ-50", "SH", ...base];
+            standards = ["РПБ-50", ...standard28, ...standard45, ...base];
         }
 
         if (productType === "колпачок") {
-            standarts = ["1881", "28 mm"];
+            standards = ["1881", "28 mm"];
         }
 
-        const found = standarts.filter((item) => {
+        const found = standards.filter((item) => {
             const standard = item.toLowerCase();
 
             if (/^\d+$/.test(standard)) {
@@ -82,13 +86,14 @@ const ih: IPET = {
             return text.includes(standard);
         });
 
-        if (found.some((item) => item.includes("50")) && !found.includes("48")) {
+        if (found.some((item) => (item.includes("45") || item.includes("50"))) 
+                && !found.includes("48")) {
             found.push("48");
         }
-        if (found.some((item) => item.includes("45")) && !found.includes("48")) {
-            found.push("48");
+        if (found.some((item) => item.includes("Масло"))
+                && !found.includes("oil")) {
+            found.push("oil");
         }
-
         return [...new Set(found)];
     },
 
@@ -238,7 +243,7 @@ const ih: IPET = {
 
         return {
             type: this.getType(nomenclature),
-            standart: this.getStandart(nomenclature),
+            standard: this.getStandard(nomenclature),
             grams: this.getGrams(nomenclature),
             color: this.getColor(nomenclature),
             attachment: this.getAttachment(nomenclature),
