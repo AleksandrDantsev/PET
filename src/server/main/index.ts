@@ -137,6 +137,8 @@ function createWindow() {
         },
     });
 
+    win.maximize();
+
     const contextMenu = Menu.buildFromTemplate([
         {
             label: "Перезагрузить",
