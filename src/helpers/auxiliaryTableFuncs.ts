@@ -52,6 +52,7 @@ const ah = {
     {
         branch: string;
         manager: string;
+        holding?: string;
     }> | null, 
     searchedClient: string | null
     ): {
