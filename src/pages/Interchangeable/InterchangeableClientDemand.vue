@@ -49,14 +49,25 @@ const formatValue = (value: unknown): string => {
 };
 
 const formatRange = (from: unknown, to: unknown): string => {
-    const fromValue = formatValue(from);
-    const toValue = formatValue(to);
+    const isEmpty = (value: unknown) =>
+        value == null || String(value).trim() === "";
 
-    if (fromValue === "-" && toValue === "-") {
+    const hasFrom = !isEmpty(from);
+    const hasTo = !isEmpty(to);
+
+    if (!hasFrom && !hasTo) {
         return "-";
     }
 
-    return `${fromValue} – ${toValue} гр.`;
+    if (!hasFrom) {
+        return `${to} гр.`;
+    }
+
+    if (!hasTo) {
+        return `${from} гр.`;
+    }
+
+    return `${from} – ${to} гр.`;
 };
 
 const displayFields = computed<DisplayField[]>(() => {
