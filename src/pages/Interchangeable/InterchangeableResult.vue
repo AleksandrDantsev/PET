@@ -188,7 +188,7 @@ const sortingFields = [
         value: "sameManagerAnotherClient",
     },
     {
-        label: "Другой менеджер / другой клиент",
+        label: "Другой менеджер / клиент",
         value: "anotherManagerAnotherClient",
     },
 ];
