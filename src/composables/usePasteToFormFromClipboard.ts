@@ -1,6 +1,64 @@
 
 import { useMessage } from "naive-ui";
 
+interface IClipboardData {
+    agreement: string | null;
+    monthCost: string | null;
+    znur: string | null;
+    client: string | null;
+    order: string | null;
+    nomenclature: string | null;
+    titles: string | null;
+    numbers: number | null;
+}
+
+const getNomeclature = (text: string | undefined): string | null => {
+    if (!text) return null;
+
+    const args = [
+        ["1810", "1881", "BPF", "Oil", "PCO", "d=28", "38 мм", "48 мм", "-50"],
+        ["ручка", "крышка", "колпачок"],
+        ["гр.", "мешок"],
+    ].flat();
+
+    for (const arg of args) {
+        if (text.toLowerCase().includes(arg.toLowerCase())) {
+            return text;
+        }
+    }
+
+    return null;
+};
+
+const getContract = (text: string | undefined): string | null => {
+    if (!text) return null;
+
+    const lowerText = text.toLocaleLowerCase().trim();
+
+    if (
+        lowerText.includes("ф-1") ||
+        lowerText.includes("ф-2") ||
+        lowerText.includes("отсрочка")
+    ) {
+        return text;
+    }
+
+    return null;
+};
+
+const getContragent = (text: string | undefined): string | null => {
+    if (!text || !CONTRAGENTS) return null;
+
+    const contragentsArr = Object.keys(CONTRAGENTS);
+    const lowerText = text.toLowerCase().trim();
+
+    const targetAgent = contragentsArr.find(el =>
+        el.toLowerCase().includes(lowerText)
+    );
+
+    return targetAgent?.trim() ? targetAgent : null;
+};
+
 export const getQuantityOfBox = (
     text: string | number | undefined
 ): number | null => {
