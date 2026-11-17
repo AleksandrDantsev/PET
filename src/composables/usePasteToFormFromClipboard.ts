@@ -1,4 +1,4 @@
-
+import { CONTRAGENTS } from "@/configs/CONFIG_CONST";
 import { useMessage } from "naive-ui";
 
 interface IClipboardData {
@@ -9,7 +9,7 @@ interface IClipboardData {
     order: string | null;
     nomenclature: string | null;
     titles: string | null;
-    numbers: number | null;
+    quantityBox: number | null;
 }
 
 const getNomeclature = (text: string | undefined): string | null => {
@@ -38,7 +38,8 @@ const getContract = (text: string | undefined): string | null => {
     if (
         lowerText.includes("ф-1") ||
         lowerText.includes("ф-2") ||
-        lowerText.includes("отсрочка")
+        lowerText.includes("отсрочка") ||
+        lowerText.includes("предоплата")
     ) {
         return text;
     }
@@ -100,50 +101,39 @@ export const usePasteIntoFormFromClipboard = () => {
             .trimEnd()
             .split("\n");
 
-        if (valuesArr.length !== 8) {
-            message.error(
-                "Данные в буфере не соответствуют формату полей"
-            );
-            return null;
-        }
-
-        const [
-            agreement,
-            monthCost,
-            znur,
-            client,
-            order,
-            nomenclature,
-            titles,
-            numbers,
-        ] = valuesArr;
-
-        if (!getQuantityOfBox(numbers)) return;
-
-        const result = {
-            agreement,
-            monthCost,
-            znur,
-            client,
-            order,
-            nomenclature,
-            titles,
-            quantityBox: getQuantityOfBox(numbers),
+        const result: IClipboardData = {
+            agreement: null,
+            monthCost: null,
+            znur: null,
+            client: null,
+            order: null,
+            nomenclature: null,
+            titles: null,
+            quantityBox: null
         };
 
-        message.success("");
+        for (const item of valuesArr) {
+            result.nomenclature ??= getNomeclature(item);
+            result.order ??= getContract(item);
+            result.client ??= getContragent(item);
+        }
 
+        const numbers = valuesArr[valuesArr.length - 1];
+
+        result.quantityBox = getQuantityOfBox(numbers) || null;
+
+        if (
+            !result.nomenclature ||
+            !result.order ||
+            !result.client
+        ) {
+            message.error("Неверный формат данных в буфере обмена");
+            return null;
+        }
+        message.success("");
+        console.log(result)
         return result;
     };
 
     return { pasteFromClipboard };
 };
-
-// Согласование аналитика ДХТ
-// Цена на месяц
-// ЗНУР 003421 от 30.09.2026 15:51:50
-// Ахтемов Сулейман ИП (Аджимамбетов Эмиль Рустемович ИП)
-// Ф-2 (отсрочка 30 дней)
-// 64 гр. 38 мм бесцветная (4032) ЕП
-// Цена Количество Коробов Сумма
-// 14,36 8 064 2 115 799,04
