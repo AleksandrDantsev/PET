@@ -8,11 +8,18 @@ import {
 } from "@/helpers/configHandlers";
 
 function required<T>(
-    value: T | null | undefined, name: string
+    value: T | null | undefined,
+    name: string,
+    fallback?: T,
 ): T {
     if (value == null) {
+        if (fallback !== undefined) {
+            return fallback;
+        }
+
         throw new Error(`Не удалось загрузить ${name}`);
     }
+
     return value;
 }
 
@@ -34,7 +41,7 @@ const MANAGERS_BRANCHES = required(
     getConfigManagersBranchList(сonfigData), "MANAGERS_BRANCHES"
 )
 const CONTRAGENTS = required(
-    getConfigContragentsList(сonfigData), "CONTRAGENTS"
+    getConfigContragentsList(сonfigData), "CONTRAGENTS", {}
 )
 const ZNUR_TYPES = required(
     getZnurTypes(сonfigData), "ZNUR_TYPES"
