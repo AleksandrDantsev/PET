@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { api } from "@/api/api";
-import { ref, onMounted, onUnmounted, defineAsyncComponent, watch } from "vue";
-import type { IGoogleTableData } from "../types/TableSheetData";
+import { provideAccess } from "@/composables/useAcces";
+import { ref, defineAsyncComponent, watch, computed, onMounted } from "vue";
+import { useGoogleSheets } from "@/composables/useGoogleSheets";
 import AppErrorPanel from "@/components/common/AppErrorPanel.vue";
-import { ID_LIST } from "@/configs/ID_LIST";
-import { LocalStorage } from "@/utils/localStorage";
+import AccessDialog from "@/components/common/AccessDialog.vue";
+import type { Department } from "@/configs/permissions";
+import { useAppAuthorization } from "@/composables/useAppAuthorization";
 import {
     NConfigProvider,
     NMessageProvider,
@@ -17,32 +18,12 @@ import {
 import { themeOverrides } from "@/theme/naiveTheme";
 import UpButton from "@/components/common/UpButton.vue";
 import { useAppReload } from "@/composables/useAppReload";
-import { reportAppError } from "@/utils/appErrors";
 import { cutOverflowedText } from "@/utils/normalize";
-import { 
-    CONFIG_DATA_STORAGE_KEY,
-    ACTUAL_DATA_STORAGE_KEY,
-    INTERCHANGEABLE_DATA_STORAGE_KEY 
-} from "@/configs/CONFIG_CONST";
 
 const InterchangeablePage = defineAsyncComponent(
     () => import("@/pages/Interchangeable/InterchangeablePage.vue")
 );
 
-const ACTUAL_DATA = ref<IGoogleTableData | null>(null);
-const INTERCHANGEABLE_DATA = ref<IGoogleTableData | null>(null);
-
-const CHECK_INTERVAL = 120_000;
-
-let intervalId: ReturnType<typeof setInterval> | null = null;
-let isChecking = false;
-
-function hasDataChanged(
-    previous: IGoogleTableData | null,
-    current: IGoogleTableData,
-): boolean {
-    return JSON.stringify(previous) !== JSON.stringify(current);
-}
 
 const FIRST_TAB_NAME = "interchangeable-1";
 const activeTab = ref(FIRST_TAB_NAME);
@@ -56,130 +37,23 @@ const tabs = ref([
     },
 ]);
 
-async function loadGoogleSheets() {
-    if (isChecking) return;
+const {
+    authorizedDepartment,
+    isAuthorized,
+    authError,
+    handleAuthorization,
+} = useAppAuthorization();
 
-    isChecking = true;
+const {
+    actualData,
+    interchangeableData,
+    startApp,
+} = useGoogleSheets();
 
-    try {
-        const [
-            actualData,
-            configData,
-            interchangeableData,
-        ] = await Promise.all([
-            api.google
-                .getSheetValuesById(ID_LIST.actual)
-                .catch(error => {
-                    reportAppError(
-                        "Ошибка загрузки листа недопроданного",
-                        error,
-                    );
-                    return null;
-                }),
+provideAccess(
+    computed(() => authorizedDepartment.value ?? "procurement"),
+);
 
-            api.google
-                .getSheetValuesById(ID_LIST.config)
-                .catch(error => {
-                    reportAppError(
-                        "Ошибка загрузки листа конфигурации",
-                        error,
-                    );
-                    return null;
-                }),
-
-            api.google
-                .getSheetValuesById(ID_LIST.interchangeable)
-                .catch(error => {
-                    reportAppError(
-                        "Ошибка загрузки листа базы данных с потребностью клиента",
-                        error,
-                    );
-                    return null;
-                }),
-        ]);
-
-        if (actualData) {
-            const savedActualData =
-                LocalStorage.get<IGoogleTableData>(ACTUAL_DATA_STORAGE_KEY);
-
-            if (
-                savedActualData == null ||
-                hasDataChanged(savedActualData, actualData)
-            ) {
-                ACTUAL_DATA.value = actualData;
-                LocalStorage.save(ACTUAL_DATA_STORAGE_KEY, actualData);
-            } else {
-                ACTUAL_DATA.value = savedActualData;
-            }
-        }
-
-        if (configData) {
-            const savedConfigData = LocalStorage.get<IGoogleTableData>(
-                CONFIG_DATA_STORAGE_KEY
-            );
-
-            if (
-                savedConfigData == null ||
-                hasDataChanged(savedConfigData, configData)
-            ) {
-                LocalStorage.save(CONFIG_DATA_STORAGE_KEY, configData);
-            }
-        }
-
-        if (interchangeableData) {
-            const savedInterchangeableData =
-                LocalStorage.get<IGoogleTableData>(
-                    INTERCHANGEABLE_DATA_STORAGE_KEY
-                );
-
-            if (
-                savedInterchangeableData == null ||
-                hasDataChanged(savedInterchangeableData, interchangeableData)
-            ) {
-                INTERCHANGEABLE_DATA.value = interchangeableData;
-
-                LocalStorage.save(
-                    INTERCHANGEABLE_DATA_STORAGE_KEY,
-                    interchangeableData,
-                );
-            } else {
-                INTERCHANGEABLE_DATA.value = savedInterchangeableData;
-            }
-        }
-    } finally {
-        isChecking = false;
-    }
-}
-
-onMounted(async () => {
-    window.scrollTo(0, 0);
-
-    const savedActualData =
-        LocalStorage.get<IGoogleTableData>(ACTUAL_DATA_STORAGE_KEY);
-
-    const savedInterchangeableData =
-        LocalStorage.get<IGoogleTableData>(INTERCHANGEABLE_DATA_STORAGE_KEY);
-
-    if (savedActualData) {
-        ACTUAL_DATA.value = savedActualData;
-    }
-
-    if (savedInterchangeableData) {
-        INTERCHANGEABLE_DATA.value = savedInterchangeableData;
-    }
-
-    await loadGoogleSheets();
-
-    intervalId = setInterval(() => {
-        void loadGoogleSheets().catch(error => {
-            reportAppError(
-                "Ошибка автоматического обновления Google Sheets",
-                error,
-            );
-        });
-        console.log(`Данные обновлены. Частота обновления: ${CHECK_INTERVAL / 60_000} мин.`)
-    }, CHECK_INTERVAL);
-});
 
 function addTab() {
     let tabCounter = 1;
@@ -224,17 +98,26 @@ function updateTabTitle(name: string, title: string) {
     }
 }
 
+function handleLogin(credentials: {
+    department: Department;
+    password: string;
+}) {
+    if (!handleAuthorization(credentials)) return;
+
+    void startApp();
+}
+
+onMounted(() => {
+    if (isAuthorized.value) {
+        void startApp();
+    }
+});
+
 watch(activeTab, name => {
     const tab = tabs.value.find(item => item.name === name);
 
     if (tab) {
         tab.initialized = true;
-    }
-});
-
-onUnmounted(() => {
-    if (intervalId !== null) {
-        clearInterval(intervalId);
     }
 });
 
@@ -254,43 +137,51 @@ useAppReload();
                 }"    
             >
                 <n-global-style />
-                <AppErrorPanel />
-                <div class="tabs-header">
-                    <NTabs
-                        v-model:value="activeTab"
-                        type="card"
-                        addable
-                        :animated="false"
-                        @add="addTab"
-                        @close="closeTab"
-                    >
-                        <NTabPane
-                            v-for="tab in tabs"
-                            :key="tab.name"
-                            :name="tab.name"
-                            :tab="tab.label"
-                            :closable="tabs.length > 1"
-                            display-directive="show"
+
+                <AccessDialog
+                    v-if="!isAuthorized"
+                    :error="authError"
+                    @submit="handleLogin"
+                />
+                <template v-else>
+                    <AppErrorPanel />
+                    <div class="tabs-header">
+                        <NTabs
+                            v-model:value="activeTab"
+                            type="card"
+                            addable
+                            :animated="false"
+                            @add="addTab"
+                            @close="closeTab"
                         >
-                            <span hidden>{{ tab.label }}</span>
-                        </NTabPane>
-                    </NTabs>
-                </div>
-                <div class="tab-content">
-                    <div
-                        v-for="tab in tabs"
-                        v-show="activeTab === tab.name"
-                        :key="tab.name"
-                    >
-                        <InterchangeablePage
-                            v-if="tab.initialized && ACTUAL_DATA && INTERCHANGEABLE_DATA"
-                            :actual-data="ACTUAL_DATA"
-                            :interchangeable-data="INTERCHANGEABLE_DATA"
-                            @update-title="title => updateTabTitle(tab.name, title)"
-                        />
+                            <NTabPane
+                                v-for="tab in tabs"
+                                :key="tab.name"
+                                :name="tab.name"
+                                :tab="tab.label"
+                                :closable="tabs.length > 1"
+                                display-directive="show"
+                            >
+                                <span hidden>{{ tab.label }}</span>
+                            </NTabPane>
+                        </NTabs>
                     </div>
-                </div>
-                <UpButton />
+                    <div class="tab-content">
+                        <div
+                            v-for="tab in tabs"
+                            v-show="activeTab === tab.name"
+                            :key="tab.name"
+                        >
+                            <InterchangeablePage
+                                v-if="tab.initialized && actualData && interchangeableData"
+                                :actual-data="actualData"
+                                :interchangeable-data="interchangeableData"
+                                @update-title="title => updateTabTitle(tab.name, title)"
+                            />
+                        </div>
+                    </div>
+                    <UpButton />
+                </template>
             </n-message-provider>
         </n-notification-provider>
     </n-config-provider>
