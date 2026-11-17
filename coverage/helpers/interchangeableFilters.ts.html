@@ -559,7 +559,7 @@ interface IProductDescription {
 &nbsp;
 interface IPET {
     getType(nomenclature: string | null | undefined): ProductType | null;
-    getStandart(nomenclature: string | null | undefined): string[] | null;
+    getStandard(nomenclature: string | null | undefined): string[] | null;
     getGrams(nomenclature: string | null | undefined): number | null;
     toNumGr(text: string | number | null | undefined): number;
     getColor(nomenclature: string | null | undefined): string[];
@@ -590,7 +590,7 @@ const ih: IPET = {
         return type ?? "преформа";
     },
 &nbsp;
-    getStandart: function (
+    getStandard: function (
         nomenclature: string | null | undefined
     ): string[] | null {
         if (!nomenclature) return null;
@@ -776,7 +776,7 @@ const ih: IPET = {
 &nbsp;
         return {
             type: this.getType(nomenclature),
-            standart: this.getStandart(nomenclature),
+            standart: this.getStandard(nomenclature),
             grams: this.getGrams(nomenclature),
             color: this.getColor(nomenclature),
             attachment: this.getAttachment(nomenclature),

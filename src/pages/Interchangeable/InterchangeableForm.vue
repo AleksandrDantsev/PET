@@ -13,7 +13,7 @@ import {
     useMessage,
 } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
-
+import { useAccess } from "@/composables/useAcces";
 import { api } from "@/api/api";
 import { MANAGERS_BRANCHES, CONTRAGENTS, CONST_TITLES, ZNUR_TYPES } from "@/configs/CONFIG_CONST";
 import { ID_LIST } from "@/configs/ID_LIST";
@@ -31,6 +31,12 @@ import TrashIcon from "@/components/icons/TrashIcon.vue";
 const props = defineProps<{
     search: (value: SearchFormValue) => void;
 }>();
+
+const { department } = useAccess();
+
+const isSales = computed(
+    () => department.value === "sales",
+);
 
 const searchRules: FormRules = {
     nomenclature: {
@@ -436,7 +442,10 @@ const save = async () => {
         </n-form>
     </div>
 
-    <div class="passport-wrapper">
+    <div 
+        v-if="isSales" 
+        class="passport-wrapper"
+    >
         <n-form
             ref="passportFormRef"
             class="passport-fields"
