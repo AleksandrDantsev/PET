@@ -1,41 +1,24 @@
 
 <script setup lang="ts">
-import { computed, h, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useTableComments } from "@/composables/useTableComments.ts";
 import { useTableSearch, type SortingPriorityField } from "@/composables/useTableSearch";
+import { useResultTableColumns } from "@/composables/useResultTableColumns.ts";
 import { useHiddenRows } from "@/composables/useHiddenRows.ts";
 import {
     NButton,
     NDataTable,
     NInput,
     NSpace,
-    NPopconfirm,
     NEmpty,
     NBadge,
-    NTooltip,
-    type DataTableColumns,
     type DataTableInst,
 } from "naive-ui";
 import type { DataObject, SearchFormValue } from "@/types/TableSheetData.ts";
 import { useCopyToClipboard } from "@/composables/useCopyToClipboard";
-import { getHardnessColor, getProductColor } from "@/utils/colorHelpers.ts";
-import HideEyeIcon from "@/components/icons/HideEyeIcon.vue";
-import CommentIcon from "@/components/icons/CommentIcon.vue";
-import {
-    cutOverflowedText,
-    formatCost,
-    setDaysText,
-    trimTrailingZeros,
-    handleFormatNumber,
-    toTimestamp,
-} from "@/utils/normalize";
 import InterchangeableClientDemand from "./InterchangeableClientDemand.vue";
-import InterchangeableAdditionalInfo from "./InterchangeableAdditionalInfo.vue";
-import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
-
-import DataTableFilter from "./Filters/DataTableFilter.vue";
 import { useTableFilters } from "@/composables/useTableFilters";
-import type { FilterType, ColumnFilter } from "./Filters/DataTableFilter.vue";
+
 
 const props = defineProps<{
     clientsDemand: DataObject | null;
@@ -88,19 +71,7 @@ const {
 );
 
 const tableRef = ref<DataTableInst | null>(null);
-
 const { copy } = useCopyToClipboard();
-
-const includedFieldsInAdditionalSector = [
-    CONST_TITLES.NUMBER_TASK_BITRIX,
-    CONST_TITLES.ORDERING_MANAGER,
-    CONST_TITLES.UNDERSOLDED_CLIENT,
-    CONST_TITLES.REMAINDER_1C,
-    CONST_TITLES.UNDERSALE_REASON,
-    CONST_TITLES.NEXT_ACTION,
-    CONST_TITLES.DATE_NEXT_ACTION,
-    CONST_TITLES.ALL_CUSTOMERS_SHIPPED_ITEM_MANAGER,
-];
 
 const sortingFields = [
     {
@@ -120,6 +91,12 @@ const sortingFields = [
     value: SortingPriorityField;
 }[];
 
+const hasClientDemand = computed(
+    () => Boolean(
+        props.clientsDemand &&
+        Object.keys(props.clientsDemand).length
+    ),
+);
 
 const getRowClassName = (row: DataObject): string => {
     const classes: string[] = [];
@@ -130,33 +107,11 @@ const getRowClassName = (row: DataObject): string => {
         classes.push("searched-nomenclature-row");
     }
 
-    const hasClientDemand = Boolean(
-        props.clientsDemand &&
-        Object.keys(props.clientsDemand).length
-    );
-
-    if (hasClientDemand && hiddenRows.value.has(getHiddenKey(row))) {
+    if (hasClientDemand.value && hiddenRows.value.has(getHiddenKey(row))) {
         classes.push("hidden-row");
     }
 
     return classes.join(" ");
-};
-
-const getAdditionalFields = (row: DataObject) => {
-    return includedFieldsInAdditionalSector
-        .filter(key => {
-            const value = row[key];
-
-            return (
-                value !== null &&
-                value !== undefined &&
-                value !== ""
-            );
-        })
-        .map(key => ({
-            key,
-            value: row[key],
-        }));
 };
 
 const {
@@ -171,426 +126,41 @@ const {
     () => displayedData.value,
 );
 
+const { columns } = useResultTableColumns({
+    clientsDemand: () => props.clientsDemand,
+    currentPage,
+    paginationLength: PAGINATION_LENGTH,
+
+    comments: {
+        getStoredComment,
+        getDraftComment,
+        updateDraftComment,
+        saveComment,
+    },
+
+    filters: {
+        filterDefaults,
+        getUniqueValues,
+        getTableFilter,
+        updateTableFilter,
+    },
+
+    hiddenRows: {
+        hiddenRows,
+        getHiddenKey,
+        toggleHidden,
+    },
+
+    copy,
+});
+
 const rowKey = (row: DataObject) => JSON.stringify(row);
 
-const renderFilterTitle = (
-    key: string,
-    title: string,
-    type: FilterType,
-) => {
-    return () => h(DataTableFilter, {
-        title,
-        type,
-        options: getUniqueValues(key),
-        defaultValues: filterDefaults.value[key] ?? [],
-        modelValue: getTableFilter(key),
-        "onUpdate:modelValue": (value: ColumnFilter) => {
-            updateTableFilter(key, value);
-        },
-    });
-};
-
-const columns = computed<DataTableColumns<DataObject>>(() => [
-    {
-        title: "№",
-        key: "index",
-        width: 18,
-        align: "center",
-        render: (_row, index) =>
-            (currentPage.value - 1) * PAGINATION_LENGTH + index + 1,
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.ONE_C_NOMENCLATURE,
-            "Номенклатура",
-            "text",
-        ),
-        key: CONST_TITLES.ONE_C_NOMENCLATURE,
-        width: 140,
-        sorter: "default",
-        resizable: true,
-
-        render: row => {
-            const nomenclature =
-                row[CONST_TITLES.ONE_C_NOMENCLATURE];
-
-            const color = getProductColor(
-                nomenclature as string | undefined,
-            );
-
-            const isHidden = hiddenRows.value.has(getHiddenKey(row));
-
-            return h("div", { class: "nomenclature-cell" }, [
-                props.clientsDemand && Object.keys(props.clientsDemand).length
-                    ? h(
-                        NPopconfirm,
-                        {
-                            positiveText: isHidden ? "Показать" : "Скрыть",
-                            negativeText: "Отмена",
-                            placement: "top",
-                            showIcon: false,
-                            onPositiveClick: () => toggleHidden(row),
-                        },
-                        {
-                            trigger: () => h(
-                                "button",
-                                {
-                                    class: [
-                                        "hide-line",
-                                        isHidden && "hide-line--active",
-                                    ],
-                                    title: isHidden
-                                        ? "Убрать из скрытого"
-                                        : "Скрыть",
-                                    onClick: (event: MouseEvent) =>
-                                        event.stopPropagation(),
-                                },
-                                h(HideEyeIcon),
-                            ),
-                            default: () => isHidden
-                                ? "Убрать номенклатуру из скрытых?"
-                                : "Скрыть номенклатуру для этого клиента?",
-                        },
-                    )
-                    : null,
-                h("span", {
-                    class: "product-color",
-                    style: { backgroundColor: color },
-                }),
-                h(
-                    "span",
-                    {
-                        class: "nomenclature-value",
-                        title: nomenclature,
-                        onClick: () => copy(
-                            nomenclature,
-                            "Номенклатура скопирована",
-                        ),
-                    },
-                    nomenclature || "-",
-                ),
-            ]);
-        },
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.RESPONSIBLE_MANAGER,
-            "Менеджер",
-            "text",
-        ),
-        key: CONST_TITLES.RESPONSIBLE_MANAGER,
-        width: 52,
-        sorter: "default",
-        resizable: true,
-        render: row => row[CONST_TITLES.RESPONSIBLE_MANAGER] || "-",
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.BRANCH,
-            "Филиал",
-            "text",
-        ),
-        key: CONST_TITLES.BRANCH,
-        width: 45,
-        sorter: "default",
-        resizable: true,
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.CURRENT_CLIENT,
-            "Клиент",
-            "text",
-        ),
-        key: CONST_TITLES.CURRENT_CLIENT,
-        width: 115,
-        sorter: "default",
-        resizable: true,
-
-        render: row => {
-            const client = row[CONST_TITLES.CURRENT_CLIENT];
-
-            const unsuitableComment = getStoredComment(
-                row,
-                "additionalComment",
-            ).trim();
-
-            const nomenclatureComment = getStoredComment(
-                row,
-                "comment",
-            ).trim();
-
-            const hasClientDemand = Boolean(
-                props.clientsDemand &&
-                Object.keys(props.clientsDemand).length,
-            );
-
-            const createCommentIcon = (
-                comment: string,
-                type: "unsuitable" | "nomenclature",
-            ) => h(
-                NTooltip,
-                {
-                    placement: "top",
-                    trigger: "hover",
-                },
-                {
-                    trigger: () => h(
-                        "span",
-                        {
-                            class: "comment-icon-wrapper",
-                        },
-                        [
-                            h(CommentIcon, {
-                                class: [
-                                    "comment-icon",
-                                    `comment-icon--${type}`,
-                                    comment
-                                        ? "comment-icon--active"
-                                        : "comment-icon--empty",
-                                ],
-                            }),
-                        ],
-                    ),
-                    default: () => comment || "Комментарий отсутствует",
-                },
-            );
-
-            return h("div", { class: "client-cell" }, [
-                hasClientDemand
-                    ? createCommentIcon(
-                        unsuitableComment,
-                        "unsuitable",
-                    )
-                    : null,
-
-                createCommentIcon(
-                    nomenclatureComment,
-                    "nomenclature",
-                ),
-
-                client
-                    ? h(
-                        "span",
-                        {
-                            class: "client-copyable-text",
-                            title: client,
-                            onClick: () => copy(
-                                client,
-                                "Клиент скопирован",
-                            ),
-                        },
-                        cutOverflowedText(client, 30),
-                    )
-                    : h("span", "-"),
-            ]);
-        },
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.UNDERSOLDED_COST,
-            "Стоимость",
-            "number",
-        ),
-        key: CONST_TITLES.UNDERSOLDED_COST,
-        width: 45,
-        resizable: true,
-        sorter: (rowA, rowB) =>
-            handleFormatNumber(rowA[CONST_TITLES.UNDERSOLDED_COST]) -
-            handleFormatNumber(rowB[CONST_TITLES.UNDERSOLDED_COST]),
-        render: row => {
-            const cost = formatCost(
-                row[CONST_TITLES.UNDERSOLDED_COST],
-            );
-
-            return cost ? `${cost} р.` : "-";
-        },
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.DELIVERY_DATE,
-            "Дата привоза",
-            "date",
-        ),
-        key: CONST_TITLES.DELIVERY_DATE,
-        width: 50,
-        sorter: (rowA, rowB) =>
-            (toTimestamp(rowA?.[CONST_TITLES.DELIVERY_DATE]) ?? 0) -
-            (toTimestamp(rowB?.[CONST_TITLES.DELIVERY_DATE]) ?? 0),
-        render: row => row[CONST_TITLES.DELIVERY_DATE] || "-",
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP,
-            "Жесткость",
-            "text",
-        ),
-        key: CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP,
-        width: 60,
-        resizable: true,
-        sorter: (rowA, rowB) =>
-            (toTimestamp(rowA?.[CONST_TITLES.DELIVERY_DATE]) ?? 0) -
-            (toTimestamp(rowB?.[CONST_TITLES.DELIVERY_DATE]) ?? 0),
-        render: row => {
-            const days = row[CONST_TITLES.DAYS_SINCE_DELIVERY];
-            const hardness = row[CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP];
-
-            return h("div", { class: "hardness-cell" }, [
-                h(
-                    "span",
-                    {
-                        class: "hardness-value",
-                        style: { color: getHardnessColor(days) },
-                    },
-                    hardness || "-",
-                ),
-                h("br"),
-                h(
-                    "span",
-                    { class: "hardness-days" },
-                    `(${days ?? 0} ${setDaysText(days)})`,
-                ),
-            ]);
-        },
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.REMAINDER_BOXES_1C,
-            "Остатки",
-            "number",
-        ),
-        key: CONST_TITLES.REMAINDER_BOXES_1C,
-        width: 40,
-        resizable: true,
-        sorter: (rowA, rowB) =>
-            handleFormatNumber(rowA[CONST_TITLES.REMAINDER_BOXES_1C]) -
-            handleFormatNumber(rowB[CONST_TITLES.REMAINDER_BOXES_1C]),
-        render: row => {
-            const remainder = trimTrailingZeros(
-                row[CONST_TITLES.REMAINDER_BOXES_1C],
-            );
-
-            return Number(remainder) !== 0 ? `${remainder} кор.` : "-";
-        },
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW,
-            "Недопрод.",
-            "number",
-        ),
-        key: CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW,
-        width: 40,
-        resizable: true,
-        sorter: (rowA, rowB) =>
-            handleFormatNumber(
-                rowA[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW],
-            ) -
-            handleFormatNumber(
-                rowB[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW],
-            ),
-        render: row => {
-            const remainder = trimTrailingZeros(
-                row[CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW],
-            );
-
-            return Number(remainder) !== 0 ? `${remainder} кор.` : "-";
-        },
-    },
-    {
-        title: renderFilterTitle(
-            CONST_TITLES.DATE_NEXT_ACTION,
-            "Дата (действ.)",
-            "date",
-        ),
-        key: CONST_TITLES.DATE_NEXT_ACTION,
-        width: 50,
-        sorter: (rowA, rowB) =>
-            (toTimestamp(rowA?.[CONST_TITLES.DATE_NEXT_ACTION]) ?? 0) -
-            (toTimestamp(rowB?.[CONST_TITLES.DATE_NEXT_ACTION]) ?? 0),
-        render: row => row[CONST_TITLES.DATE_NEXT_ACTION] || "-",
-    },
-    {
-        type: "expand",
-        width: 17,
-        expandable: () => true,
-
-        renderExpand: row =>
-            h("div", { class: "expanded-row-content" }, [
-                (props.clientsDemand?.[CONST_TITLES.CONTRAGENT]
-                    ? [
-                        h("div", { class: "row-comment-control" }, [
-                            h(NInput, {
-                                value: getDraftComment(row, "additionalComment"),
-                                size: "small",
-                                placeholder: "Комментарий по позиции для этого клиента...",
-                                type: "textarea",
-                                autosize: { minRows: 1, maxRows: 4 },
-                                class: "row-comment-input",
-                                onUpdateValue: (value: string) => {
-                                    updateDraftComment(row, "additionalComment", value);
-                                },
-                            }),
-                            h(NButton, {
-                                size: "small",
-                                type: "primary",
-                                class: "row-comment-save button-unsuitable",
-                                disabled:
-                                    getDraftComment(row, "additionalComment") ===
-                                    getStoredComment(row, "additionalComment"),
-                                onClick: () => saveComment(row, "additionalComment"),
-                            }, {
-                                default: () => "Сохранить",
-                            }),
-                        ]),
-                    ]
-                    : []),
-                h(InterchangeableAdditionalInfo, {
-                    fields: getAdditionalFields(row),
-                }),
-                h(
-                    "div",
-                    {
-                        class: "row-comment-control row-comment-control-bottom",
-                    },
-                    [
-                        h(NInput, {
-                            value: getDraftComment(row, "comment"),
-                            size: "small",
-                            placeholder: "Комментарий по позиции...",
-                            type: "textarea",
-                            autosize: { minRows: 1, maxRows: 4 },
-                            class: "row-comment-input",
-                            onUpdateValue: (value: string) => {
-                                updateDraftComment(row, "comment", value);
-                            },
-                        }),
-                        h(NButton, {
-                            size: "small",
-                            type: "primary",
-                            class: "row-comment-save",
-                            disabled:
-                                getDraftComment(row, "comment") ===
-                                getStoredComment(row, "comment"),
-                            onClick: () => saveComment(row, "comment"),
-                        }, {
-                            default: () => "Сохранить",
-                        }),
-                    ],
-                ),
-            ]),
-    },
-]);
-
 const visibleData = computed(() => {
-    const hasClientDemand = Boolean(
-        props.clientsDemand &&
-        Object.keys(props.clientsDemand).length,
-    );
-
     return filteredByColumns.value.filter(row => {
         const isHidden = hiddenRows.value.has(getHiddenKey(row));
 
-        if (!hasClientDemand) return true;
+        if (!hasClientDemand.value) return true;
 
         switch (hiddenRowsMode.value) {
         case "all":
@@ -623,8 +193,6 @@ watch(visibleData, () => {
     currentPage.value = 1;
 });
 
-const displayedCount = computed(() => visibleData.value.length);
-
 
 const clearFilters = () => {
     searchQuery.value = "";
@@ -650,10 +218,7 @@ const scrollPageToTop = () => {
         <div class="container-result">
             <Transition name="client-demand">
                 <InterchangeableClientDemand
-                    v-if="
-                        clientsDemand &&
-                            Object.keys(clientsDemand).length
-                    "
+                    v-if="hasClientDemand"
                     :clients-demand="clientsDemand"
                 />
             </Transition>
@@ -682,11 +247,7 @@ const scrollPageToTop = () => {
                             }"
                         />
                         <div 
-                            v-if="
-                                clientsDemand && 
-                                    Object.keys(clientsDemand).length &&
-                                    searchedData.length
-                            "
+                            v-if="hasClientDemand && searchedData.length"
                             class="triple-toggle"
                         >
                             <template
@@ -744,7 +305,7 @@ const scrollPageToTop = () => {
                         :size="6"
                     >
                         <span class="result-count">
-                            Найдено: {{ displayedCount }}
+                            Найдено: {{ visibleData.length }}
                         </span>
 
                         <NButton

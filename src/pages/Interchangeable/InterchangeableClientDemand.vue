@@ -12,7 +12,7 @@ interface DisplayField {
 }
 
 const props = defineProps<{
-    clientsDemand?: DataObject;
+    clientsDemand?: DataObject | null;
 }>();
 
 const subtitles = {
