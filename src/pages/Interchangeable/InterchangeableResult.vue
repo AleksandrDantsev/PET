@@ -280,11 +280,7 @@ const scrollPageToTop = () => {
                     </NSpace>
 
                     <NSpace
-                        v-if="
-                            clientsDemand &&
-                                Object.keys(clientsDemand).length &&
-                                searchedData.length
-                        "
+                        v-if="hasClientDemand && searchedData.length"
                         align="center"
                     >
                         <div class="triple-toggle priority-toggle">
@@ -502,12 +498,6 @@ const scrollPageToTop = () => {
     color: #a0a0a0;
 }
 
-:deep(.client-copyable-text) {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 .row-comment-control :deep(.n-input__border),
 .row-comment-control :deep(.n-input__state-border) {
     display: none;
@@ -522,7 +512,6 @@ const scrollPageToTop = () => {
     line-height: 1.5;
 }
 :deep(.row-comment-save) {
-    border-radius: none;
     height: auto;
     font-size: 12px;
     border: none;
@@ -739,6 +728,10 @@ const scrollPageToTop = () => {
 }
 
 :deep(.client-copyable-text) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
     @include copyable-text;
 }
 
