@@ -14,6 +14,13 @@ export const LocalStorage = {
         }
     },
     save: function <T>(key: string, data: T): void {
-        localStorage.setItem(key, JSON.stringify(data));
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (error) {
+            console.error(
+                `Не удалось сохранить данные в localStorage (${key}):`,
+                error,
+            );
+        }
     }
 }

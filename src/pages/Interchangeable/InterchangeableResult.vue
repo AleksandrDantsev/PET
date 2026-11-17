@@ -1,6 +1,9 @@
 
 <script setup lang="ts">
-import { computed, h, ref, onMounted, watch } from "vue";
+import { computed, h, ref, watch } from "vue";
+import { useTableComments } from "@/composables/useTableComments.ts";
+import { useTableSearch, type SortingPriorityField } from "@/composables/useTableSearch";
+import { useHiddenRows } from "@/composables/useHiddenRows.ts";
 import {
     NButton,
     NDataTable,
@@ -13,7 +16,7 @@ import {
     type DataTableColumns,
     type DataTableInst,
 } from "naive-ui";
-import type { DataObject } from "@/types/TableSheetData.ts";
+import type { DataObject, SearchFormValue } from "@/types/TableSheetData.ts";
 import { useCopyToClipboard } from "@/composables/useCopyToClipboard";
 import { getHardnessColor, getProductColor } from "@/utils/colorHelpers.ts";
 import HideEyeIcon from "@/components/icons/HideEyeIcon.vue";
@@ -21,34 +24,18 @@ import CommentIcon from "@/components/icons/CommentIcon.vue";
 import {
     cutOverflowedText,
     formatCost,
-    normalize,
     setDaysText,
     trimTrailingZeros,
     handleFormatNumber,
     toTimestamp,
-    capitalize,
 } from "@/utils/normalize";
-import { debounce } from "@/utils/debounce";
 import InterchangeableClientDemand from "./InterchangeableClientDemand.vue";
 import InterchangeableAdditionalInfo from "./InterchangeableAdditionalInfo.vue";
-import { 
-    CONST_TITLES,
-    COMMENTS_STORAGE_KEY,
-    ADDITIONAL_COMMENTS_STORAGE_KEY,
-    HIDDEN_ROWS_STORAGE_KEY,
-} from "@/configs/CONFIG_CONST.ts";
+import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
 
 import DataTableFilter from "./Filters/DataTableFilter.vue";
-import {
-    createDefaultFilter,
-    matchesTableFilters,
-    type FilterColumnConfig,
-    type TableFilterState,
-} from "@/composables/useTableFilters";
-import type { SearchFormValue } from "../../types/TableSheetData.ts";
+import { useTableFilters } from "@/composables/useTableFilters";
 import type { FilterType, ColumnFilter } from "./Filters/DataTableFilter.vue";
-import { check } from "@/helpers/checkInterchangeablePositions.ts";
-import { ih } from "@/helpers/interchangeableFilters.ts";
 
 const props = defineProps<{
     clientsDemand: DataObject | null;
@@ -58,102 +45,51 @@ const props = defineProps<{
 
 const tableData = computed(() => props.filteredActualResultObjs);
 
+const {
+    getStoredComment,
+    getDraftComment,
+    updateDraftComment,
+    saveComment,
+} = useTableComments(() => props.clientsDemand);
+
 const searchQuery = defineModel<string>("searchQuery", {
     default: "",
 });
 
-type HiddenRowsMode = "all" | "visible" | "hidden";
-type CommentField = "comment" | "additionalComment";
-
-type GeneralComments = Record<string, string>;
-type ClientComments = Record<string, string>;
 
 const PAGINATION_LENGTH = 30;
 const currentPage = ref(1);
 
+const {
+    debouncedSearchQuery,
+    sortingByPriorityField,
+    updateSearchQuery,
+    searchedData,
+    displayedData,
+    isClientAndNomenclatureMatch,
+    isNomenclatureMatch,
+} = useTableSearch(
+    () => tableData.value,
+    () => props.clientsDemand,
+    () => props.searchedFields,
+    () => searchQuery.value,
+);
 
-
-const rowComments = ref<GeneralComments>({});
-const additionalComments = ref<ClientComments>({});
-const draftComments = ref<Record<string, string>>({});
-const hiddenRows = ref<Set<string>>(new Set());
-
-const tableFilters = ref<TableFilterState>({});
-
-const filterConfigs: FilterColumnConfig[] = [
-    { key: CONST_TITLES.ONE_C_NOMENCLATURE, type: "text" },
-    { key: CONST_TITLES.RESPONSIBLE_MANAGER, type: "text" },
-    { key: CONST_TITLES.BRANCH, type: "text" },
-    { key: CONST_TITLES.CURRENT_CLIENT, type: "text" },
-    { key: CONST_TITLES.UNDERSOLDED_COST, type: "number" },
-    { key: CONST_TITLES.DELIVERY_DATE, type: "date" },
-    { key: CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP, type: "text" },
-    { key: CONST_TITLES.REMAINDER_BOXES_1C, type: "number" },
-    { key: CONST_TITLES.UNDERSOLDED_PRODUCT_FOR_NOW, type: "number" },
-    { key: CONST_TITLES.DATE_NEXT_ACTION, type: "date" },
-];
-
-const allFilterValues = computed<Record<string, string[]>>(() => {
-    const result: Record<string, string[]> = {};
-
-    for (const { key } of filterConfigs) {
-        result[key] = getUniqueValues(key).map(option => option.value);
-    }
-
-    return result;
-});
-
-const filterDefaults = computed<Record<string, string[]>>(() => {
-    const result: Record<string, string[]> = {};
-
-    for (const { key } of filterConfigs) {
-        result[key] = (allFilterValues.value[key] ?? []).filter(
-            value =>
-                key !== CONST_TITLES.HARDNESS_100_DAYS_WITH_SLP ||
-                !value.startsWith("0 в реал"),
-        );
-    }
-
-    return result;
-});
-
-const getTableFilter = (key: string): ColumnFilter => {
-    const config = filterConfigs.find(item => item.key === key);
-
-    return tableFilters.value[key]
-        ?? createDefaultFilter(
-            filterDefaults.value[key] ?? [],
-            config?.type ?? "text",
-        );
-};
-
-const updateTableFilter = (key: string, value: ColumnFilter) => {
-    tableFilters.value = {
-        ...tableFilters.value,
-        [key]: value,
-    };
-};
+const {
+    hiddenRows,
+    hiddenRowsMode,
+    hiddenRowsOptions,
+    hiddenRowsCount,
+    getHiddenKey,
+    toggleHidden,
+} = useHiddenRows(
+    () => props.clientsDemand,
+    () => tableData.value,
+);
 
 const tableRef = ref<DataTableInst | null>(null);
 
-const debouncedSearchQuery = ref(searchQuery.value);
-const sortingByPriorityField = ref("");
-const hiddenRowsMode = ref<HiddenRowsMode>("visible");
-
-const hiddenRowsOptions: {
-    label: string;
-    value: HiddenRowsMode;
-}[] = [
-    { label: "Все", value: "all" },
-    { label: "Без скрытых", value: "visible" },
-    { label: "Скрытые", value: "hidden" },
-];
-
 const { copy } = useCopyToClipboard();
-
-const updateSearchQuery = debounce((value: string) => {
-    debouncedSearchQuery.value = value;
-}, 500);
 
 const includedFieldsInAdditionalSector = [
     CONST_TITLES.NUMBER_TASK_BITRIX,
@@ -164,18 +100,6 @@ const includedFieldsInAdditionalSector = [
     CONST_TITLES.NEXT_ACTION,
     CONST_TITLES.DATE_NEXT_ACTION,
     CONST_TITLES.ALL_CUSTOMERS_SHIPPED_ITEM_MANAGER,
-];
-
-const searchableFields = [
-    CONST_TITLES.ONE_C_NOMENCLATURE,
-    CONST_TITLES.RESPONSIBLE_MANAGER,
-    CONST_TITLES.BRANCH,
-    CONST_TITLES.CURRENT_CLIENT,
-    CONST_TITLES.UNDERSOLDED_COST,
-    CONST_TITLES.HARDNESS,
-    CONST_TITLES.REMAINDER_BOXES_1C,
-    CONST_TITLES.NUMBER_TASK_BITRIX,
-    CONST_TITLES.DATE_NEXT_ACTION,
 ];
 
 const sortingFields = [
@@ -191,251 +115,11 @@ const sortingFields = [
         label: "Другой менеджер / клиент",
         value: "anotherManagerAnotherClient",
     },
-];
+] satisfies {
+    label: string;
+    value: SortingPriorityField;
+}[];
 
-const getUniqueValues = (key: string) => {
-    return [
-        ...new Set(
-            tableData.value
-                .map(row => row[key])
-                .filter(value =>
-                    value !== null &&
-                    value !== undefined &&
-                    value !== "",
-                )
-                .map(value => String(value)),
-        ),
-    ]
-        .sort((a, b) => {
-            const normalize = (value: string) =>
-                value.replace(/[^\p{L}\p{N}\s]/gu, "");
-
-            return normalize(a).localeCompare(
-                normalize(b),
-                "ru",
-                { numeric: true },
-            );
-        })
-        .map(value => ({
-            label: value,
-            value,
-        }));
-};
-
-const saveToLocalStorage = (key: string, value: unknown) => {
-    try {
-        localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-        console.error(
-            `Не удалось сохранить данные в localStorage (${key}):`,
-            error,
-        );
-    }
-};
-
-const getNomenclature = (row: DataObject): string => {
-    return String(row[CONST_TITLES.ONE_C_NOMENCLATURE] || "");
-};
-
-const getGeneralCommentKey = (row: DataObject): string => {
-    return normalize(getNomenclature(row));
-};
-
-const getClientCommentKey = (row: DataObject): string => {
-    const client = normalize(
-        props.clientsDemand?.[CONST_TITLES.CONTRAGENT],
-    );
-
-    return JSON.stringify([
-        client,
-        normalize(getNomenclature(row)),
-    ]);
-};
-
-const getHiddenKey = (row: DataObject): string => {
-    const client = normalize(
-        props.clientsDemand?.[CONST_TITLES.CONTRAGENT],
-    );
-
-    return JSON.stringify([
-        client,
-        normalize(getNomenclature(row)),
-    ]);
-};
-
-const getStoredComment = (
-    row: DataObject,
-    field: CommentField,
-): string => {
-    if (field === "comment") {
-        return rowComments.value[getGeneralCommentKey(row)] ?? "";
-    }
-
-    return additionalComments.value[getClientCommentKey(row)] ?? "";
-};
-
-const getDraftKey = (
-    row: DataObject,
-    field: CommentField,
-): string => {
-    const commentKey = field === "comment"
-        ? getGeneralCommentKey(row)
-        : getClientCommentKey(row);
-
-    return JSON.stringify([commentKey, field]);
-};
-
-const getDraftComment = (
-    row: DataObject,
-    field: CommentField,
-): string => {
-    const key = getDraftKey(row, field);
-
-    return draftComments.value[key] ?? getStoredComment(row, field);
-};
-
-const updateDraftComment = (
-    row: DataObject,
-    field: CommentField,
-    value: string,
-) => {
-    const key = getDraftKey(row, field);
-
-    draftComments.value[key] = value;
-};
-
-const saveComment = (
-    row: DataObject,
-    field: CommentField,
-) => {
-    const nomenclature = getNomenclature(row);
-
-    if (!nomenclature) return;
-
-    const key = field === "comment"
-        ? getGeneralCommentKey(row)
-        : getClientCommentKey(row);
-
-    const draftKey = getDraftKey(row, field);
-    const comment = capitalize(getDraftComment(row, field)).trim();
-
-    if (field === "comment") {
-        const nextComments = { ...rowComments.value };
-
-        if (comment) {
-            nextComments[key] = comment;
-        } else {
-            delete nextComments[key];
-        }
-
-        rowComments.value = nextComments;
-        saveToLocalStorage(COMMENTS_STORAGE_KEY, nextComments);
-    } else {
-        const nextComments = { ...additionalComments.value };
-
-        if (comment) {
-            nextComments[key] = comment;
-        } else {
-            delete nextComments[key];
-        }
-
-        additionalComments.value = nextComments;
-        saveToLocalStorage(
-            ADDITIONAL_COMMENTS_STORAGE_KEY,
-            nextComments,
-        );
-    }
-
-    const nextDrafts = { ...draftComments.value };
-    delete nextDrafts[draftKey];
-    draftComments.value = nextDrafts;
-};
-
-
-const isClientAndNomenclatureMatch = (row: DataObject): boolean => {
-    const searchedNomenclature = normalize(
-        String(props.searchedFields?.nomenclature ?? "")
-    );
-
-    const searchedContragent = normalize(
-        String(props.searchedFields?.contragentNames?.contragent ?? "")
-    );
-
-    const searchedHolding = normalize(
-        String(props.searchedFields?.contragentNames?.holding ?? "")
-    );
-
-    if (!searchedNomenclature || (!searchedContragent && !searchedHolding)) {
-        return false;
-    }
-
-    const rowClient = normalize(
-        String(row[CONST_TITLES.CURRENT_CLIENT] ?? "")
-    );
-
-    return (
-        normalize(String(row[CONST_TITLES.ONE_C_NOMENCLATURE] ?? "")) ===
-            searchedNomenclature &&
-        ((searchedContragent !== "" && rowClient === searchedContragent) ||
-            (searchedHolding !== "" && rowClient === searchedHolding))
-    );
-};
-
-const isNomenclatureMatch = (row: DataObject): boolean => {
-    const searchedNomenclature = normalize(
-        String(props.searchedFields?.nomenclature ?? "")
-    );
-
-    if (!searchedNomenclature) {
-        return false;
-    }
-
-    return (
-        normalize(row[CONST_TITLES.ONE_C_NOMENCLATURE]) ===
-        searchedNomenclature
-    );
-};
-
-const getColorMatchPriority = (row: DataObject): number => {
-    const searchedNomenclature = String(
-        props.searchedFields?.nomenclature ?? ""
-    );
-
-    if (!searchedNomenclature.trim()) {
-        return 0;
-    }
-
-    const searchedColors = ih.getColor(searchedNomenclature);
-
-    if (!searchedColors.length) {
-        return 0;
-    }
-
-    const rowNomenclature = String(
-        row[CONST_TITLES.ONE_C_NOMENCLATURE] ?? ""
-    );
-
-    const rowColors = ih.getColor(rowNomenclature);
-
-    if (!rowColors.length) {
-        return 0;
-    }
-
-    const hasExactColorMatch = searchedColors.some(
-        color => rowColors.includes(color)
-    );
-
-    if (hasExactColorMatch) {
-        return 2;
-    }
-
-    const hasCompatibleColorMatch = check.checkIncludeColors(
-        searchedColors,
-        [rowNomenclature]
-    );
-
-    return hasCompatibleColorMatch ? 1 : 0;
-};
 
 const getRowClassName = (row: DataObject): string => {
     const classes: string[] = [];
@@ -458,132 +142,6 @@ const getRowClassName = (row: DataObject): string => {
     return classes.join(" ");
 };
 
-onMounted(() => {
-    try {
-        const savedComments = localStorage.getItem(COMMENTS_STORAGE_KEY);
-        const savedAdditionalComments = localStorage.getItem(
-            ADDITIONAL_COMMENTS_STORAGE_KEY,
-        );
-
-        const general: GeneralComments = {};
-        const clientSpecific: ClientComments = {};
-
-        if (savedComments) {
-            const parsed: Record<string, unknown> = JSON.parse(savedComments);
-
-            Object.entries(parsed).forEach(([key, value]) => {
-                if (typeof value === "string") {
-                    general[key] = value;
-                    return;
-                }
-
-                if (!Array.isArray(value)) return;
-
-                value.forEach((item: {
-                    nomenclature?: string;
-                    comment?: string;
-                    additionalComment?: string;
-                }) => {
-                    if (!item?.nomenclature) return;
-
-                    const nomenclatureKey = normalize(item.nomenclature);
-
-                    if (item.comment?.trim()) {
-                        general[nomenclatureKey] = item.comment;
-                    }
-
-                    if (item.additionalComment?.trim()) {
-                        const clientKey = JSON.stringify([
-                            normalize(key),
-                            nomenclatureKey,
-                        ]);
-
-                        clientSpecific[clientKey] = item.additionalComment;
-                    }
-                });
-            });
-        }
-
-        if (savedAdditionalComments) {
-            const parsed: Record<string, unknown> = JSON.parse(
-                savedAdditionalComments,
-            );
-
-            Object.entries(parsed).forEach(([key, value]) => {
-                if (typeof value === "string") {
-                    clientSpecific[key] = value;
-                    return;
-                }
-
-                if (!Array.isArray(value)) return;
-
-                value.forEach((item: {
-                    nomenclature?: string;
-                    comment?: string;
-                }) => {
-                    if (!item?.nomenclature || !item.comment?.trim()) return;
-
-                    const clientKey = JSON.stringify([
-                        normalize(key),
-                        normalize(item.nomenclature),
-                    ]);
-
-                    clientSpecific[clientKey] = item.comment;
-                });
-            });
-        }
-
-        rowComments.value = general;
-        additionalComments.value = clientSpecific;
-
-        saveToLocalStorage(COMMENTS_STORAGE_KEY, general);
-        saveToLocalStorage(
-            ADDITIONAL_COMMENTS_STORAGE_KEY,
-            clientSpecific,
-        );
-    } catch (error) {
-        console.error("Не удалось загрузить комментарии:", error);
-        rowComments.value = {};
-        additionalComments.value = {};
-    }
-
-    try {
-        const savedHiddenRows = localStorage.getItem(
-            HIDDEN_ROWS_STORAGE_KEY,
-        );
-
-        if (savedHiddenRows) {
-            hiddenRows.value = new Set(
-                JSON.parse(savedHiddenRows) as string[],
-            );
-        }
-    } catch (error) {
-        console.error("Не удалось загрузить скрытые позиции:", error);
-        hiddenRows.value = new Set();
-    }
-});
-
-const hiddenRowsCount = computed(() => {
-    const uniqueKeys = new Set<string>();
-
-    tableData.value.forEach(row => {
-        const key = getHiddenKey(row);
-
-        if (hiddenRows.value.has(key)) {
-            uniqueKeys.add(key);
-        }
-    });
-
-    return uniqueKeys.size;
-});
-
-watch(hiddenRows, rows => {
-    saveToLocalStorage(
-        HIDDEN_ROWS_STORAGE_KEY,
-        [...rows],
-    );
-});
-
 const getAdditionalFields = (row: DataObject) => {
     return includedFieldsInAdditionalSector
         .filter(key => {
@@ -601,108 +159,19 @@ const getAdditionalFields = (row: DataObject) => {
         }));
 };
 
-const searchedData = computed(() => {
-    const query = normalize(debouncedSearchQuery.value);
-
-    if (!query) return tableData.value;
-
-    return tableData.value.filter(row =>
-        searchableFields.some(key =>
-            normalize(row[key]).includes(query),
-        ),
-    );
-});
-
-const displayedData = computed(() => {
-    const data = searchedData.value;
-    const demand = props.clientsDemand;
-    const mode = sortingByPriorityField.value;
-
-    let filteredData = data;
-
-    if (demand && mode) {
-        const demandManager = normalize(
-            demand[CONST_TITLES.MANAGER]
-        );
-
-        const demandClient = normalize(
-            demand[CONST_TITLES.CONTRAGENT]
-        );
-
-        filteredData = data.filter(row => {
-            const rowManager = normalize(
-                row[CONST_TITLES.RESPONSIBLE_MANAGER]
-            );
-
-            const rowClient = normalize(
-                row[CONST_TITLES.CURRENT_CLIENT]
-            );
-
-            const sameManager = Boolean(demandManager && rowManager)
-                && demandManager === rowManager;
-
-            const sameClient = Boolean(demandClient && rowClient)
-                && demandClient === rowClient;
-
-            switch (mode) {
-            case "sameManagerSameClient":
-                return sameManager && sameClient;
-
-            case "sameManagerAnotherClient":
-                return sameManager && !sameClient;
-
-            case "anotherManagerAnotherClient":
-                return !sameManager && !sameClient;
-
-            default:
-                return true;
-            }
-        });
-    }
-
-    return [...filteredData].sort((a, b) => {
-        const getPriority = (row: DataObject): number => {
-            if (isClientAndNomenclatureMatch(row)) return 5;
-            if (isNomenclatureMatch(row)) return 4;
-
-            const colorPriority = getColorMatchPriority(row);
-
-            if (colorPriority === 2) return 3;
-            if (colorPriority === 1) return 2;
-
-            return 0;
-        };
-
-        return getPriority(b) - getPriority(a);
-    });
-});
-
-const filteredByColumns = computed(() => {
-    return displayedData.value.filter(row =>
-        matchesTableFilters(
-            row,
-            filterConfigs,
-            tableFilters.value,
-            allFilterValues.value,
-            filterDefaults.value,
-        ),
-    );
-});
+const {
+    tableFilters,
+    filterDefaults,
+    getUniqueValues,
+    getTableFilter,
+    updateTableFilter,
+    filteredData: filteredByColumns,
+} = useTableFilters(
+    () => tableData.value,
+    () => displayedData.value,
+);
 
 const rowKey = (row: DataObject) => JSON.stringify(row);
-
-const toggleHidden = (row: DataObject) => {
-    const key = getHiddenKey(row);
-    const next = new Set(hiddenRows.value);
-
-    if (next.has(key)) {
-        next.delete(key);
-    } else {
-        next.add(key);
-    }
-
-    hiddenRows.value = next;
-};
 
 const renderFilterTitle = (
     key: string,

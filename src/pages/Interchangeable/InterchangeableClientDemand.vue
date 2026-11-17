@@ -157,7 +157,10 @@ const colorGroups = computed(() => {
 </script>
 <template>
     <div class="contragent-desc-container">
-        <Transition name="fade-slide" mode="out-in">
+        <Transition 
+            name="fade-slide" 
+            mode="out-in"
+        >
             <div
                 v-if="!clientsDemand"
                 key="not-found"

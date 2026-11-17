@@ -505,6 +505,7 @@ const save = async () => {
                         v-model:value="formValue.contract"
                         placeholder="Договор"
                         clearable
+                        @focus="selectInputText"
                     />
                 </n-form-item>
 
