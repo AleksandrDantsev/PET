@@ -1,6 +1,7 @@
 
 import { computed, ref } from "vue";
 import { LocalStorage } from "@/utils/localStorage";
+import type { Ref } from "vue";
 import type { Department } from "@/configs/permissions";
 
 const AUTH_STORAGE_KEY = "app_department";
@@ -21,7 +22,7 @@ export const useAppAuthorization = () => {
         AUTH_STORAGE_KEY,
     );
 
-    const authorizedDepartment = ref<Department | null>(
+    const authorizedDepartment: Ref<Department | null> = ref<Department | null>(
         isValidDepartment(savedDepartment) ? savedDepartment : null,
     );
 
