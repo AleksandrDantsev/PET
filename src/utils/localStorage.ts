@@ -8,11 +8,11 @@ export const LocalStorage = {
 
         try {
             return JSON.parse(data) as T;
-        } 
-        catch {
+        } catch {
             return null;
         }
     },
+
     save: function <T>(key: string, data: T): void {
         try {
             localStorage.setItem(key, JSON.stringify(data));
@@ -22,5 +22,16 @@ export const LocalStorage = {
                 error,
             );
         }
-    }
-}
+    },
+
+    remove: function (key: string): void {
+        try {
+            localStorage.removeItem(key);
+        } catch (error) {
+            console.error(
+                `Не удалось удалить данные из localStorage (${key}):`,
+                error,
+            );
+        }
+    },
+};
