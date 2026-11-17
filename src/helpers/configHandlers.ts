@@ -149,7 +149,6 @@ const ch = {
                 result[client] = entries[0];
             }
         });
-        console.log(Object.keys(result).filter(el => el === "Бояринцев Глеб Михайлович ИП"))
         return result;
     },
 
