@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { provideAccess } from "@/composables/useAcces";
-import { defineAsyncComponent, computed, onMounted } from "vue";
+import { defineAsyncComponent, computed, onMounted, ref } from "vue";
 import { useGoogleSheets } from "@/composables/useGoogleSheets";
 import AppErrorPanel from "@/components/common/AppErrorPanel.vue";
 import AccessDialog from "@/components/common/AccessDialog.vue";
+import AppLoader from "@/components/common/AppLoader.vue";
 import { useAppTabs } from "@/composables/useAppTabs";
+import AppSidebar, {
+    type NavigationItem,
+} from "@/components/common/AppSidebar.vue";
 import type { Department } from "@/configs/permissions";
 import { useAppAuthorization } from "@/composables/useAppAuthorization";
 import {
@@ -20,15 +24,18 @@ import { themeOverrides } from "@/theme/naiveTheme";
 import UpButton from "@/components/common/UpButton.vue";
 import { useAppReload } from "@/composables/useAppReload";
 
-const InterchangeablePage = defineAsyncComponent(
-    () => import("@/pages/Interchangeable/InterchangeablePage.vue")
-);
+const InterchangeablePage = defineAsyncComponent({
+    loader: () => import("@/pages/Interchangeable/InterchangeablePage.vue"),
+    loadingComponent: AppLoader,
+    delay: 0,
+});
 
 const {
     authorizedDepartment,
     isAuthorized,
     authError,
     handleAuthorization,
+    logout,
 } = useAppAuthorization();
 
 const {
@@ -50,14 +57,53 @@ provideAccess(
     computed(() => authorizedDepartment.value ?? "procurement"),
 );
 
+const sidebarExpanded = ref(false);
+const activeSidebarItem = ref("overview");
+
+const navigationItems: NavigationItem[] = [
+    {
+        label: "Обзор",
+        key: "overview",
+        icon: "home",
+    },
+    {
+        label: "Рабочие данные",
+        key: "workspace",
+        icon: "table",
+    },
+    {
+        label: "Отчётность",
+        key: "reports",
+        icon: "chart",
+    },
+    {
+        label: "Документы",
+        key: "documents",
+        icon: "file",
+    },
+];
+
 
 function handleLogin(credentials: {
     department: Department;
-    password: string;
+    pinCode: string;
 }) {
     if (!handleAuthorization(credentials)) return;
 
     void startApp();
+}
+
+// Sidebar actions
+function handleNavigation(key: string) {
+    activeSidebarItem.value = key;
+}
+
+function handleSettings() {
+    // Заглушка настроек.
+}
+
+function handleLogout() {
+    logout();
 }
 
 
@@ -81,7 +127,7 @@ useAppReload();
                 to="body"
                 :container-style="{
                     zIndex: 99999999
-                }"    
+                }"
             >
                 <n-global-style />
 
@@ -90,44 +136,82 @@ useAppReload();
                     :error="authError"
                     @submit="handleLogin"
                 />
+
                 <template v-else>
                     <AppErrorPanel />
-                    <div class="tabs-header">
-                        <NTabs
-                            v-model:value="activeTab"
-                            type="card"
-                            addable
-                            :animated="false"
-                            @add="addTab"
-                            @close="closeTab"
-                        >
-                            <NTabPane
-                                v-for="tab in tabs"
-                                :key="tab.name"
-                                :name="tab.name"
-                                :tab="tab.label"
-                                :closable="tabs.length > 1"
-                                display-directive="show"
-                            >
-                                <span hidden>{{ tab.label }}</span>
-                            </NTabPane>
-                        </NTabs>
+
+                    <div class="app-layout">
+                        <AppSidebar
+                            v-model="sidebarExpanded"
+                            :active-key="activeSidebarItem"
+                            :items="navigationItems"
+                            :department="
+                                authorizedDepartment === 'sales'
+                                    ? 'Отдел продаж'
+                                    : 'Отдел закупок'
+                            "
+                            user-label="Пользователь"
+                            user-role="Сотрудник системы"
+                            @navigate="handleNavigation"
+                            @settings="handleSettings"
+                            @logout="handleLogout"
+                        />
+
+                        <main class="app-main">
+                            <div class="tabs-header">
+                                <NTabs
+                                    v-model:value="activeTab"
+                                    type="card"
+                                    addable
+                                    :animated="false"
+                                    @add="addTab"
+                                    @close="closeTab"
+                                >
+                                    <NTabPane
+                                        v-for="tab in tabs"
+                                        :key="tab.name"
+                                        :name="tab.name"
+                                        :tab="tab.label"
+                                        :closable="tabs.length > 1"
+                                        display-directive="show"
+                                    >
+                                        <span hidden>
+                                            {{ tab.label }}
+                                        </span>
+                                    </NTabPane>
+                                </NTabs>
+                            </div>
+
+                            <div class="tab-content">
+                                <div
+                                    v-for="tab in tabs"
+                                    v-show="activeTab === tab.name"
+                                    :key="tab.name"
+                                >
+                                    <InterchangeablePage
+                                        v-if="
+                                            tab.initialized &&
+                                                actualData &&
+                                                interchangeableData
+                                        "
+                                        :actual-data="actualData"
+                                        :interchangeable-data="
+                                            interchangeableData
+                                        "
+                                        @update-title="
+                                            title =>
+                                                updateTabTitle(
+                                                    tab.name,
+                                                    title
+                                                )
+                                        "
+                                    />
+                                </div>
+                            </div>
+                        </main>
+
+                        <UpButton />
                     </div>
-                    <div class="tab-content">
-                        <div
-                            v-for="tab in tabs"
-                            v-show="activeTab === tab.name"
-                            :key="tab.name"
-                        >
-                            <InterchangeablePage
-                                v-if="tab.initialized && actualData && interchangeableData"
-                                :actual-data="actualData"
-                                :interchangeable-data="interchangeableData"
-                                @update-title="title => updateTabTitle(tab.name, title)"
-                            />
-                        </div>
-                    </div>
-                    <UpButton />
                 </template>
             </n-message-provider>
         </n-notification-provider>
@@ -158,6 +242,11 @@ $minWidthTooltip: 500px;
     overflow-wrap: anywhere !important;
     word-break: break-word;
     line-height: 1.4;
+}
+
+.app-main {
+    margin-left: 55px;
+    border-left: solid 1px #e6e6e6bb;
 }
 
 .tabs-header {
@@ -197,10 +286,11 @@ $minWidthTooltip: 500px;
     }
 
     .n-tabs-tab {
-        min-height: 30px;
+        min-height: 35px;
         padding: 4px 15px;
         border: 1px solid transparent;
         border-radius: 7px 7px 0 0;
+        margin-left: -5px;
         background: transparent;
         transition:
             background-color 0.15s ease,
