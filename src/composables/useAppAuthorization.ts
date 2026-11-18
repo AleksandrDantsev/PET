@@ -6,7 +6,7 @@ import type { Department } from "@/configs/permissions";
 
 const AUTH_STORAGE_KEY = "app_department";
 
-const DEPARTMENT_PASSWORDS: Record<Department, string> = {
+const DEPARTMENT_PIN_CODES: Record<Department, string> = {
     procurement: "1234",
     sales: "4321",
 };
@@ -34,15 +34,15 @@ export const useAppAuthorization = () => {
 
     const handleAuthorization = ({
         department,
-        password,
+        pinCode,
     }: {
         department: Department;
-        password: string;
+        pinCode: string;
     }): boolean => {
         authError.value = "";
 
-        if (DEPARTMENT_PASSWORDS[department] !== password) {
-            authError.value = "Неверный пароль";
+        if (DEPARTMENT_PIN_CODES[department] !== pinCode) {
+            authError.value = "Неверный PIN-код";
             return false;
         }
 
