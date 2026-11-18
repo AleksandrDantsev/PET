@@ -136,6 +136,8 @@ export const useGoogleSheets = () => {
         }
     }
 
+    const isLoading = ref(false);
+
     async function startApp() {
         if (isStarted) return;
 
@@ -162,6 +164,7 @@ export const useGoogleSheets = () => {
         }
 
         try {
+            isLoading.value = true;
             await loadGoogleSheets();
 
             intervalId = setInterval(() => {
@@ -179,6 +182,9 @@ export const useGoogleSheets = () => {
         } catch (error) {
             isStarted = false;
             throw error;
+        }
+        finally {
+            isLoading.value = false;
         }
     }
 
@@ -198,6 +204,7 @@ export const useGoogleSheets = () => {
         interchangeableData,
         startApp,
         stopApp,
+        isLoading,
         loadGoogleSheets,
     };
 };
