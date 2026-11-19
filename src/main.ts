@@ -8,6 +8,7 @@ import { reportAppError } from "@/utils/appErrors";
 
 const app = createApp(App);
 
+
 app.config.errorHandler = (error, _instance, info) => {
     reportAppError(`Ошибка Vue: ${info}`, error);
 };

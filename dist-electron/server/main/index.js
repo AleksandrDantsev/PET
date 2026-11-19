@@ -89,8 +89,10 @@ async function ensureGoogleCredentials() {
 }
 function createWindow() {
     const win = new BrowserWindow({
+        title: "RP Equiv",
         width: 1100,
         height: 700,
+        icon: path.join(process.cwd(), "src/assets/images/icon.ico"),
         webPreferences: {
             preload: path.join(__dirname, "../../preload/index.js"),
             contextIsolation: true,

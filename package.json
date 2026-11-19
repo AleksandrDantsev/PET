@@ -24,7 +24,7 @@
   },
   "build": {
     "appId": "com.pet.app",
-    "productName": "PET App",
+    "productName": "RP Equiv",
     "directories": {
       "output": "release"
     },
@@ -35,7 +35,8 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "src/assets/images/icon.ico"
     },
     "nsis": {
       "oneClick": false,
