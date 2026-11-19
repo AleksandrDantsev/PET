@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { provideAccess } from "@/composables/useAcces";
-import { defineAsyncComponent, computed, onMounted, ref } from "vue";
+import { defineAsyncComponent, computed, onMounted, ref, h } from "vue";
 import { useGoogleSheets } from "@/composables/useGoogleSheets";
 import AppErrorPanel from "@/components/common/AppErrorPanel.vue";
 import AccessDialog from "@/components/common/AccessDialog.vue";
 import AppLoader from "@/components/common/AppLoader.vue";
+import { useTabsDrag } from "@/composables/useTabsDrag";
 import { useAppTabs } from "@/composables/useAppTabs";
 import AppSidebar, {
     type NavigationItem,
@@ -30,6 +31,8 @@ const InterchangeablePage = defineAsyncComponent({
     delay: 0,
 });
 
+const tabsHeaderRef = ref<HTMLElement | null>(null);
+
 const {
     authorizedDepartment,
     isAuthorized,
@@ -50,7 +53,15 @@ const {
     addTab,
     closeTab,
     updateTabTitle,
+    reorderTabs,
 } = useAppTabs();
+
+
+useTabsDrag(
+    tabsHeaderRef,
+    computed(() => tabs.value.length),
+    reorderTabs,
+);
 
 
 provideAccess(
@@ -158,7 +169,10 @@ useAppReload();
                         />
 
                         <main class="app-main">
-                            <div class="tabs-header">
+                            <div 
+                                ref="tabsHeaderRef"
+                                class="tabs-header"
+                            >
                                 <NTabs
                                     v-model:value="activeTab"
                                     type="card"
@@ -171,7 +185,11 @@ useAppReload();
                                         v-for="tab in tabs"
                                         :key="tab.name"
                                         :name="tab.name"
-                                        :tab="tab.label"
+                                        :tab="() => h('span', {
+                                            title: [tab.fullName, tab.contragent]
+                                                .filter(Boolean)
+                                                .join(' / ')
+                                        }, tab.label)"
                                         :closable="tabs.length > 1"
                                         display-directive="show"
                                     >
@@ -199,10 +217,11 @@ useAppReload();
                                             interchangeableData
                                         "
                                         @update-title="
-                                            title =>
+                                            (title, contragent) =>
                                                 updateTabTitle(
                                                     tab.name,
-                                                    title
+                                                    title,
+                                                    contragent
                                                 )
                                         "
                                     />
@@ -254,6 +273,29 @@ $minWidthTooltip: 500px;
   top: 0;
   z-index: 9999;
   background: #fff;
+}
+
+.tabs-header {
+    .tabs-ghost {
+        opacity: 0.3 !important;
+        background: #e8f3e6 !important;
+        outline: 1px dashed #27830d !important;
+        outline-offset: -1px;
+    }
+
+    .tabs-chosen {
+        cursor: grabbing !important;
+        background: #fff !important;
+        border-radius: 7px !important;
+        box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.12),
+            0 1px 3px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    .tabs-drag {
+        opacity: 1 !important;
+        transform: none !important;
+    }
 }
 
 .n-popconfirm .n-popconfirm__content {
@@ -335,19 +377,19 @@ $minWidthTooltip: 500px;
         width: 28px;
         height: 28px;
         margin: 0 0 2px 2px;
-        border: 1px solid #dfe3e8;
+        border: 1px solid #b7d7b0;
         border-radius: 5px;
-        background: #fff;
-        color: #60656f;
+        background: #e8f3e6;
+        color: #27830d;
         transition:
             background-color 0.15s ease,
             border-color 0.15s ease,
             color 0.15s ease;
 
         &:hover {
-            background: #e8f3e6;
-            border-color: #b7d7b0;
-            color: #27830d;
+            background: #27830d;
+            border-color: #27830d;
+            color: #fff;
         }
     }
 

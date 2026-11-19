@@ -15,7 +15,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    (e: "update-title", title: string): void;
+    (e: "update-title", title: string, contragent: string | undefined | null): void;
 }>();
 
 const message = useMessage();
@@ -132,7 +132,7 @@ const search = (fields: SearchFormValue) => {
     }
 
     if (descriptionProduct?.fullName) {
-        emit("update-title", descriptionProduct.fullName);
+        emit("update-title", descriptionProduct.fullName, contragent);
     }
 
     // Для отладки

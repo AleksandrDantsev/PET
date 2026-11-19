@@ -1,9 +1,9 @@
 
 import { computed, h } from "vue";
 import type { Ref } from "vue";
+import "@/styles/result-table-comments.scss";
 import type { DataTableColumns } from "naive-ui";
 import {
-    NButton,
     NInput,
     NPopconfirm,
     NTooltip,
@@ -120,6 +120,31 @@ export const useResultTableColumns = (
         getTableFilter,
         updateTableFilter,
     } = filters;
+
+    // Блокировка повторного сохранения одного комментария
+    const savingComments = new Set<string>();
+
+    const saveCommentIfChanged = async (
+        row: DataObject,
+        type: "comment" | "additionalComment",
+    ) => {
+        const draft = getDraftComment(row, type);
+        const stored = getStoredComment(row, type);
+
+        if (draft === stored) return;
+
+        const saveKey = `${getHiddenKey(row)}:${type}`;
+
+        if (savingComments.has(saveKey)) return;
+
+        savingComments.add(saveKey);
+
+        try {
+            await saveComment(row, type);
+        } finally {
+            savingComments.delete(saveKey);
+        }
+    };
 
     const getAdditionalFields = (row: DataObject) =>
         INCLUDED_ADDITIONAL_FIELDS
@@ -512,25 +537,34 @@ export const useResultTableColumns = (
                                         value,
                                     );
                                 },
-                            }),
-                            h(NButton, {
-                                size: "small",
-                                type: "primary",
-                                class: "row-comment-save button-unsuitable",
-                                disabled:
-                                    getDraftComment(
-                                        row,
-                                        "additionalComment",
-                                    ) ===
-                                    getStoredComment(
+                                onBlur: () =>
+                                    saveCommentIfChanged(
                                         row,
                                         "additionalComment",
                                     ),
-                                onClick: () =>
-                                    saveComment(row, "additionalComment"),
-                            }, {
-                                default: () => "Сохранить",
                             }),
+                            h(
+                                "button",
+                                {
+                                    type: "button",
+                                    class: "row-comment-save",
+                                    disabled:
+                                        getDraftComment(
+                                            row,
+                                            "additionalComment",
+                                        ) ===
+                                        getStoredComment(
+                                            row,
+                                            "additionalComment",
+                                        ),
+                                    onClick: () =>
+                                        saveCommentIfChanged(
+                                            row,
+                                            "additionalComment",
+                                        ),
+                                },
+                                "Сохранить",
+                            ),
                         ])
                         : null,
 
@@ -559,18 +593,22 @@ export const useResultTableColumns = (
                                         value,
                                     );
                                 },
+                                onBlur: () =>
+                                    saveCommentIfChanged(row, "comment"),
                             }),
-                            h(NButton, {
-                                size: "small",
-                                type: "primary",
-                                class: "row-comment-save",
-                                disabled:
-                                    getDraftComment(row, "comment") ===
-                                    getStoredComment(row, "comment"),
-                                onClick: () => saveComment(row, "comment"),
-                            }, {
-                                default: () => "Сохранить",
-                            }),
+                            h(
+                                "button",
+                                {
+                                    type: "button",
+                                    class: "row-comment-save",
+                                    disabled:
+                                        getDraftComment(row, "comment") ===
+                                        getStoredComment(row, "comment"),
+                                    onClick: () =>
+                                        saveCommentIfChanged(row, "comment"),
+                                },
+                                "Сохранить",
+                            ),
                         ],
                     ),
                 ]),

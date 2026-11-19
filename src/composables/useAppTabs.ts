@@ -2,10 +2,12 @@
 import { ref, watch } from "vue";
 import { cutOverflowedText } from "@/utils/normalize";
 
-interface AppTab {
+export interface AppTab {
     name: string;
     label: string;
     initialized: boolean;
+    fullName?: string;
+    contragent?: string | null;
 }
 
 const FIRST_TAB_NAME = "interchangeable-1";
@@ -60,12 +62,40 @@ export const useAppTabs = () => {
         }
     }
 
-    function updateTabTitle(name: string, title: string) {
+    function updateTabTitle(
+        name: string,
+        title: string,
+        contragent?: string | null,
+    ) {
         const tab = tabs.value.find(tab => tab.name === name);
 
-        if (tab) {
-            tab.label = String(cutOverflowedText(title, 25));
+        if (!tab) return;
+
+        tab.fullName = title;
+        tab.contragent = contragent;
+
+        tab.label =
+            cutOverflowedText(String(title), 16) +
+            (contragent
+                ? ` / ${cutOverflowedText(String(contragent), 13)}`
+                : "");
+    }
+
+    function reorderTabs(orderedNames: string[]) {
+        const tabsMap = new Map(
+            tabs.value.map(tab => [tab.name, tab]),
+        );
+
+        const reorderedTabs = orderedNames
+            .map(name => tabsMap.get(name))
+            .filter((tab): tab is AppTab => Boolean(tab));
+
+        if (reorderedTabs.length !== tabs.value.length) {
+            console.warn("[useAppTabs] Не удалось восстановить порядок вкладок");
+            return;
         }
+
+        tabs.value = reorderedTabs;
     }
 
     watch(activeTab, name => {
@@ -82,5 +112,6 @@ export const useAppTabs = () => {
         addTab,
         closeTab,
         updateTabTitle,
+        reorderTabs,
     };
 };

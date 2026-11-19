@@ -34,6 +34,8 @@ async function validateCredentials(content: string): Promise<void> {
     }
 }
 
+
+
 async function ensureGoogleCredentials(): Promise<boolean> {
     const credentialsPath = getCredentialsPath();
 
@@ -125,8 +127,13 @@ async function ensureGoogleCredentials(): Promise<boolean> {
 
 function createWindow() {
     const win = new BrowserWindow({
+        title: "RP Equiv",
         width: 1100,
         height: 700,
+        icon: path.join(
+            process.cwd(),
+            "src/assets/images/icon.ico",
+        ),
         webPreferences: {
             preload: path.join(
                 __dirname,

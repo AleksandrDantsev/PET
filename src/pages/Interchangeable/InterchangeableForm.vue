@@ -370,7 +370,10 @@ const save = async () => {
             CONST_TITLES.NOMENCLATURE,
         );
 
-        message.success("Данные успешно добавлены");
+        message.success("Паспорт сделки сохранён", {
+            closable: true,
+            duration: 45000,
+        });
     } catch (error) {
         console.error(error);
         if (Object.values(formValue).some(el => !el)) {
