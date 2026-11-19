@@ -10,6 +10,7 @@ import {
 
 import SettingsIcon from "../icons/SettingsIcon.vue";
 import LogoutIcon from "../icons/LogoutIcon.vue";
+import ArrowRightIcon from "../icons/ArrowRightIcon.vue";
 
 export interface NavigationItem {
     label: string;
@@ -44,31 +45,31 @@ const toggleSidebar = () => {
     emit("update:modelValue", !isExpanded.value);
 };
 
-const navigate = (key: string) => {
-    if (isExpanded.value && props.activeKey === key) {
-        toggleSidebar();
-        return;
-    }
+// const navigate = (key: string) => {
+//     if (isExpanded.value && props.activeKey === key) {
+//         toggleSidebar();
+//         return;
+//     }
 
-    emit("navigate", key);
-};
+//     emit("navigate", key);
+// };
 
 const confirmLogout = () => {
     showLogoutModal.value = false;
     emit("logout");
 };
 
-const iconPaths: Record<string, string> = {
-    home: "M3 10.5L12 3L21 10.5V20H14V14H10V20H3V10.5Z",
-    table: "M3 4H21V20H3V4ZM3 10H21M9 4V20M15 4V20",
-    file: "M6 3H14L19 8V21H6V3ZM14 3V8H19M9 13H16M9 17H16",
-    chart: "M4 19V12M10 19V5M16 19V9M22 19V3M2 21H22",
-    settings: "M12 8.5A3.5 3.5 0 1 0 12 15.5A3.5 3.5 0 0 0 12 8.5ZM19.4 13.5L21 12L19.4 10.5L19 8.5L16.9 8L15.8 6.2L13.8 6.7L12 5.5L10.2 6.7L8.2 6.2L7.1 8L5 8.5L4.6 10.5L3 12L4.6 13.5L5 15.5L7.1 16L8.2 17.8L10.2 17.3L12 18.5L13.8 17.3L15.8 17.8L16.9 16L19 15.5L19.4 13.5Z",
-};
+// const iconPaths: Record<string, string> = {
+//     home: "M3 10.5L12 3L21 10.5V20H14V14H10V20H3V10.5Z",
+//     table: "M3 4H21V20H3V4ZM3 10H21M9 4V20M15 4V20",
+//     file: "M6 3H14L19 8V21H6V3ZM14 3V8H19M9 13H16M9 17H16",
+//     chart: "M4 19V12M10 19V5M16 19V9M22 19V3M2 21H22",
+//     settings: "M12 8.5A3.5 3.5 0 1 0 12 15.5A3.5 3.5 0 0 0 12 8.5ZM19.4 13.5L21 12L19.4 10.5L19 8.5L16.9 8L15.8 6.2L13.8 6.7L12 5.5L10.2 6.7L8.2 6.2L7.1 8L5 8.5L4.6 10.5L3 12L4.6 13.5L5 15.5L7.1 16L8.2 17.8L10.2 17.3L12 18.5L13.8 17.3L15.8 17.8L16.9 16L19 15.5L19.4 13.5Z",
+// };
 
-const getIconPath = (icon: string) => {
-    return iconPaths[icon] ?? iconPaths.file;
-};
+// const getIconPath = (icon: string) => {
+//     return iconPaths[icon] ?? iconPaths.file;
+// };
 </script>
 
 <template>
@@ -145,15 +146,7 @@ const getIconPath = (icon: string) => {
                         class="toggle-button"
                         @click="toggleSidebar"
                     >
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <path
-                                d="M9 5L2 5V19H9M15 5H22V19H15M9 12H15M12 9L15 12L12 15"
-                                stroke="currentColor"
-                                stroke-width="1.6"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            />
-                        </svg>
+                        <ArrowRightIcon />
                     </NButton>
                 </template>
                 Свернуть меню
@@ -161,7 +154,7 @@ const getIconPath = (icon: string) => {
         </header>
 
         <!-- Navigation -->
-        <nav class="sidebar-navigation">
+        <!-- <nav class="sidebar-navigation">
             <div v-if="isExpanded" class="navigation-caption">
                 РАБОЧИЕ РАЗДЕЛЫ
             </div>
@@ -212,7 +205,7 @@ const getIconPath = (icon: string) => {
                     {{ item.label }}
                 </NTooltip>
             </div>
-        </nav>
+        </nav> -->
 
         <!-- Footer -->
         <footer class="sidebar-footer">
