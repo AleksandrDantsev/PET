@@ -1,6 +1,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import type { Component } from "vue";
+
 import {
     NButton,
     NTooltip,
@@ -15,7 +17,7 @@ import ArrowRightIcon from "../icons/ArrowRightIcon.vue";
 export interface NavigationItem {
     label: string;
     key: string;
-    icon: "home" | "table" | "file" | "chart";
+    icon: Component;
 }
 
 const props = withDefaults(defineProps<{
@@ -31,6 +33,8 @@ const props = withDefaults(defineProps<{
     userRole: "Сотрудник системы",
 });
 
+const delayTooltip = 700;
+
 const emit = defineEmits<{
     "update:modelValue": [value: boolean];
     navigate: [key: string];
@@ -45,31 +49,19 @@ const toggleSidebar = () => {
     emit("update:modelValue", !isExpanded.value);
 };
 
-// const navigate = (key: string) => {
-//     if (isExpanded.value && props.activeKey === key) {
-//         toggleSidebar();
-//         return;
-//     }
+const navigate = (key: string) => {
+    if (isExpanded.value && props.activeKey === key) {
+        toggleSidebar();
+        return;
+    }
 
-//     emit("navigate", key);
-// };
+    emit("navigate", key);
+};
 
 const confirmLogout = () => {
     showLogoutModal.value = false;
     emit("logout");
 };
-
-// const iconPaths: Record<string, string> = {
-//     home: "M3 10.5L12 3L21 10.5V20H14V14H10V20H3V10.5Z",
-//     table: "M3 4H21V20H3V4ZM3 10H21M9 4V20M15 4V20",
-//     file: "M6 3H14L19 8V21H6V3ZM14 3V8H19M9 13H16M9 17H16",
-//     chart: "M4 19V12M10 19V5M16 19V9M22 19V3M2 21H22",
-//     settings: "M12 8.5A3.5 3.5 0 1 0 12 15.5A3.5 3.5 0 0 0 12 8.5ZM19.4 13.5L21 12L19.4 10.5L19 8.5L16.9 8L15.8 6.2L13.8 6.7L12 5.5L10.2 6.7L8.2 6.2L7.1 8L5 8.5L4.6 10.5L3 12L4.6 13.5L5 15.5L7.1 16L8.2 17.8L10.2 17.3L12 18.5L13.8 17.3L15.8 17.8L16.9 16L19 15.5L19.4 13.5Z",
-// };
-
-// const getIconPath = (icon: string) => {
-//     return iconPaths[icon] ?? iconPaths.file;
-// };
 </script>
 
 <template>
@@ -83,7 +75,6 @@ const confirmLogout = () => {
         class="app-sidebar"
         :class="{ 'app-sidebar--expanded': isExpanded }"
     >
-        <!-- Header -->
         <header class="sidebar-header">
             <button
                 v-if="!isExpanded"
@@ -109,7 +100,10 @@ const confirmLogout = () => {
                 </span>
             </button>
 
-            <div v-else class="brand">
+            <div 
+                v-else 
+                class="brand"
+            >
                 <span class="brand-logo">
                     <svg viewBox="0 0 24 24" fill="none">
                         <path
@@ -137,6 +131,7 @@ const confirmLogout = () => {
                 v-if="isExpanded"
                 placement="right"
                 :z-index="20000"
+                :delay="delayTooltip"
             >
                 <template #trigger>
                     <NButton
@@ -153,9 +148,11 @@ const confirmLogout = () => {
             </NTooltip>
         </header>
 
-        <!-- Navigation -->
-        <!-- <nav class="sidebar-navigation">
-            <div v-if="isExpanded" class="navigation-caption">
+        <nav class="sidebar-navigation">
+            <div
+                v-if="isExpanded"
+                class="navigation-caption"
+            >
                 РАБОЧИЕ РАЗДЕЛЫ
             </div>
 
@@ -165,6 +162,7 @@ const confirmLogout = () => {
                     :key="item.key"
                     placement="right"
                     :z-index="20000"
+                    :delay="delayTooltip"
                     :disabled="isExpanded"
                 >
                     <template #trigger>
@@ -177,15 +175,7 @@ const confirmLogout = () => {
                             @click="navigate(item.key)"
                         >
                             <span class="navigation-icon">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <path
-                                        :d="getIconPath(item.icon)"
-                                        stroke="currentColor"
-                                        stroke-width="1.6"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    />
-                                </svg>
+                                <component :is="item.icon" />
                             </span>
 
                             <span
@@ -205,15 +195,15 @@ const confirmLogout = () => {
                     {{ item.label }}
                 </NTooltip>
             </div>
-        </nav> -->
+        </nav>
 
-        <!-- Footer -->
         <footer class="sidebar-footer">
             <div class="footer-actions">
                 <NTooltip
                     placement="right"
                     :disabled="isExpanded"
                     :z-index="20000"
+                    :delay="delayTooltip"
                 >
                     <template #trigger>
                         <button
@@ -223,6 +213,7 @@ const confirmLogout = () => {
                             <span class="navigation-icon">
                                 <SettingsIcon />
                             </span>
+
                             <span
                                 v-if="isExpanded"
                                 class="navigation-label"
@@ -231,6 +222,7 @@ const confirmLogout = () => {
                             </span>
                         </button>
                     </template>
+
                     Настройки
                 </NTooltip>
             </div>
@@ -244,7 +236,10 @@ const confirmLogout = () => {
                     {{ userLabel.charAt(0).toUpperCase() }}
                 </NAvatar>
 
-                <div v-if="isExpanded" class="user-info">
+                <div 
+                    v-if="isExpanded" 
+                    class="user-info"
+                >
                     <span class="user-name">{{ userLabel }}</span>
                     <span class="user-role">{{ userRole }}</span>
                 </div>
@@ -253,6 +248,7 @@ const confirmLogout = () => {
                     placement="right"
                     :disabled="isExpanded"
                     :z-index="20000"
+                    :delay="delayTooltip"
                 >
                     <template #trigger>
                         <button
@@ -263,13 +259,13 @@ const confirmLogout = () => {
                             <LogoutIcon />
                         </button>
                     </template>
+
                     Выйти
                 </NTooltip>
             </div>
         </footer>
     </aside>
 
-    <!-- Модальное окно подтверждения выхода -->
     <NModal
         v-model:show="showLogoutModal"
         preset="card"
@@ -323,8 +319,6 @@ const confirmLogout = () => {
 </template>
 
 <style scoped lang="scss">
-/* Модальное окно */
-
 .logout-modal-content {
     display: flex;
     align-items: flex-start;
@@ -340,7 +334,7 @@ const confirmLogout = () => {
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    background: rgba(208, 48, 80, 0.1);
+    background: #d030501a;
     color: #d03050;
 }
 
@@ -372,8 +366,6 @@ const confirmLogout = () => {
     justify-content: flex-end;
     gap: 10px;
 }
-
-/* Исходные стили сайдбара */
 
 .app-sidebar {
     --sidebar-width: 60px;
@@ -590,7 +582,7 @@ const confirmLogout = () => {
     min-width: 42px;
     height: 43px;
 
-    svg {
+    :deep(svg) {
         display: block;
         width: 19px;
         height: 19px;
@@ -722,6 +714,7 @@ const confirmLogout = () => {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
