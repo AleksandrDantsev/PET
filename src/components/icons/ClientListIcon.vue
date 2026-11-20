@@ -1,0 +1,30 @@
+<template>
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="lucide lucide-id-card preview-icon"
+    >
+        <path d="M13 19a4 4 0 00-8 0" />
+        <path d="M16 10h2" />
+        <path d="M16 14h2" />
+        <circle 
+            cx="9" 
+            cy="12" 
+            r="3" 
+        />
+        <rect 
+            x="2" 
+            y="5" 
+            width="21" 
+            height="15" 
+            rx="2" 
+        />
+    </svg>
+</template>
