@@ -421,15 +421,6 @@ const save = async () => {
                     @focus="selectInputText"
                 />
             </n-form-item>
-            
-            <n-button
-                class="search-button"
-                type="primary"
-                :loading="isSearched"
-                @click="returnInputValues"
-            >
-                Найти
-            </n-button>
             <NButton
                 class="clear-button"
                 size="small"
@@ -442,6 +433,14 @@ const save = async () => {
                     <TrashIcon />
                 </template>
             </NButton>
+            <n-button
+                class="search-button"
+                type="primary"
+                :loading="isSearched"
+                @click="returnInputValues"
+            >
+                Найти
+            </n-button>
         </n-form>
     </div>
 
@@ -575,7 +574,7 @@ const save = async () => {
     </div>
 </template>
 <style lang="scss" scoped>
-$color-bg: #fafafa;
+$color-bg: #fcfcfc;
 $color-surface: #fff;
 $color-border: #d9d9d5;
 $color-border-hover: #b8b8b3;
@@ -591,7 +590,7 @@ $transition: 0.15s ease;
 
 .search-wrapper {
     position: sticky;
-    top: 37px;
+    top: 41px;
     z-index: 999;
     padding: 12px 14px 0;
     background: $color-bg;
@@ -607,7 +606,7 @@ $transition: 0.15s ease;
 
 .search-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 96px 35px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 35px 96px;
     gap: $gap;
     align-items: end;
     width: 100%;
