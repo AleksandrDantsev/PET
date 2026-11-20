@@ -2,8 +2,12 @@
 import { computed } from "vue";
 import type { DataObject } from "@/types/TableSheetData";
 import { setColorText } from "@/utils/colorHelpers";
-import { formatCost } from "@/utils/normalize";
 import { CONST_TITLES } from "@/configs/CONFIG_CONST";
+import {
+    formatValue,
+    formatRange,
+    formatLitrazh,
+} from "@/utils/demandFormatters";
 
 interface DisplayField {
     key: string;
@@ -27,48 +31,6 @@ const subtitles = {
     interchangeableColors: "Взаимозаменяемые цвета:",
     possibleColors: "Возможные цвета:",
 } as const;
-
-const formatValue = (value: unknown): string => {
-    if (value == null || String(value).trim() === "") {
-        return "-";
-    }
-
-    if (typeof value === "number") {
-        return formatCost(value) ?? String(value);
-    }
-
-    if (Array.isArray(value)) {
-        return value.join(", ");
-    }
-
-    if (typeof value === "object") {
-        return JSON.stringify(value);
-    }
-
-    return String(value);
-};
-
-const formatRange = (from: unknown, to: unknown): string => {
-    const isEmpty = (value: unknown) =>
-        value == null || String(value).trim() === "";
-
-    const hasFrom = !isEmpty(from);
-    const hasTo = !isEmpty(to);
-
-    if (!hasFrom && !hasTo) {
-        return "-";
-    }
-
-    if (!hasFrom) {
-        return `${to} гр.`;
-    }
-
-    if (!hasTo) {
-        return `${from} гр.`;
-    }
-
-    return `${from} – ${to} гр.`;
-};
 
 const displayFields = computed<DisplayField[]>(() => {
     const demand = props.clientsDemand;
@@ -108,9 +70,7 @@ const displayFields = computed<DisplayField[]>(() => {
         {
             key: "litrazh",
             label: subtitles.litrazh,
-            value: litrazh == null || String(litrazh).trim() === ""
-                ? "-"
-                : `${formatValue(litrazh)} л.`,
+            value: formatLitrazh(litrazh),
         },
         {
             key: "rangeOfGrams",
