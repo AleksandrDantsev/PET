@@ -1,7 +1,5 @@
-
 import { computed, ref } from "vue";
 import { LocalStorage } from "@/utils/localStorage";
-import type { Ref } from "vue";
 import type { Department } from "@/configs/permissions";
 
 const AUTH_STORAGE_KEY = "app_department";
@@ -17,28 +15,28 @@ const isValidDepartment = (
     return value === "procurement" || value === "sales";
 };
 
+const savedDepartment = LocalStorage.get<Department>(
+    AUTH_STORAGE_KEY,
+);
+
+const authorizedDepartment = ref<Department | null>(
+    isValidDepartment(savedDepartment) ? savedDepartment : null,
+);
+
+const isAuthorized = computed(
+    () => authorizedDepartment.value !== null,
+);
+
+const authError = ref("");
+
 export const useAppAuthorization = () => {
-    const savedDepartment = LocalStorage.get<Department>(
-        AUTH_STORAGE_KEY,
-    );
-
-    const authorizedDepartment: Ref<Department | null> = ref<Department | null>(
-        isValidDepartment(savedDepartment) ? savedDepartment : null,
-    );
-
-    const isAuthorized = computed(
-        () => authorizedDepartment.value !== null,
-    );
-
-    const authError = ref("");
-
-    const handleAuthorization = ({
+    function handleAuthorization({
         department,
         pinCode,
     }: {
         department: Department;
         pinCode: string;
-    }): boolean => {
+    }): boolean {
         authError.value = "";
 
         if (DEPARTMENT_PIN_CODES[department] !== pinCode) {
@@ -51,13 +49,13 @@ export const useAppAuthorization = () => {
         LocalStorage.save(AUTH_STORAGE_KEY, department);
 
         return true;
-    };
+    }
 
-    const logout = () => {
+    function logout() {
         authorizedDepartment.value = null;
         authError.value = "";
         LocalStorage.remove(AUTH_STORAGE_KEY);
-    };
+    }
 
     return {
         authorizedDepartment,
