@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch, h } from "vue";
 import {
     NAutoComplete,
     NButton,
@@ -384,6 +384,16 @@ const save = async () => {
         isSavedMessage.value = false;
     }
 };
+
+const renderZnurLabel = (option: {label: string}) =>
+    h(
+        "span",
+        {
+            title: String(option.label),
+        },
+        String(option.label),
+    );
+
 </script>
 <template>
     <div class="search-wrapper">
@@ -503,6 +513,7 @@ const save = async () => {
                         v-model:value="formValue.znurType"
                         :options="znurOptions"
                         placeholder="Тип ЗНУР"
+                        :render-label="renderZnurLabel"
                         clearable
                     />
                 </n-form-item>
