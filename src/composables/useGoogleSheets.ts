@@ -1,14 +1,17 @@
 
 import { ref, onUnmounted } from "vue";
+
 import { api } from "@/api/api";
 import type { IGoogleTableData } from "@/types/TableSheetData";
 import { ID_LIST } from "@/configs/ID_LIST";
 import { LocalStorage } from "@/utils/localStorage";
 import { reportAppError } from "@/utils/appErrors";
+
 import {
     CONFIG_DATA_STORAGE_KEY,
     ACTUAL_DATA_STORAGE_KEY,
     INTERCHANGEABLE_DATA_STORAGE_KEY,
+    initializeConfig,
 } from "@/configs/CONFIG_CONST";
 
 const CHECK_INTERVAL = 120_000;
@@ -20,6 +23,8 @@ export const useGoogleSheets = () => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
     let isChecking = false;
     let isStarted = false;
+
+    const isLoading = ref(false);
 
     function hasDataChanged(
         previous: IGoogleTableData | null,
@@ -36,7 +41,7 @@ export const useGoogleSheets = () => {
         try {
             const [
                 actualDataFromApi,
-                configData,
+                configDataFromApi,
                 interchangeableDataFromApi,
             ] = await Promise.all([
                 api.google
@@ -70,6 +75,7 @@ export const useGoogleSheets = () => {
                     }),
             ]);
 
+            // Основные данные.
             if (actualDataFromApi) {
                 const savedActualData =
                     LocalStorage.get<IGoogleTableData>(
@@ -91,23 +97,45 @@ export const useGoogleSheets = () => {
                 }
             }
 
-            if (configData) {
-                const savedConfigData =
-                    LocalStorage.get<IGoogleTableData>(
-                        CONFIG_DATA_STORAGE_KEY,
-                    );
+            // Конфигурация.
+            const savedConfigData =
+                LocalStorage.get<IGoogleTableData>(
+                    CONFIG_DATA_STORAGE_KEY,
+                );
 
-                if (
-                    savedConfigData == null ||
-                    hasDataChanged(savedConfigData, configData)
-                ) {
-                    LocalStorage.save(
-                        CONFIG_DATA_STORAGE_KEY,
-                        configData,
+            const configForApp =
+                configDataFromApi ?? savedConfigData;
+
+            if (configForApp) {
+                try {
+                    // Сначала проверяем и применяем конфигурацию.
+                    initializeConfig(configForApp);
+
+                    // Сохраняем только корректную конфигурацию из API.
+                    if (
+                        configDataFromApi &&
+                        (
+                            savedConfigData == null ||
+                            hasDataChanged(
+                                savedConfigData,
+                                configDataFromApi,
+                            )
+                        )
+                    ) {
+                        LocalStorage.save(
+                            CONFIG_DATA_STORAGE_KEY,
+                            configDataFromApi,
+                        );
+                    }
+                } catch (error) {
+                    reportAppError(
+                        "Ошибка обработки конфигурации Google Sheets",
+                        error,
                     );
                 }
             }
 
+            // Данные взаимозаменяемого.
             if (interchangeableDataFromApi) {
                 const savedInterchangeableData =
                     LocalStorage.get<IGoogleTableData>(
@@ -121,22 +149,22 @@ export const useGoogleSheets = () => {
                         interchangeableDataFromApi,
                     )
                 ) {
-                    interchangeableData.value = interchangeableDataFromApi;
+                    interchangeableData.value =
+                        interchangeableDataFromApi;
 
                     LocalStorage.save(
                         INTERCHANGEABLE_DATA_STORAGE_KEY,
                         interchangeableDataFromApi,
                     );
                 } else {
-                    interchangeableData.value = savedInterchangeableData;
+                    interchangeableData.value =
+                        savedInterchangeableData;
                 }
             }
         } finally {
             isChecking = false;
         }
     }
-
-    const isLoading = ref(false);
 
     async function startApp() {
         if (isStarted) return;
@@ -160,11 +188,13 @@ export const useGoogleSheets = () => {
         }
 
         if (savedInterchangeableData) {
-            interchangeableData.value = savedInterchangeableData;
+            interchangeableData.value =
+                savedInterchangeableData;
         }
 
         try {
             isLoading.value = true;
+
             await loadGoogleSheets();
 
             intervalId = setInterval(() => {
@@ -182,8 +212,7 @@ export const useGoogleSheets = () => {
         } catch (error) {
             isStarted = false;
             throw error;
-        }
-        finally {
+        } finally {
             isLoading.value = false;
         }
     }
