@@ -1,18 +1,44 @@
-// import "@/assets/styles/reset.scss";
+
 import "@/assets/styles/normalize.scss";
 import "@fontsource/inter";
-
+// import { migrateLocalDataToSupabase } from "@/services/supabase/userData";
 import { createApp } from "vue";
 import App from "@/app/App.vue";
 import { reportAppError } from "@/utils/appErrors";
 import router from "@/router";
 
+import { useSupabaseAuth } from "@/composables/useSupabaseAuth";
+import { useUserData } from "@/stores/userDataStore";
 
-const app = createApp(App);
+async function bootstrap() {
+    const auth = useSupabaseAuth();
 
+    await auth.initialize();
 
-app.config.errorHandler = (error, _instance, info) => {
-    reportAppError(`Ошибка Vue: ${info}`, error);
-};
+    if (auth.isAuthenticated.value) {
+        try {
+            await useUserData().initialize();
 
-app.use(router).mount("#app");
+            console.info("Supabase: облачное хранилище инициализировано");
+        } catch (error) {
+            reportAppError(
+                "Не удалось загрузить данные из Supabase",
+                error,
+            );
+        }
+    }
+
+    const app = createApp(App);
+
+    app.config.errorHandler = (error, _instance, info) => {
+        reportAppError(`Ошибка Vue: ${info}`, error);
+    };
+
+    app.use(router);
+    await router.isReady();
+    app.mount("#app");
+}
+
+bootstrap().catch(error => {
+    reportAppError("Ошибка запуска приложения", error);
+});
