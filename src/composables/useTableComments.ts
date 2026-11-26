@@ -1,24 +1,24 @@
 
-import { onMounted, ref } from "vue";
-import type { DataObject } from "@/types/TableSheetData.ts";
-import { LocalStorage } from "@/utils/localStorage.ts";
+import { ref } from "vue";
+
+import type { DataObject } from "@/types/TableSheetData";
 import { normalize, capitalize } from "@/utils/normalize";
-import {
-    CONST_TITLES,
-    COMMENTS_STORAGE_KEY,
-    ADDITIONAL_COMMENTS_STORAGE_KEY,
-} from "@/configs/CONFIG_CONST.ts";
+import { CONST_TITLES } from "@/configs/CONFIG_CONST";
+import { useUserData } from "@/stores/userDataStore";
 
 type CommentField = "comment" | "additionalComment";
 
-type GeneralComments = Record<string, string>;
-type ClientComments = Record<string, string>;
-
 export const useTableComments = (
     getClientsDemand: () => DataObject | null,
+    getSearchedNomenclature: () => string | undefined,
 ) => {
-    const rowComments = ref<GeneralComments>({});
-    const additionalComments = ref<ClientComments>({});
+    const {
+        generalComments: rowComments,
+        clientComments: additionalComments,
+        updateGeneralComment,
+        updateClientComment,
+    } = useUserData();
+
     const draftComments = ref<Record<string, string>>({});
 
     const getNomenclature = (row: DataObject): string => {
@@ -36,6 +36,7 @@ export const useTableComments = (
 
         return JSON.stringify([
             client,
+            normalize(getSearchedNomenclature() ?? ""),
             normalize(getNomenclature(row)),
         ]);
     };
@@ -75,148 +76,59 @@ export const useTableComments = (
         row: DataObject,
         field: CommentField,
         value: string,
-    ) => {
+    ): void => {
         const key = getDraftKey(row, field);
 
         draftComments.value[key] = value;
     };
 
-    const saveComment = (
+    const saveComment = async (
         row: DataObject,
         field: CommentField,
-    ) => {
+    ): Promise<void> => {
         const nomenclature = getNomenclature(row);
 
         if (!nomenclature) return;
 
-        const key = field === "comment"
-            ? getGeneralCommentKey(row)
-            : getClientCommentKey(row);
-
         const draftKey = getDraftKey(row, field);
-        const comment = capitalize(getDraftComment(row, field)).trim();
+        const comment = capitalize(
+            getDraftComment(row, field),
+        ).trim();
 
-        if (field === "comment") {
-            const nextComments = { ...rowComments.value };
-
-            if (comment) {
-                nextComments[key] = comment;
-            } else {
-                delete nextComments[key];
-            }
-
-            rowComments.value = nextComments;
-            LocalStorage.save(COMMENTS_STORAGE_KEY, nextComments);
-        } else {
-            const nextComments = { ...additionalComments.value };
-
-            if (comment) {
-                nextComments[key] = comment;
-            } else {
-                delete nextComments[key];
-            }
-
-            additionalComments.value = nextComments;
-            LocalStorage.save(
-                ADDITIONAL_COMMENTS_STORAGE_KEY,
-                nextComments,
-            );
-        }
-
-        const nextDrafts = { ...draftComments.value };
-        delete nextDrafts[draftKey];
-        draftComments.value = nextDrafts;
-    };
-
-    onMounted(() => {
         try {
-            const savedComments = localStorage.getItem(COMMENTS_STORAGE_KEY);
-            const savedAdditionalComments = localStorage.getItem(
-                ADDITIONAL_COMMENTS_STORAGE_KEY,
-            );
+            if (field === "comment") {
+                const nomenclatureKey = getGeneralCommentKey(row);
 
-            const general: GeneralComments = {};
-            const clientSpecific: ClientComments = {};
-
-            if (savedComments) {
-                const parsed: Record<string, unknown> = JSON.parse(savedComments);
-
-                Object.entries(parsed).forEach(([key, value]) => {
-                    if (typeof value === "string") {
-                        general[key] = value;
-                        return;
-                    }
-
-                    if (!Array.isArray(value)) return;
-
-                    value.forEach((item: {
-                        nomenclature?: string;
-                        comment?: string;
-                        additionalComment?: string;
-                    }) => {
-                        if (!item?.nomenclature) return;
-
-                        const nomenclatureKey = normalize(item.nomenclature);
-
-                        if (item.comment?.trim()) {
-                            general[nomenclatureKey] = item.comment;
-                        }
-
-                        if (item.additionalComment?.trim()) {
-                            const clientKey = JSON.stringify([
-                                normalize(key),
-                                nomenclatureKey,
-                            ]);
-
-                            clientSpecific[clientKey] = item.additionalComment;
-                        }
-                    });
-                });
-            }
-
-            if (savedAdditionalComments) {
-                const parsed: Record<string, unknown> = JSON.parse(
-                    savedAdditionalComments,
+                await updateGeneralComment(
+                    nomenclatureKey,
+                    comment,
+                );
+            } else {
+                const contragentKey = normalize(
+                    getClientsDemand()?.[CONST_TITLES.CONTRAGENT],
                 );
 
-                Object.entries(parsed).forEach(([key, value]) => {
-                    if (typeof value === "string") {
-                        clientSpecific[key] = value;
-                        return;
-                    }
+                if (!contragentKey) return;
 
-                    if (!Array.isArray(value)) return;
-
-                    value.forEach((item: {
-                        nomenclature?: string;
-                        comment?: string;
-                    }) => {
-                        if (!item?.nomenclature || !item.comment?.trim()) return;
-
-                        const clientKey = JSON.stringify([
-                            normalize(key),
-                            normalize(item.nomenclature),
-                        ]);
-
-                        clientSpecific[clientKey] = item.comment;
-                    });
-                });
+                await updateClientComment(
+                    contragentKey,
+                    normalize(getSearchedNomenclature() ?? ""),
+                    normalize(nomenclature),
+                    comment,
+                );
             }
 
-            rowComments.value = general;
-            additionalComments.value = clientSpecific;
+            const nextDrafts = { ...draftComments.value };
+            delete nextDrafts[draftKey];
 
-            LocalStorage.save(COMMENTS_STORAGE_KEY, general);
-            LocalStorage.save(
-                ADDITIONAL_COMMENTS_STORAGE_KEY,
-                clientSpecific,
-            );
+            draftComments.value = nextDrafts;
         } catch (error) {
-            console.error("Не удалось загрузить комментарии:", error);
-            rowComments.value = {};
-            additionalComments.value = {};
+            console.error(
+                "Не удалось сохранить комментарий в Supabase:",
+                error,
+            );
         }
-    });
+    };
 
     return {
         rowComments,
