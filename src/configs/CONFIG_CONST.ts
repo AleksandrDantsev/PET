@@ -18,10 +18,6 @@ type Contragent = {
 };
 
 // НЕ ИЗМЕНЯТЬ НАЗВАНИЕ ПЕРЕМЕННЫХ!!!
-const COMMENTS_STORAGE_KEY = "interchangeable-row-comments";
-const ADDITIONAL_COMMENTS_STORAGE_KEY = "interchangeable-row-additional-comments";
-const HIDDEN_ROWS_STORAGE_KEY = "interchangeable-hidden-rows";
-
 const CONFIG_DATA_STORAGE_KEY = "configData";
 const ACTUAL_DATA_STORAGE_KEY = "actualData";
 const INTERCHANGEABLE_DATA_STORAGE_KEY = "interchangeableData";
@@ -41,10 +37,8 @@ function initializeConfig(data: IGoogleTableData): void {
 
     // Проверяем обязательные разделы до изменения текущей конфигурации.
     if (
-        !titles ||
-        !Object.keys(titles).length ||
-        !managers ||
-        !Object.keys(managers).length ||
+        !titles || !Object.keys(titles).length ||
+        !managers || !Object.keys(managers).length ||
         !contragents ||
         !znurTypes ||
         !znurTypes.length
@@ -54,13 +48,12 @@ function initializeConfig(data: IGoogleTableData): void {
         );
     }
 
-    // Обновляем заголовки.
     Object.keys(CONST_TITLES).forEach(key => {
         delete CONST_TITLES[key];
     });
+
     Object.assign(CONST_TITLES, titles);
 
-    // Обновляем менеджеров.
     Object.keys(MANAGERS_BRANCHES).forEach(key => {
         delete MANAGERS_BRANCHES[key];
     });
@@ -74,7 +67,6 @@ function initializeConfig(data: IGoogleTableData): void {
         Object.assign(CONTRAGENTS, contragents);
     }
 
-    // Обновляем типы ЗНУР.
     ZNUR_TYPES.splice(0, ZNUR_TYPES.length, ...znurTypes);
 
     isConfigInitialized.value = true;
@@ -101,9 +93,6 @@ export {
     MANAGERS_BRANCHES,
     CONTRAGENTS,
     ZNUR_TYPES,
-    COMMENTS_STORAGE_KEY,
-    ADDITIONAL_COMMENTS_STORAGE_KEY,
-    HIDDEN_ROWS_STORAGE_KEY,
     initializeConfig,
     isConfigInitialized,
 };
