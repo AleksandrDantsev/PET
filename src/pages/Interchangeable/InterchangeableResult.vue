@@ -5,6 +5,7 @@ import { useTableComments } from "@/composables/useTableComments.ts";
 import { useTableSearch, type SortingPriorityField } from "@/composables/useTableSearch";
 import { useResultTableColumns } from "@/composables/useResultTableColumns.ts";
 import { useHiddenRows } from "@/composables/useHiddenRows.ts";
+import { useTableTests } from "@/composables/useTableTests";
 import {
     NButton,
     NDataTable,
@@ -33,7 +34,14 @@ const {
     getDraftComment,
     updateDraftComment,
     saveComment,
-} = useTableComments(() => props.clientsDemand);
+} = useTableComments(
+    () => props.clientsDemand,
+    () => props.searchedFields?.nomenclature,
+);
+
+const tableTests = useTableTests(
+    () => props.clientsDemand,
+);
 
 const searchQuery = defineModel<string>("searchQuery", {
     default: "",
@@ -150,7 +158,7 @@ const { columns } = useResultTableColumns({
         getHiddenKey,
         toggleHidden,
     },
-
+    tests: tableTests,
     copy,
 });
 
@@ -577,6 +585,8 @@ const scrollPageToTop = () => {
     }
 }
 
+$colorSvg: #a0a0a0;
+
 :deep(.hide-line) {
     display: flex;
     align-items: center;
@@ -585,7 +595,7 @@ const scrollPageToTop = () => {
     padding: 2px;
     border: none;
     background-color: transparent;
-    color: #a0a0a0;
+    color: $colorSvg;
     cursor: pointer;
     transition: color 0.2s ease;
 

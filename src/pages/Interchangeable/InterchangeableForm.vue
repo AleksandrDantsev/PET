@@ -289,7 +289,7 @@ const returnInputValues = async () => {
         holding: match.holding ?? "",
     };
 
-    console.log(contragentNames)
+    // console.log(contragentNames)
 
     if ((!contragentNames.contragent && !contragentNames.holding) || isSearched.value) {
         message.warning('Клиент не найден среди названий контрагентов (холдингов)')
@@ -335,17 +335,18 @@ const selectInputText = (event: FocusEvent) => {
     input.select();
 };
 
+const isSavingMessage = ref(false);
 const isSavedMessage = ref(false);
 const isSearched = ref(false);
 
 const save = async () => {
-    if (isSavedMessage.value) return;
+    if (isSavingMessage.value) return;
 
     if (!formRef.value || !passportFormRef.value) {
         return;
     }
 
-    isSavedMessage.value = true;
+    isSavingMessage.value = true;
 
     try {
         await Promise.all([
@@ -374,6 +375,8 @@ const save = async () => {
             closable: true,
             duration: 45000,
         });
+        isSavedMessage.value = true;
+
     } catch (error) {
         console.error(error);
         if (Object.values(formValue).some(el => !el)) {
@@ -381,7 +384,7 @@ const save = async () => {
             return;
         }
     } finally {
-        isSavedMessage.value = false;
+        isSavingMessage.value = false;
     }
 };
 
@@ -570,10 +573,10 @@ const renderZnurLabel = (option: {label: string}) =>
             </NButton>
 
             <n-button
-                class="save-button"
+                :class="!isSavedMessage ? 'save-button' : 'save-button save-button--saved'"
                 type="primary"
-                :loading="isSavedMessage"
-                :disabled="isSavedMessage"
+                :loading="isSavingMessage"
+                :disabled="isSavingMessage"
                 secondary
                 title="Сохранить паспорт сделки"
                 aria-label="Сохранить паспорт сделки"
@@ -873,6 +876,10 @@ $effectSearchButtonColor: #40af5c;
         margin: 0;
         margin-right: 10px;
     }
+}
+
+.save-button--saved {
+    background-color: #dfdfe0;
 }
 
 .wrapper-save-icon {

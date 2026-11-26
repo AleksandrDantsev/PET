@@ -33,7 +33,7 @@ withDefaults(
             <div class="loader-info">
                 <span class="loader-title">{{ text }}</span>
                 <span class="loader-description">
-                    Прогружая данные...
+                    Получение данных...
                 </span>
             </div>
 

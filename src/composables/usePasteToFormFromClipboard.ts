@@ -131,7 +131,6 @@ export const usePasteIntoFormFromClipboard = () => {
             return null;
         }
         message.success("");
-        console.log(result)
         return result;
     };
 

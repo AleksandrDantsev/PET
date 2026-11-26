@@ -23,6 +23,7 @@ import { getHardnessColor, getProductColor } from "@/utils/colorHelpers";
 
 import HideEyeIcon from "@/components/icons/HideEyeIcon.vue";
 import CommentIcon from "@/components/icons/CommentIcon.vue";
+import ProductTestIndicator from "@/components/common/ProductTestIndicator.vue";
 import InterchangeableAdditionalInfo from "@/pages/Interchangeable/InterchangeableAdditionalInfo.vue";
 import DataTableFilter from "@/pages/Interchangeable/Filters/DataTableFilter.vue";
 
@@ -35,6 +36,7 @@ import type { useTableComments } from "@/composables/useTableComments";
 import type { useHiddenRows } from "@/composables/useHiddenRows";
 import type { useTableFilters } from "@/composables/useTableFilters";
 import type { useCopyToClipboard } from "@/composables/useCopyToClipboard";
+import type { useTableTests } from "@/composables/useTableTests";
 
 type TableComments = Pick<
     ReturnType<typeof useTableComments>,
@@ -59,6 +61,13 @@ type TableFilters = Pick<
     | "updateTableFilter"
 >;
 
+type TableTests = Pick<
+    ReturnType<typeof useTableTests>,
+    | "getTests"
+    | "addTest"
+    | "removeTest"
+>;
+
 interface UseResultTableColumnsOptions {
     clientsDemand: () => DataObject | null;
     currentPage: Ref<number>;
@@ -67,6 +76,7 @@ interface UseResultTableColumnsOptions {
     comments: TableComments;
     hiddenRows: TableHiddenRows;
     filters: TableFilters;
+    tests: TableTests;
 
     copy: ReturnType<typeof useCopyToClipboard>["copy"];
 }
@@ -92,6 +102,7 @@ export const useResultTableColumns = (
         comments,
         hiddenRows,
         filters,
+        tests,
         copy,
     } = options;
 
@@ -177,6 +188,13 @@ export const useResultTableColumns = (
         });
     };
 
+    // Индикатор тестирования номенклатуры
+    const createTestIndicator = (row: DataObject) =>
+        h(ProductTestIndicator, {
+            row,
+            tests,
+        });
+
     const columns = computed<DataTableColumns<DataObject>>(() => [
         {
             title: "№",
@@ -242,10 +260,12 @@ export const useResultTableColumns = (
                             },
                         )
                         : null,
+
                     h("span", {
                         class: "product-color",
                         style: { backgroundColor: color },
                     }),
+
                     h(
                         "span",
                         {
@@ -258,6 +278,10 @@ export const useResultTableColumns = (
                         },
                         nomenclature || "-",
                     ),
+
+                    hasClientDemand()
+                        ? createTestIndicator(row)
+                        : null,
                 ]);
             },
         },

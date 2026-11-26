@@ -158,7 +158,7 @@ const ch = {
         if (!data?.values) return null;
 
         const columnsData = valuesToColumns(data);
-        console.log(columnsData)
+        // console.log(columnsData)
         if (!columnsData) {
             return null;
         }
