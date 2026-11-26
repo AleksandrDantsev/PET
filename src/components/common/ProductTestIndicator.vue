@@ -118,11 +118,11 @@ $colorSvg: #a0a0a0;
     }
 
     &:hover {
-        color: #5274D1;
+        color: #e2d02d;
     }
 
     &--active {
-        color: #5274D1;
+        color: #e6c301;
     }
 }
 .product-test-picker {
