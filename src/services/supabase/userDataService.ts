@@ -326,12 +326,11 @@ export function subscribeToUserData(
             },
         );
 
-    channel.subscribe(status => {
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-            console.error(
-                "Ошибка подписки Supabase Realtime:",
-                status,
-            );
+    channel.subscribe((status, err) => {
+        console.log("Supabase Realtime status:", status);
+
+        if (err) {
+            console.error("Supabase Realtime error:", err);
         }
     });
 
