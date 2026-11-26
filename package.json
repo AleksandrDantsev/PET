@@ -49,17 +49,20 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
+    "@supabase/supabase-js": "^2.119.2",
     "electron-store": "^11.0.2",
     "google-auth-library": "^11.0.2",
     "googleapis": "^178.0.0",
     "naive-ui": "^2.45.3",
     "pinia": "^4.0.3",
+    "sortablejs": "^1.15.7",
     "vue": "^3.5.41",
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.13.3",
+    "@types/sortablejs": "^1.15.9",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitest/coverage-v8": "^5.0.4",
     "@vue/test-utils": "^2.5.0",
