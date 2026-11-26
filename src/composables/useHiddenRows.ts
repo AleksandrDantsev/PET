@@ -1,12 +1,10 @@
 
-import { computed, onMounted, ref, watch } from "vue";
-import type { DataObject } from "@/types/TableSheetData.ts";
-import { LocalStorage } from "@/utils/localStorage.ts";
+import { computed, ref } from "vue";
+
+import type { DataObject } from "@/types/TableSheetData";
 import { normalize } from "@/utils/normalize";
-import {
-    CONST_TITLES,
-    HIDDEN_ROWS_STORAGE_KEY,
-} from "@/configs/CONFIG_CONST.ts";
+import { CONST_TITLES } from "@/configs/CONFIG_CONST";
+import { useUserData } from "@/stores/userDataStore";
 
 export type HiddenRowsMode = "all" | "visible" | "hidden";
 
@@ -14,7 +12,10 @@ export const useHiddenRows = (
     getClientsDemand: () => DataObject | null,
     getTableData: () => DataObject[],
 ) => {
-    const hiddenRows = ref<Set<string>>(new Set());
+    const {
+        hiddenRows,
+        updateHiddenRow,
+    } = useUserData();
 
     const hiddenRowsMode = ref<HiddenRowsMode>("visible");
 
@@ -56,42 +57,34 @@ export const useHiddenRows = (
         return uniqueKeys.size;
     });
 
-    const toggleHidden = (row: DataObject) => {
+    const toggleHidden = async (row: DataObject): Promise<void> => {
         const key = getHiddenKey(row);
-        const next = new Set(hiddenRows.value);
 
-        if (next.has(key)) {
-            next.delete(key);
-        } else {
-            next.add(key);
+        const [contragentKey, nomenclatureKey] = JSON.parse(key) as [
+            string,
+            string,
+        ];
+
+        if (!contragentKey || !nomenclatureKey) {
+            console.warn("Не удалось скрыть позицию: отсутствует контрагент или номенклатура");
+            return;
         }
 
-        hiddenRows.value = next;
-    };
+        const isHidden = !hiddenRows.value.has(key);
 
-    onMounted(() => {
         try {
-            const savedHiddenRows = localStorage.getItem(
-                HIDDEN_ROWS_STORAGE_KEY,
+            await updateHiddenRow(
+                contragentKey,
+                nomenclatureKey,
+                isHidden,
             );
-
-            if (savedHiddenRows) {
-                hiddenRows.value = new Set(
-                    JSON.parse(savedHiddenRows) as string[],
-                );
-            }
         } catch (error) {
-            console.error("Не удалось загрузить скрытые позиции:", error);
-            hiddenRows.value = new Set();
+            console.error(
+                "Не удалось изменить видимость позиции в Supabase:",
+                error,
+            );
         }
-    });
-
-    watch(hiddenRows, rows => {
-        LocalStorage.save(
-            HIDDEN_ROWS_STORAGE_KEY,
-            [...rows],
-        );
-    });
+    };
 
     return {
         hiddenRows,
