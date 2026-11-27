@@ -39,8 +39,6 @@ const displayFields = computed<DisplayField[]>(() => {
         return [];
     }
 
-    const litrazh = demand[CONST_TITLES.LITRAZH];
-
     return [
         {
             key: "contragent",
@@ -70,7 +68,7 @@ const displayFields = computed<DisplayField[]>(() => {
         {
             key: "litrazh",
             label: subtitles.litrazh,
-            value: formatLitrazh(litrazh),
+            value: formatLitrazh(demand[CONST_TITLES.LITRAZH]),
         },
         {
             key: "rangeOfGrams",
@@ -94,9 +92,7 @@ const colorGroups = computed(() => {
         {
             key: "baseColor",
             label: subtitles.baseColor,
-            values: setColorText(
-                demand[CONST_TITLES.PRIMARY_COLOR],
-            ),
+            values: setColorText(demand[CONST_TITLES.PRIMARY_COLOR]),
         },
         {
             key: "interchangeableColors",
@@ -108,28 +104,40 @@ const colorGroups = computed(() => {
         {
             key: "possibleColors",
             label: subtitles.possibleColors,
-            values: setColorText(
-                demand[CONST_TITLES.POSSIBLE_COLORS],
-            ),
+            values: setColorText(demand[CONST_TITLES.POSSIBLE_COLORS]),
         },
     ];
 });
+
+const visibleColorGroups = computed(() =>
+    colorGroups.value.filter(group =>
+        group.values.some(value => value.colorName !== "-"),
+    ),
+);
+
+function isWhiteColor(color: string): boolean {
+    const normalized = color.trim().toLowerCase();
+
+    return [
+        "#fff",
+        "#ffffff",
+        "white",
+        "rgb(255, 255, 255)",
+        "rgba(255, 255, 255, 1)",
+    ].includes(normalized);
+}
 </script>
+
 <template>
     <div class="contragent-desc-container">
-        <Transition 
-            name="fade-slide" 
-            mode="out-in"
-        >
+        <Transition name="fade-slide" mode="out-in">
             <div
                 v-if="!clientsDemand"
                 key="not-found"
                 class="interchangeable-unit-not-found"
             />
-            <div
-                v-else
-                key="content"
-            >
+
+            <div v-else key="content">
                 <div class="contragent-desc-title">
                     Потребности клиента по данному типу товара:
                 </div>
@@ -148,26 +156,36 @@ const colorGroups = computed(() => {
                     </div>
 
                     <div
-                        v-for="group in colorGroups"
+                        v-for="group in visibleColorGroups"
                         :key="group.key"
-                        class="subtitle-client-container"
+                        class="subtitle-client-container color-group"
                     >
                         <span class="subtitle">
                             {{ group.label }}
                         </span>
 
-                        <span
-                            v-for="value in group.values"
-                            :key="`${value.colorName}-${value.color}`"
-                            class="color-value"
-                            :style="{
-                                color: value.color === '#ffffff'
-                                    ? 'inherit'
-                                    : value.color,
-                            }"
-                        >
-                            {{ value.colorName || "-" }}
-                        </span>
+                        <div class="color-values">
+                            <span
+                                v-for="value in group.values"
+                                :key="`${value.colorName}-${value.color}`"
+                                class="color-chip"
+                                :class="{
+                                    'color-chip-white': isWhiteColor(value.color),
+                                }"
+                                :style="{
+                                    '--chip-color': value.color,
+                                }"
+                            >
+                                {{ value.colorName || "-" }}
+                            </span>
+
+                            <span
+                                v-if="!group.values.length"
+                                class="empty-value"
+                            >
+                                —
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -176,26 +194,28 @@ const colorGroups = computed(() => {
 </template>
 
 <style scoped lang="scss">
+$primary: #252525;
+$secondary: #85858b;
+
 .contragent-desc-container {
     width: 97%;
-    margin: 25px auto;
-    color: #292824;
+    margin: 20px auto;
+    color: $primary;
 }
 
 .contragent-desc-title {
-    margin-bottom: 12px;
-    color: #66635d;
+    margin-bottom: 13px;
+    color: #424248;
     font-size: 14px;
-    font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-weight: 650;
+    line-height: 1.4;
+    letter-spacing: -0.15px;
 }
 
 .contragent-desc-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 2.5px;
+    gap: 4px;
 }
 
 .subtitle-client-container {
@@ -203,70 +223,131 @@ const colorGroups = computed(() => {
     align-items: baseline;
     min-width: 0;
     font-size: 12px;
-    line-height: 1.45;
-}
-
-.color-value:not(:last-child)::after {
-    content: ",\00a0";
+    line-height: 1.4;
 }
 
 .subtitle {
     flex: 0 0 180px;
-    margin-right: 10px;
-    color: #8a8780;
-    font-weight: 700;
+    margin-right: 8px;
+    color: $secondary;
+    font-size: 11px;
+    font-weight: 500;
     line-height: 1.4;
 }
 
+.subtitle-client-container > span:not(.subtitle) {
+    min-width: 0;
+    color: $primary;
+    font-size: 12px;
+    font-weight: 550;
+    overflow-wrap: anywhere;
+}
+
+.color-group {
+    align-items: baseline;
+    margin-top: 3px;
+}
+
+.color-values {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.color-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 19px;
+    padding: 1px 7px;
+    color: color-mix(in srgb, var(--chip-color) 80%, #292929);
+    font-size: 10px;
+    font-weight: 550;
+    line-height: 1.3;
+    white-space: nowrap;
+    user-select: none;
+    cursor: default;
+    background: color-mix(in srgb, var(--chip-color) 10%, white);
+    border: 1px solid color-mix(in srgb, var(--chip-color) 16%, white);
+    border-radius: 5px;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+
+    &:hover {
+        background: color-mix(in srgb, var(--chip-color) 17%, white);
+        border-color: color-mix(in srgb, var(--chip-color) 25%, white);
+    }
+}
+
+.color-chip-white {
+    color: #55555a;
+    background: #fff;
+    border-color: #dedee3;
+
+    &:hover {
+        background: #f5f5f7;
+        border-color: #c7c7cc;
+    }
+}
+
+.empty-value {
+    color: $secondary;
+    font-size: 11px;
+}
+
 .interchangeable-unit-not-found {
-    padding: 10px 0;
-    color: #85827b;
-    font-size: 13px;
-    line-height: 1.5;
+    padding: 7px 0;
+    color: $secondary;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .fade-slide-enter-active,
 .fade-slide-leave-active {
     transition:
-        opacity 0.35s ease,
-        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-        filter 0.35s ease;
+        opacity 0.2s ease,
+        transform 0.2s ease;
 }
 
 .fade-slide-enter-from {
     opacity: 0;
-    transform: translateY(-4px) scaleY(0.98);
-    filter: blur(2px);
+    transform: translateY(-3px);
 }
 
 .fade-slide-leave-to {
     opacity: 0;
-    transform: translateY(-2px) scaleY(0.99);
-    filter: blur(1px);
+    transform: translateY(3px);
 }
 
 @media (max-width: 600px) {
     .contragent-desc-container {
-        margin-top: 14px;
+        margin: 12px auto;
     }
 
-    .contragent-desc-title {
-        margin-bottom: 10px;
-        font-size: 11px;
-    }
-
-    .contragent-desc-wrapper {
-        gap: 8px;
-        > div {
-            display: block;
-        }
+    .subtitle-client-container {
+        display: block;
     }
 
     .subtitle {
-        display: block;
-        margin: 0 0 2px;
-        font-size: 9px;
+        display: inline;
+        margin-right: 6px;
+    }
+
+    .color-group {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .fade-slide-enter-active,
+    .fade-slide-leave-active,
+    .color-chip {
+        transition: none;
+    }
+}
 </style>
