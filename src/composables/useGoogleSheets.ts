@@ -75,17 +75,13 @@ export const useGoogleSheets = () => {
                     }),
             ]);
 
-            // Основные данные.
             if (actualDataFromApi) {
                 const savedActualData =
                     LocalStorage.get<IGoogleTableData>(
                         ACTUAL_DATA_STORAGE_KEY,
                     );
 
-                if (
-                    savedActualData == null ||
-                    hasDataChanged(savedActualData, actualDataFromApi)
-                ) {
+                if (savedActualData == null || hasDataChanged(savedActualData, actualDataFromApi)) {
                     actualData.value = actualDataFromApi;
 
                     LocalStorage.save(
@@ -97,7 +93,6 @@ export const useGoogleSheets = () => {
                 }
             }
 
-            // Конфигурация.
             const savedConfigData =
                 LocalStorage.get<IGoogleTableData>(
                     CONFIG_DATA_STORAGE_KEY,
@@ -108,10 +103,8 @@ export const useGoogleSheets = () => {
 
             if (configForApp) {
                 try {
-                    // Сначала проверяем и применяем конфигурацию.
                     initializeConfig(configForApp);
 
-                    // Сохраняем только корректную конфигурацию из API.
                     if (
                         configDataFromApi &&
                         (
@@ -134,8 +127,7 @@ export const useGoogleSheets = () => {
                     );
                 }
             }
-
-            // Данные взаимозаменяемого.
+            
             if (interchangeableDataFromApi) {
                 const savedInterchangeableData =
                     LocalStorage.get<IGoogleTableData>(
