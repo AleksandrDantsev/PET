@@ -86,7 +86,7 @@ $minWidthTooltip: 500px;
 }
 
 ::selection {
-    background-color: #27830d70;
+    background-color: #254f8554;
     color: white;
 }
 </style>
