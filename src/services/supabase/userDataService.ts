@@ -1,11 +1,22 @@
 
 import { supabase } from "@/services/supabase/client";
 
+export type TestRecord = {
+    id: string;
+    testedAt: number;
+    comment: string;
+    isSuitable: boolean;
+};
+
+export type TestUpdate = Partial<
+    Pick<TestRecord, "testedAt" | "comment" | "isSuitable">
+>;
+
 export type UserDataSnapshot = {
     generalComments: Record<string, string>;
     clientComments: Record<string, string>;
     hiddenRows: string[];
-    tests: Record<string, number>;
+    tests: Record<string, TestRecord[]>;
 };
 
 type GeneralCommentRow = {
@@ -26,14 +37,26 @@ type HiddenRow = {
 };
 
 type TestRow = {
+    id: string;
     contragent_key: string;
     nomenclature_key: string;
     tested_at: number;
+    comment: string;
+    is_suitable: boolean;
 };
 
+const TEST_SELECT_FIELDS =
+    "id, contragent_key, nomenclature_key, tested_at, comment, is_suitable";
 
+function mapTestRow(row: TestRow): TestRecord {
+    return {
+        id: row.id,
+        testedAt: Number(row.tested_at),
+        comment: row.comment,
+        isSuitable: row.is_suitable,
+    };
+}
 
-// Ключ для скрытых позиций и дат тестирования.
 export const makeClientRowKey = (
     contragentKey: string,
     nomenclatureKey: string,
@@ -42,7 +65,6 @@ export const makeClientRowKey = (
     nomenclatureKey,
 ]);
 
-// Ключ для клиентских комментариев.
 export const makeClientCommentRowKey = (
     contragentKey: string,
     searchNomenclatureKey: string,
@@ -52,7 +74,6 @@ export const makeClientCommentRowKey = (
     searchNomenclatureKey,
     nomenclatureKey,
 ]);
-
 
 export async function loadUserData(): Promise<UserDataSnapshot> {
     const [
@@ -77,7 +98,7 @@ export async function loadUserData(): Promise<UserDataSnapshot> {
 
         supabase
             .from("row_tests")
-            .select("contragent_key, nomenclature_key, tested_at"),
+            .select(TEST_SELECT_FIELDS),
     ]);
 
     if (generalResult.error) throw generalResult.error;
@@ -88,7 +109,7 @@ export async function loadUserData(): Promise<UserDataSnapshot> {
     const generalComments: Record<string, string> = {};
     const clientComments: Record<string, string> = {};
     const hiddenRows: string[] = [];
-    const tests: Record<string, number> = {};
+    const tests: Record<string, TestRecord[]> = {};
 
     (generalResult.data as GeneralCommentRow[]).forEach(row => {
         generalComments[row.nomenclature_key] = row.comment;
@@ -119,7 +140,8 @@ export async function loadUserData(): Promise<UserDataSnapshot> {
             row.nomenclature_key,
         );
 
-        tests[key] = row.tested_at;
+        tests[key] ??= [];
+        tests[key].push(mapTestRow(row));
     });
 
     return {
@@ -129,7 +151,6 @@ export async function loadUserData(): Promise<UserDataSnapshot> {
         tests,
     };
 }
-
 
 export async function saveGeneralComment(
     nomenclatureKey: string,
@@ -152,7 +173,6 @@ export async function saveGeneralComment(
 
     if (error) throw error;
 }
-
 
 export async function saveClientComment(
     contragentKey: string,
@@ -185,7 +205,6 @@ export async function saveClientComment(
     if (error) throw error;
 }
 
-
 export async function setHiddenRow(
     contragentKey: string,
     nomenclatureKey: string,
@@ -212,37 +231,69 @@ export async function setHiddenRow(
     if (error) throw error;
 }
 
-
-export async function saveTest(
+export async function createTest(
     contragentKey: string,
     nomenclatureKey: string,
-    date: number,
-): Promise<void> {
-    const { error } = await supabase
+    testedAt: number,
+    comment: string,
+    isSuitable: boolean,
+): Promise<TestRecord> {
+    const { data, error } = await supabase
         .from("row_tests")
-        .upsert(
-            {
-                contragent_key: contragentKey,
-                nomenclature_key: nomenclatureKey,
-                tested_at: date,
-            },
-            {
-                onConflict: "contragent_key,nomenclature_key",
-            },
-        );
+        .insert({
+            contragent_key: contragentKey,
+            nomenclature_key: nomenclatureKey,
+            tested_at: testedAt,
+            comment: comment.trim(),
+            is_suitable: isSuitable,
+        })
+        .select(TEST_SELECT_FIELDS)
+        .single();
 
     if (error) throw error;
+
+    return mapTestRow(data as TestRow);
 }
 
-export async function removeTest(
-    contragentKey: string,
-    nomenclatureKey: string,
-): Promise<void> {
+export async function updateTest(
+    id: string,
+    updates: TestUpdate,
+): Promise<TestRecord> {
+    const payload: {
+        tested_at?: number;
+        comment?: string;
+        is_suitable?: boolean;
+    } = {};
+
+    if (updates.testedAt !== undefined) {
+        payload.tested_at = updates.testedAt;
+    }
+
+    if (updates.comment !== undefined) {
+        payload.comment = updates.comment.trim();
+    }
+
+    if (updates.isSuitable !== undefined) {
+        payload.is_suitable = updates.isSuitable;
+    }
+
+    const { data, error } = await supabase
+        .from("row_tests")
+        .update(payload)
+        .eq("id", id)
+        .select(TEST_SELECT_FIELDS)
+        .single();
+
+    if (error) throw error;
+
+    return mapTestRow(data as TestRow);
+}
+
+export async function removeTest(id: string): Promise<void> {
     const { error } = await supabase
         .from("row_tests")
         .delete()
-        .eq("contragent_key", contragentKey)
-        .eq("nomenclature_key", nomenclatureKey);
+        .eq("id", id);
 
     if (error) throw error;
 }
