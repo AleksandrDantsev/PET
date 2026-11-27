@@ -40,6 +40,7 @@ const emit = defineEmits<{
     navigate: [key: string];
     settings: [];
     logout: [];
+    "database-logout": [];
 }>();
 
 const isExpanded = computed(() => props.modelValue);
@@ -61,6 +62,10 @@ const navigate = (key: string) => {
 const confirmLogout = () => {
     showLogoutModal.value = false;
     emit("logout");
+};
+
+const confirmDatabaseLogout = () => {
+    emit("database-logout");
 };
 </script>
 
@@ -100,10 +105,7 @@ const confirmLogout = () => {
                 </span>
             </button>
 
-            <div 
-                v-else 
-                class="brand"
-            >
+            <div v-else class="brand">
                 <span class="brand-logo">
                     <svg viewBox="0 0 24 24" fill="none">
                         <path
@@ -222,7 +224,6 @@ const confirmLogout = () => {
                             </span>
                         </button>
                     </template>
-
                     Настройки
                 </NTooltip>
             </div>
@@ -236,10 +237,7 @@ const confirmLogout = () => {
                     {{ userLabel.charAt(0).toUpperCase() }}
                 </NAvatar>
 
-                <div 
-                    v-if="isExpanded" 
-                    class="user-info"
-                >
+                <div v-if="isExpanded" class="user-info">
                     <span class="user-name">{{ userLabel }}</span>
                     <span class="user-role">{{ userRole }}</span>
                 </div>
@@ -259,7 +257,6 @@ const confirmLogout = () => {
                             <LogoutIcon />
                         </button>
                     </template>
-
                     Выйти
                 </NTooltip>
             </div>
@@ -299,20 +296,30 @@ const confirmLogout = () => {
         </div>
 
         <template #footer>
-            <div class="logout-modal-actions">
-                <NButton
-                    secondary
-                    @click="showLogoutModal = false"
+            <div class="logout-modal-footer">
+                <button
+                    type="button"
+                    class="database-logout-link"
+                    @click="confirmDatabaseLogout"
                 >
-                    Отмена
-                </NButton>
+                    Выйти из базы данных
+                </button>
 
-                <NButton
-                    type="error"
-                    @click="confirmLogout"
-                >
-                    Выйти
-                </NButton>
+                <div class="logout-modal-actions">
+                    <NButton
+                        secondary
+                        @click="showLogoutModal = false"
+                    >
+                        Отмена
+                    </NButton>
+
+                    <NButton
+                        type="error"
+                        @click="confirmLogout"
+                    >
+                        Выйти
+                    </NButton>
+                </div>
             </div>
         </template>
     </NModal>
@@ -361,10 +368,37 @@ const confirmLogout = () => {
     color: var(--n-text-color-3);
 }
 
+.logout-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .logout-modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    flex-shrink: 0;
+}
+
+.database-logout-link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+
+    color: var(--n-text-color-3);
+    font-size: 11px;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 3px;
+
+    cursor: pointer;
+    transition: color 0.18s ease;
+
+    &:hover {
+        color: #d03050;
+    }
 }
 
 .app-sidebar {
