@@ -1,15 +1,19 @@
 
 import type { DataObject } from "@/types/TableSheetData";
-import { normalize } from "@/utils/normalize";
 import { CONST_TITLES } from "@/configs/CONFIG_CONST";
+import { normalize } from "@/utils/normalize";
 import { useUserData } from "@/stores/userDataStore";
-
+import type {
+    TestRecord,
+    TestUpdate,
+} from "@/services/supabase/userDataService";
 
 export const useTableTests = (
     getClientsDemand: () => DataObject | null,
 ) => {
     const {
         tests,
+        addTest: createTest,
         updateTest,
         deleteTest,
     } = useUserData();
@@ -28,60 +32,51 @@ export const useTableTests = (
             getNomenclature(row),
         ]);
 
-    const getTests = (row: DataObject): number | null =>
-        tests.value[getTestKey(row)] ?? null;
+    const getTests = (row: DataObject): TestRecord[] =>
+        tests.value[getTestKey(row)] ?? [];
 
     const addTest = async (
         row: DataObject,
-        date: number,
+        testedAt: number,
+        comment: string,
+        isSuitable: boolean,
     ): Promise<void> => {
-        const clientKey = getClientKey();
+        const contragentKey = getClientKey();
         const nomenclatureKey = getNomenclature(row);
 
-        if (!clientKey || !nomenclatureKey) return;
+        if (!contragentKey || !nomenclatureKey) return;
 
-        if (!Number.isFinite(date)) {
-            console.warn("Не удалось добавить тест: некорректная дата");
-            return;
+        if (!Number.isFinite(testedAt) || testedAt < 0) {
+            throw new Error("Некорректная дата тестирования");
         }
 
-        try {
-            await updateTest(
-                clientKey,
-                nomenclatureKey,
-                date,
-            );
-        } catch (error) {
-            console.error(
-                "Не удалось сохранить дату теста в Supabase:",
-                error,
-            );
-        }
+        await createTest(
+            contragentKey,
+            nomenclatureKey,
+            testedAt,
+            comment,
+            isSuitable,
+        );
     };
 
-    const removeTest = async (row: DataObject): Promise<void> => {
-        const clientKey = getClientKey();
-        const nomenclatureKey = getNomenclature(row);
+    const editTest = async (
+        id: string,
+        updates: TestUpdate,
+    ): Promise<void> => {
+        await updateTest(id, updates);
+    };
 
-        if (!clientKey || !nomenclatureKey) return;
+    const removeTest = async (id: string): Promise<void> => {
+        if (!id) return;
 
-        try {
-            await deleteTest(
-                clientKey,
-                nomenclatureKey,
-            );
-        } catch (error) {
-            console.error(
-                "Не удалось удалить дату теста из Supabase:",
-                error,
-            );
-        }
+        await deleteTest(id);
     };
 
     return {
         tests,
         getTests,
         addTest,
+        editTest,
         removeTest,
     };
 };
