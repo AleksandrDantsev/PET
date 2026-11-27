@@ -16,7 +16,7 @@ import { useGoogleSheets } from "@/composables/useGoogleSheets";
 import { useTabsDrag } from "@/composables/useTabsDrag";
 import { useAppTabs } from "@/composables/useAppTabs";
 import { useAppAuthorization } from "@/composables/useAppAuthorization";
-
+import { useSupabaseAuth } from "@/composables/useSupabaseAuth.ts";
 import AppErrorPanel from "@/components/common/AppErrorPanel.vue";
 import AppLoader from "@/components/common/AppLoader.vue";
 import AppSidebar, {
@@ -35,6 +35,7 @@ import ClientListIcon from "@/components/icons/ClientListIcon.vue";
 import { isConfigInitialized } from "@/configs/CONFIG_CONST";
 
 const router = useRouter();
+const { signOut } = useSupabaseAuth();
 
 const {
     authorizedDepartment,
@@ -44,8 +45,6 @@ const {
 const InterchangeablePage = defineAsyncComponent({
     loader: () =>
         import("@/pages/Interchangeable/InterchangeablePage.vue"),
-    loadingComponent: AppLoader,
-    delay: 0,
 });
 
 const tabsHeaderRef = ref<HTMLElement | null>(null);
@@ -75,6 +74,22 @@ useTabsDrag(
 const sidebarExpanded = ref(false);
 const activeSidebarItem = ref("overview");
 
+
+const isAppDataReady = computed(() => {
+    return !isLoading.value && isConfigInitialized;
+});
+
+const isInitialPageReady = ref(false);
+
+const showLoader = computed(() => {
+    return (
+        !isAppDataReady.value ||
+        (
+            activeSidebarItem.value === "overview" &&
+            !isInitialPageReady.value
+        )
+    );
+});
 const navigationItems: NavigationItem[] = [
     {
         label: "Взаимозаменяемое",
@@ -92,8 +107,19 @@ function handleNavigation(key: string) {
     activeSidebarItem.value = key;
 }
 
+function handlePageReady() {
+    isInitialPageReady.value = true;
+}
 function handleSettings() {
     // Заглушка настроек.
+}
+
+async function handleDatabaseLogout() {
+    const success = await signOut();
+
+    if (!success) return;
+
+    await router.replace({ name: "database-login" });
 }
 
 function handleLogout() {
@@ -121,17 +147,20 @@ onMounted(() => {
             "
             user-label="Пользователь"
             user-role="Сотрудник системы"
+            @database-logout="handleDatabaseLogout"
             @navigate="handleNavigation"
             @settings="handleSettings"
             @logout="handleLogout"
         />
 
         <main class="app-main">
-            <AppLoader
-                v-if="isLoading || !isConfigInitialized"
-            />
-
-            <template v-else>
+            <div
+                v-if="isAppDataReady"
+                class="app-content"
+                :class="{
+                    'app-content--visible': !showLoader,
+                }"
+            >
                 <div
                     v-show="activeSidebarItem !== 'client-demands'"
                     ref="tabsHeaderRef"
@@ -192,26 +221,39 @@ onMounted(() => {
                         v-show="activeTab === tab.name"
                         :key="tab.name"
                     >
-                        <InterchangeablePage
-                            v-if="
-                                tab.initialized &&
-                                    actualData &&
-                                    interchangeableData
-                            "
-                            :actual-data="actualData"
-                            :interchangeable-data="interchangeableData"
-                            @update-title="
-                                (title, contragent) =>
-                                    updateTabTitle(
-                                        tab.name,
-                                        title,
-                                        contragent,
-                                    )
-                            "
-                        />
+                        <Transition name="table-fade">
+                            <InterchangeablePage
+                                v-if="
+                                    tab.initialized &&
+                                        actualData &&
+                                        interchangeableData
+                                "
+                                :actual-data="actualData"
+                                :interchangeable-data="interchangeableData"
+                                @ready="handlePageReady"
+                                @update-title="
+                                    (title, contragent) =>
+                                        updateTabTitle(
+                                            tab.name,
+                                            title,
+                                            contragent,
+                                        )
+                                "
+                            />
+                        </Transition>
                     </div>
                 </div>
-            </template>
+            </div>
+
+            <!-- Загрузчик располагается поверх контента. -->
+            <Transition name="loader-fade">
+                <div
+                    v-if="showLoader"
+                    class="app-loader-overlay"
+                >
+                    <AppLoader />
+                </div>
+            </Transition>
         </main>
 
         <UpButton />
@@ -220,8 +262,62 @@ onMounted(() => {
 
 <style lang="scss">
 .app-main {
+    position: relative;
     margin-left: 55px;
     min-width: 0;
+    min-height: 100vh;
+}
+
+.app-content {
+    min-width: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.app-content--visible {
+    opacity: 1;
+}
+
+.app-loader-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding-left: 55px;
+    box-sizing: border-box;
+
+    background: #fff;
+}
+
+.loader-fade-enter-active,
+.loader-fade-leave-active {
+    transition: opacity 0.25s ease;
+}
+
+.loader-fade-enter-from,
+.loader-fade-leave-to {
+    opacity: 0;
+}
+
+.loader-fade-enter-to,
+.loader-fade-leave-from {
+    opacity: 1;
+}
+
+.table-fade-enter-active {
+    transition: opacity 0.7s ease;
+}
+
+.table-fade-enter-from {
+    opacity: 0;
+}
+
+.table-fade-enter-to {
+    opacity: 1;
 }
 
 .tabs-header {
