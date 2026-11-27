@@ -1,26 +1,21 @@
 <template>
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="19" 
-        height="19" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        stroke-width="0.6" 
-        stroke-linecap="round" 
-        stroke-linejoin="round" 
-        class="lucide lucide-flask-conical preview-icon" 
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.3"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
     >
-        <path 
-            vector-effect="non-scaling-stroke" 
-            d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2" />
-        <path 
-            vector-effect="non-scaling-stroke" 
-            d="M6.453 15h11.094" 
+        <path
+            d="M10 2v7.5L4.6 19a2 2 0 0 0 1.75 3h11.3a2 2 0 0 0 1.75-3L14 9.5V2"
         />
-        <path 
-            vector-effect="non-scaling-stroke" 
-            d="M8.5 2h7"
-        />
+        <path d="M8 2h8" />
+        <path d="M7.5 15h9" />
+        <path d="M9 12h6" />
     </svg>
 </template>
