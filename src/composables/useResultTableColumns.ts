@@ -65,6 +65,7 @@ type TableTests = Pick<
     ReturnType<typeof useTableTests>,
     | "getTests"
     | "addTest"
+    | "editTest"
     | "removeTest"
 >;
 
