@@ -1,12 +1,27 @@
+
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import type { DataObject, IGoogleTableData, SearchFormValue } from "../../types/TableSheetData.ts";
+import {
+    ref,
+    computed,
+    onMounted,
+    nextTick,
+} from "vue";
+
+import type {
+    DataObject,
+    IGoogleTableData,
+    SearchFormValue,
+} from "../../types/TableSheetData.ts";
+
 import { dataToObjects } from "@/helpers/dataHandlers.ts";
+
 import InterchangeableForm from "./InterchangeableForm.vue";
 import InterchangeableResult from "./InterchangeableResult.vue";
+
 import { CONST_TITLES } from "@/configs/CONFIG_CONST.ts";
 import { check } from "@/helpers/checkInterchangeablePositions.ts";
 import { ih } from "@/helpers/interchangeableFilters.ts";
+
 import { NEmpty, useMessage } from "naive-ui";
 
 const props = defineProps<{
@@ -16,19 +31,15 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (e: "update-title", title: string, contragent: string | undefined | null): void;
+    (e: "ready"): void;
 }>();
 
 const message = useMessage();
+
 const searchedFields = ref<SearchFormValue | null>(null);
 const filteredActualResultObjs = ref<DataObject[]>([]);
 const clientsDemand = ref<DataObject>({});
 const isSearched = ref<boolean>(false);
-
-onMounted(() => {
-    if (props.actualData) {
-        filteredActualResultObjs.value = dataToObjects(props.actualData);
-    }
-});
 
 const actualDataObjs = computed(() => {
     if (!props.actualData) {
@@ -44,6 +55,15 @@ const interchangeableDataObjs = computed(() => {
     }
 
     return dataToObjects(props.interchangeableData);
+});
+
+onMounted(async () => {
+    if (props.actualData) {
+        filteredActualResultObjs.value = actualDataObjs.value;
+    }
+    await nextTick();
+
+    emit("ready");
 });
 
 const search = (fields: SearchFormValue) => {
@@ -121,7 +141,6 @@ const search = (fields: SearchFormValue) => {
         });
     };
 
-
     const fContragent = findClientDemand(contragent);
     const fHolding = fContragent ? undefined : findClientDemand(holding);
 
@@ -134,29 +153,6 @@ const search = (fields: SearchFormValue) => {
     if (descriptionProduct?.fullName) {
         emit("update-title", descriptionProduct.fullName, contragent);
     }
-
-    // Для отладки
-    //     console.table(
-    //     interchangeableDataObjs.value.map((item) => ({
-    //         typeInTable: item[CONST_TITLES.TYPE_OF_PRODUCT],
-    //         typeMatch: check.checkType(
-    //             String(item[CONST_TITLES.TYPE_OF_PRODUCT] ?? ""),
-    //             productTypeInput
-    //         ),
-
-    //         standardInTable: item[CONST_TITLES.STANDARD],
-    //         standardMatch: check.checkStandart(
-    //             String(item[CONST_TITLES.STANDARD] ?? ""),
-    //             descriptionProduct?.standart
-    //         ),
-
-    //         contragentInTable: item[CONST_TITLES.CONTRAGENT],
-    //         contragentMatch: check.checkContragent(
-    //             String(item[CONST_TITLES.CONTRAGENT] ?? ""),
-    //             fields.contragent
-    //         ),
-    //     }))
-    // );
 
     if (!clientDemand) {
         filteredActualResultObjs.value = [];
@@ -228,23 +224,26 @@ const search = (fields: SearchFormValue) => {
 
     filteredActualResultObjs.value = result;
 };
-
 </script>
+
 <template>
     <div class="search-wrapper">
         <InterchangeableForm :search="search" />
 
         <div class="results-wrapper">
             <InterchangeableResult
-                v-if="Object.keys(filteredActualResultObjs).length 
-                    || Object.keys(clientsDemand).length"
+                v-if="
+                    Object.keys(filteredActualResultObjs).length ||
+                        Object.keys(clientsDemand).length
+                "
                 :clients-demand="clientsDemand"
                 :filtered-actual-result-objs="filteredActualResultObjs"
                 :searched-fields="searchedFields"
             />
+
             <NEmpty
                 v-else
-                :description="'Не найдены потребности клиента по данному типу товара'"
+                description="Не найдены потребности клиента по данному типу товара"
                 size="medium"
             />
         </div>
