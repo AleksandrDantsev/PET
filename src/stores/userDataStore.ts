@@ -6,9 +6,13 @@ import {
     saveGeneralComment,
     saveClientComment,
     setHiddenRow,
-    saveTest,
-    removeTest,
+    createTest as createTestRequest,
+    updateTest as updateTestRequest,
+    removeTest as removeTestRequest,
     subscribeToUserData,
+    makeClientRowKey,
+    type TestRecord,
+    type TestUpdate,
     type UserDataSnapshot,
 } from "@/services/supabase/userDataService";
 
@@ -22,7 +26,7 @@ type RealtimePayload = {
 const generalComments = ref<Record<string, string>>({});
 const clientComments = ref<Record<string, string>>({});
 const hiddenRows = ref<Set<string>>(new Set());
-const tests = ref<Record<string, number>>({});
+const tests = ref<Record<string, TestRecord[]>>({});
 
 const isLoaded = ref(false);
 const isLoading = ref(false);
@@ -31,6 +35,83 @@ let initializationPromise: Promise<void> | null = null;
 let unsubscribe: (() => void) | null = null;
 
 const pendingEvents: RealtimePayload[] = [];
+
+function removeTestFromState(id: string): void {
+    const next = { ...tests.value };
+
+    for (const [key, records] of Object.entries(next)) {
+        const filtered = records.filter(test => test.id !== id);
+
+        if (filtered.length !== records.length) {
+            if (filtered.length) {
+                next[key] = filtered;
+            } else {
+                delete next[key];
+            }
+        }
+    }
+
+    tests.value = next;
+}
+
+function upsertTestInState(
+    key: string,
+    record: TestRecord,
+): void {
+    const next = { ...tests.value };
+    const records = next[key] ?? [];
+
+    next[key] = [
+        ...records.filter(test => test.id !== record.id),
+        record,
+    ];
+
+    tests.value = next;
+}
+
+function applyRealtimeTestEvent(
+    payload: RealtimePayload,
+): void {
+    if (payload.eventType === "DELETE") {
+        const id = payload.old.id;
+
+        if (typeof id === "string") {
+            removeTestFromState(id);
+        }
+
+        return;
+    }
+
+    const row = payload.new;
+
+    if (
+        typeof row.id !== "string" ||
+        typeof row.contragent_key !== "string" ||
+        typeof row.nomenclature_key !== "string" ||
+        typeof row.tested_at !== "number" ||
+        !Number.isFinite(row.tested_at) ||
+        typeof row.comment !== "string" ||
+        typeof row.is_suitable !== "boolean"
+    ) {
+        return;
+    }
+
+    const record: TestRecord = {
+        id: row.id,
+        testedAt: row.tested_at,
+        comment: row.comment,
+        isSuitable: row.is_suitable,
+    };
+
+    removeTestFromState(record.id);
+
+    const key = makeClientRowKey(
+        row.contragent_key,
+        row.nomenclature_key,
+    );
+
+    upsertTestInState(key, record);
+}
 
 function applyRealtimeEvent(payload: RealtimePayload): void {
     const row = payload.eventType === "DELETE"
@@ -57,7 +138,6 @@ function applyRealtimeEvent(payload: RealtimePayload): void {
         return;
     }
 
-    // Клиентские комментарии: клиент + исходная + найденная номенклатура.
     if (payload.table === "client_comments") {
         const contragentKey = row.contragent_key;
         const searchNomenclatureKey = row.search_nomenclature_key;
@@ -90,11 +170,7 @@ function applyRealtimeEvent(payload: RealtimePayload): void {
         return;
     }
 
-    // Скрытые строки и тесты: клиент + номенклатура.
-    if (
-        payload.table === "hidden_rows" ||
-        payload.table === "row_tests"
-    ) {
+    if (payload.table === "hidden_rows") {
         const contragentKey = row.contragent_key;
         const nomenclatureKey = row.nomenclature_key;
 
@@ -105,39 +181,25 @@ function applyRealtimeEvent(payload: RealtimePayload): void {
             return;
         }
 
-        const key = JSON.stringify([
+        const key = makeClientRowKey(
             contragentKey,
             nomenclatureKey,
-        ]);
+        );
 
-        if (payload.table === "hidden_rows") {
-            const next = new Set(hiddenRows.value);
+        const next = new Set(hiddenRows.value);
 
-            if (isDelete) {
-                next.delete(key);
-            } else {
-                next.add(key);
-            }
-
-            hiddenRows.value = next;
-            return;
+        if (isDelete) {
+            next.delete(key);
+        } else {
+            next.add(key);
         }
 
-        if (payload.table === "row_tests") {
-            const testedAt = row.tested_at;
-            const next = { ...tests.value };
+        hiddenRows.value = next;
+        return;
+    }
 
-            if (isDelete) {
-                delete next[key];
-            } else if (
-                typeof testedAt === "number" &&
-                Number.isFinite(testedAt)
-            ) {
-                next[key] = testedAt;
-            }
-
-            tests.value = next;
-        }
+    if (payload.table === "row_tests") {
+        applyRealtimeTestEvent(payload);
     }
 }
 
@@ -161,8 +223,6 @@ async function initialize(): Promise<void> {
         isLoading.value = true;
 
         try {
-            // Сначала подписываемся, чтобы не пропустить изменения
-            // во время первоначальной загрузки.
             if (!unsubscribe) {
                 unsubscribe = subscribeToUserData(
                     handleRealtimeEvent,
@@ -178,7 +238,6 @@ async function initialize(): Promise<void> {
 
             isLoaded.value = true;
 
-            // Применяем события, пришедшие во время загрузки.
             pendingEvents.splice(0).forEach(applyRealtimeEvent);
 
             console.info(
@@ -258,10 +317,10 @@ async function updateHiddenRow(
         isHidden,
     );
 
-    const key = JSON.stringify([
+    const key = makeClientRowKey(
         contragentKey,
         nomenclatureKey,
-    ]);
+    );
 
     const next = new Set(hiddenRows.value);
 
@@ -274,44 +333,50 @@ async function updateHiddenRow(
     hiddenRows.value = next;
 }
 
-async function updateTest(
+async function addTest(
     contragentKey: string,
     nomenclatureKey: string,
-    date: number,
-): Promise<void> {
-    await saveTest(
+    testedAt: number,
+    comment: string,
+    isSuitable: boolean,
+): Promise<TestRecord> {
+    const record = await createTestRequest(
         contragentKey,
         nomenclatureKey,
-        date,
+        testedAt,
+        comment,
+        isSuitable,
     );
 
-    const key = JSON.stringify([
+    const key = makeClientRowKey(
         contragentKey,
         nomenclatureKey,
-    ]);
+    );
 
-    tests.value = {
-        ...tests.value,
-        [key]: date,
-    };
+    upsertTestInState(key, record);
+
+    return record;
 }
 
-async function deleteTest(
-    contragentKey: string,
-    nomenclatureKey: string,
+async function updateTest(
+    id: string,
+    updates: TestUpdate,
 ): Promise<void> {
-    await removeTest(
-        contragentKey,
-        nomenclatureKey,
+    const matchingKey = Object.keys(tests.value).find(key =>
+        tests.value[key]?.some(test => test.id === id),
     );
 
-    const next = { ...tests.value };
+    const record = await updateTestRequest(id, updates);
 
-    delete next[
-        JSON.stringify([contragentKey, nomenclatureKey])
-    ];
+    if (matchingKey) {
+        upsertTestInState(matchingKey, record);
+    }
+}
 
-    tests.value = next;
+async function deleteTest(id: string): Promise<void> {
+    await removeTestRequest(id);
+
+    removeTestFromState(id);
 }
 
 export function useUserData() {
@@ -326,6 +391,7 @@ export function useUserData() {
         updateGeneralComment,
         updateClientComment,
         updateHiddenRow,
+        addTest,
         updateTest,
         deleteTest,
     };
