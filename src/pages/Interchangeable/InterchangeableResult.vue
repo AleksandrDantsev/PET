@@ -48,7 +48,7 @@ const searchQuery = defineModel<string>("searchQuery", {
 });
 
 
-const PAGINATION_LENGTH = 30;
+const PAGINATION_LENGTH = 15;
 const currentPage = ref(1);
 
 const {
@@ -692,19 +692,19 @@ $colorSvg: #a0a0a0;
 
 :deep(.n-data-table .searched-match-row) {
     @include searched-row(
-        #f3e3dc,
-        #ecdbd591,
-        #cc98835e,
+        #f3e5df96,
+        #ecdbd56b,
+        #dbaa965e,
         #f5e9e4
     );
 }
 
 :deep(.n-data-table .searched-nomenclature-row) {
     @include searched-row(
-        #d6dde7,
-        #d5e0ec91,
-        #83a5cc5e,
-        #e5e8ece7
+        #d6dde78e,
+        #dde5ee91,
+        #83a5cc4b,
+        #ebeef3e7
     );
 }
 
